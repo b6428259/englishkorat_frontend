@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-50">
+      <header className="bg-[#334293] shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-2">
             <div className="flex items-center">
@@ -20,54 +20,64 @@ export default function Home() {
             </div>
             
             {/* Navigation */}
-            <nav className="hidden md:flex items-center space-x-8">
-              <Link href="/" className="text-gray-700 hover:text-blue-600 transition-colors">
+            <nav className="hidden md:flex items-center space-x-20">
+              <Link href="/" className="text-[#EFE957] hover:text-[#EFD157] transition-colors hover:scale-105">
                 หน้าแรก
               </Link>
-              <Link href="/courses" className="text-gray-700 hover:text-blue-600 transition-colors">
+              <Link href="/courses" className="text-[#EFE957] hover:text-[#EFD157] transition-colors hover:scale-105">
                 คอร์สเรียน
               </Link>
-              <Link href="/about" className="text-gray-700 hover:text-blue-600 transition-colors">
+              <Link href="/about" className="text-[#EFE957] hover:text-[#EFD157] transition-colors hover:scale-105">
                 เกี่ยวกับเรา
               </Link>
-              <Link href="/contact" className="text-gray-700 hover:text-blue-600 transition-colors">
+              <Link href="/contact" className="text-[#EFE957] hover:text-[#EFD157] transition-colors hover:scale-105">
                 ติดต่อ
               </Link>
             </nav>
 
-            {/* Login Button */}
-            <Link 
-              href="/auth"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors shadow-md hover:shadow-lg"
-            >
-              เข้าสู่ระบบ
-            </Link>
+            {/* Mascot + Login Button */}
+            <div className="flex items-center space-x-8">
+              <Image 
+                src="/mascot.png" 
+                alt="Mascot"
+                width={120}
+                height={100}
+                className="hidden sm:block"
+              />
+              <Link 
+                href="/auth"
+                className="bg-[#EFE957] hover:bg-[#EFD157] text-[#334293] px-6 py-2 rounded-3xl transition-colors shadow-md hover:shadow-lg hover:scale-105"
+              >
+                เข้าสู่ระบบ
+              </Link>
+            </div>
           </div>
         </div>
       </header>
 
+
       {/* Hero Section */}
-      <section className="relative py-20 px-4 overflow-hidden">
+      <section className="relative py-10 px-4 overflow-hidden flex justify-center">
         <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-8">
+          <div className="grid lg:grid-cols-2 gap-20 items-center">
+            <div className="space-y-8 pr-12">
               <div>
                 <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
                   English Korat
-                  <span className="block text-blue-600">เราทำให้คุณพูดได้</span>
+                  <span className="block text-[#334293]">เราทำให้คุณพูดได้</span>
                 </h1>
                 <p className="text-xl text-gray-600 mt-6">
-                  ที่เรียนที่ดีที่สุด สำหรับคนที่ <span className="text-blue-600 font-semibold">#อ่อนภาษาอังกฤษ</span>
+                  ที่เรียนที่ดีที่สุด สำหรับคนที่ <span className="text-[#334293] font-semibold">#อ่อนภาษาอังกฤษ</span>
                   <br />
                   เปลี่ยนชีวิตหลังเรียน ใน <span className="text-red-500 font-bold">3 เดือน ‼️</span>
                 </p>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all shadow-lg hover:shadow-xl transform hover:scale-105">
+                <button className="bg-[#334293] hover:bg-[#EFE957] text-white hover:text-[#334293] px-8 py-4 rounded-lg text-lg font-semibold transition-all shadow-lg hover:shadow-xl transform hover:scale-105">
                   เริ่มเรียนวันนี้
                 </button>
-                <button className="border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all">
+                <button className="border-2 border-[#334293] text-[#334293] hover:bg-[#EFE957] hover:text-[#334293] px-8 py-4 rounded-lg text-lg font-semibold transition-all hover:scale-105">
                   ดูคอร์สเรียน
                 </button>
               </div>
@@ -76,20 +86,25 @@ export default function Home() {
               <div className="flex items-center space-x-6 pt-4">
                 <div className="flex items-center space-x-2">
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
+                    <img 
+                      src="/icons/follower.png" 
+                      alt="Follower" 
+                      className="w-6 h-6"
+                    />
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-gray-900">24,705+</p>
                     <p className="text-sm text-gray-600">ผู้ติดตาม</p>
                   </div>
                 </div>
+                
                 <div className="flex items-center space-x-2">
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                    <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
+                  <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <img 
+                      src="/icons/graduate.png"
+                      alt="Follower" 
+                      className="w-8 h-8"
+                    />
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-gray-900">1000+</p>
@@ -100,19 +115,12 @@ export default function Home() {
             </div>
 
             {/* Hero Image/Illustration */}
-            <div className="relative">
-              <div className="w-full h-96 bg-gradient-to-br from-blue-100 to-indigo-200 rounded-2xl flex items-center justify-center shadow-2xl">
-                <div className="text-center p-8">
-                  <div className="w-32 h-32 bg-blue-600 rounded-full mx-auto mb-6 flex items-center justify-center">
-                    <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                    </svg>
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2">เรียนภาษาอังกฤษ</h3>
-                  <p className="text-gray-600">แบบมืออาชีพ</p>
-                </div>
-              </div>
-            </div>
+            <Image
+              src="/promotion-banner.jpg"
+              alt="promotion-banner"
+              width={600}
+              height={450}
+            />
           </div>
         </div>
       </section>
