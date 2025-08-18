@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 // Types
 interface SidebarItem {
@@ -25,6 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '', onToggle }) => {
   const pathname = usePathname();
   const router = useRouter();
   const { logout } = useAuth();
+  const { t } = useLanguage();
 
   // Handle responsive behavior
   useEffect(() => {
@@ -61,7 +63,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '', onToggle }) => {
   const sidebarItems: SidebarItem[] = [
     {
       id: 'dashboard',
-      label: 'แดชบอร์ด',
+      label: t.dashboard,
       href: '/dashboard',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -72,7 +74,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '', onToggle }) => {
     },
     {
       id: 'student-registration',
-      label: 'ลงทะเบียนนักเรียน',
+      label: t.studentRegistration,
       href: '/studentRegistration',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -82,7 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '', onToggle }) => {
     },
     {
       id: 'profile',
-      label: 'โปรไฟล์',
+      label: t.profile,
       href: '/profile',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -106,7 +108,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '', onToggle }) => {
         }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
         className={`
-          fixed left-0 top-0 h-full bg-white border-r border-gray-200 shadow-lg z-40
+          fixed left-0 top-0 h-full bg-white border-r border-gray-200 shadow-lg z-50
           flex flex-col
           ${isMobile ? 'shadow-2xl' : ''}
           ${className}
@@ -126,7 +128,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '', onToggle }) => {
                 <div className="w-8 h-8 bg-[#334293] rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold text-sm">EK</span>
                 </div>
-                <span className="font-semibold text-gray-900">English Korat</span>
+                <span className="font-semibold text-gray-900">{t.englishKorat}</span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -207,7 +209,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '', onToggle }) => {
                   transition={{ duration: 0.2 }}
                   className="font-medium"
                 >
-                  ออกจากระบบ
+                  {t.logout}
                 </motion.span>
               )}
             </AnimatePresence>
@@ -221,7 +223,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '', onToggle }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black bg-opacity-50 z-30"
+          className="fixed inset-0 bg-black bg-opacity-50 z-40"
           onClick={() => setIsExpanded(false)}
         />
       )}

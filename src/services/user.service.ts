@@ -1,5 +1,15 @@
 import { api } from './api'; 
-import { User, CreateUserRequest } from '../types/user.types'; 
+import { User } from '../types/auth.types'; 
+
+interface CreateUserRequest {
+  username: string;
+  password: string;
+  email: string;
+  phone?: string;
+  line_id?: string;
+  role?: 'student' | 'teacher' | 'admin' | 'owner';
+  branch_id?: number;
+} 
  
 export const userService = { 
   getUsers: async (): Promise<User[]> => { 
