@@ -1,12 +1,24 @@
+"use client"
+
+import Button from "@/components/common/Button";
+import Loading from "@/components/common/Loading";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const router = useRouter();
+
+  const handleCoursesClick = () => {
+    console.log("Courses button clicked");
+    router.push("/courses");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       {/* Header */}
       <header className="bg-[#334293] shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-8xl px-2 mx-50">
           <div className="flex justify-between items-center py-2">
             <div className="flex items-center">
               <Image
@@ -18,40 +30,32 @@ export default function Home() {
                 priority
               />
             </div>
-            
+
             {/* Navigation */}
-            <nav className="hidden md:flex items-center space-x-20">
-              <Link href="/" className="text-[#EFE957] hover:text-[#EFD157] transition-colors hover:scale-105">
-                หน้าแรก
-              </Link>
-              <Link href="/courses" className="text-[#EFE957] hover:text-[#EFD157] transition-colors hover:scale-105">
-                คอร์สเรียน
-              </Link>
-              <Link href="/about" className="text-[#EFE957] hover:text-[#EFD157] transition-colors hover:scale-105">
-                เกี่ยวกับเรา
-              </Link>
-              <Link href="/contact" className="text-[#EFE957] hover:text-[#EFD157] transition-colors hover:scale-105">
-                ติดต่อ
-              </Link>
+            <nav className="hidden md:flex items-center space-x-10">
+              <Button href="/" variant="link">หน้าแรก</Button>
+              <Button onClick={handleCoursesClick} variant="link">คอร์สเรียน</Button>
+              <Button href="/about" variant="link">เกี่ยวกับเรา</Button>
+              <Button href="/contact" variant="link">ติดต่อ</Button>
             </nav>
 
-            {/* Mascot + Login Button */}
-            <div className="flex items-center space-x-8">
-              <Image 
-                src="/mascot.png" 
+            <div className="flex items-center space-x-11">
+            
+              <Button href="/auth" variant="secondary">
+                เข้าสู่ระบบ
+              </Button>
+                <Image
+                src="/mascot.png"
                 alt="Mascot"
                 width={120}
                 height={100}
                 className="hidden sm:block"
               />
-              <Link 
-                href="/auth"
-                className="bg-[#EFE957] hover:bg-[#EFD157] text-[#334293] px-6 py-2 rounded-3xl transition-colors shadow-md hover:shadow-lg hover:scale-105"
-              >
-                เข้าสู่ระบบ
-              </Link>
             </div>
+            
+
           </div>
+          
         </div>
       </header>
 
@@ -74,21 +78,18 @@ export default function Home() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <button className="bg-[#334293] hover:bg-[#EFE957] text-white hover:text-[#334293] px-8 py-4 rounded-lg text-lg font-semibold transition-all shadow-lg hover:shadow-xl transform hover:scale-105">
-                  เริ่มเรียนวันนี้
-                </button>
-                <button className="border-2 border-[#334293] text-[#334293] hover:bg-[#EFE957] hover:text-[#334293] px-8 py-4 rounded-lg text-lg font-semibold transition-all hover:scale-105">
-                  ดูคอร์สเรียน
-                </button>
+                <Button variant="primary">เริ่มเรียนวันนี้</Button>
+                <Button variant="outline">ดูคอร์สเรียน</Button>
               </div>
+
 
               {/* Social Proof */}
               <div className="flex items-center space-x-6 pt-4">
                 <div className="flex items-center space-x-2">
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <img 
-                      src="/icons/follower.png" 
-                      alt="Follower" 
+                    <img
+                      src="/icons/follower.png"
+                      alt="Follower"
                       className="w-6 h-6"
                     />
                   </div>
@@ -97,12 +98,12 @@ export default function Home() {
                     <p className="text-sm text-gray-600">ผู้ติดตาม</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center space-x-2">
                   <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                    <img 
+                    <img
                       src="/icons/graduate.png"
-                      alt="Follower" 
+                      alt="Follower"
                       className="w-8 h-8"
                     />
                   </div>
@@ -187,13 +188,12 @@ export default function Home() {
             เข้าร่วมกับนักเรียนกว่า 24,000+ คนที่ประสบความสำเร็จกับเรา
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-white text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-all shadow-lg">
-              ลงทะเบียนเรียน
-            </button>
-            <button className="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-600 transition-all">
+            <Button variant="secondary">ลงทะเบียนเรียน</Button>
+            <Button variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600">
               ดูรายละเอียดเพิ่มเติม
-            </button>
+            </Button>
           </div>
+
         </div>
       </section>
 
@@ -214,7 +214,7 @@ export default function Home() {
                 </a>
               </div>
             </div>
-            
+
             <div>
               <h4 className="text-lg font-semibold mb-4">เมนู</h4>
               <ul className="space-y-2 text-gray-400">
@@ -224,7 +224,7 @@ export default function Home() {
                 <li><Link href="/contact" className="hover:text-white transition-colors">ติดต่อ</Link></li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="text-lg font-semibold mb-4">ติดต่อเรา</h4>
               <ul className="space-y-2 text-gray-400">
@@ -234,7 +234,7 @@ export default function Home() {
               </ul>
             </div>
           </div>
-          
+
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
             <p>&copy; 2024 English Korat. สงวนลิขสิทธิ์.</p>
           </div>
