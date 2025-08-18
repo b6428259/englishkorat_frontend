@@ -1,16 +1,21 @@
+"use client";
+
 import SidebarLayout from '../../components/common/SidebarLayout';
 import Link from 'next/link';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export default function DashboardPage() {
+  const { t, language } = useLanguage();
+
   return (
-    <SidebarLayout title="แดชบอร์ด - English Korat" description="แดshboard หลักของระบบ English Korat">
+    <SidebarLayout>
       <div className="space-y-6">
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">แดชบอร์ด</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-6">{t.dashboard}</h1>
           
           <div className="bg-gradient-to-r from-[#334293] to-[#4a5cb8] text-white rounded-lg p-6 mb-6">
-            <h2 className="text-2xl font-semibold mb-2">ยินดีต้อนรับ!</h2>
-            <p className="text-blue-100">คุณได้เข้าสู่ระบบเรียบร้อยแล้ว เริ่มต้นการเรียนรู้ภาษาอังกฤษกับเรา</p>
+            <h2 className="text-2xl font-semibold mb-2">{t.welcomeMessage}</h2>
+            <p className="text-blue-100">{t.welcomeSubMessage}</p>
           </div>
           
           {/* Quick Actions */}
@@ -26,8 +31,10 @@ export default function DashboardPage() {
                   </svg>
                 </div>
               </div>
-              <h4 className="font-semibold text-gray-800 mb-2">คอร์สเรียน</h4>
-              <p className="text-sm text-gray-600">จัดการคอร์สเรียนและติดตามความคืบหน้า</p>
+              <h4 className="font-semibold text-gray-800 mb-2">{t.courses}</h4>
+              <p className="text-sm text-gray-600">
+                {language === 'th' ? 'จัดการคอร์สเรียนและติดตามความคืบหน้า' : 'Manage courses and track your progress'}
+              </p>
             </Link>
             
             <Link 
@@ -41,8 +48,12 @@ export default function DashboardPage() {
                   </svg>
                 </div>
               </div>
-              <h4 className="font-semibold text-gray-800 mb-2">ตารางเรียน</h4>
-              <p className="text-sm text-gray-600">ดูตารางเรียนและการนัดหมายของคุณ</p>
+              <h4 className="font-semibold text-gray-800 mb-2">
+                {language === 'th' ? 'ตารางเรียน' : 'Schedule'}
+              </h4>
+              <p className="text-sm text-gray-600">
+                {language === 'th' ? 'ดูตารางเรียนและการนัดหมายของคุณ' : 'View your class schedule and appointments'}
+              </p>
             </Link>
             
             <Link 
@@ -56,15 +67,17 @@ export default function DashboardPage() {
                   </svg>
                 </div>
               </div>
-              <h4 className="font-semibold text-gray-800 mb-2">โปรไฟล์</h4>
-              <p className="text-sm text-gray-600">จัดการข้อมูลส่วนตัวและการตั้งค่า</p>
+              <h4 className="font-semibold text-gray-800 mb-2">{t.profile}</h4>
+              <p className="text-sm text-gray-600">
+                {language === 'th' ? 'จัดการข้อมูลส่วนตัวและการตั้งค่า' : 'Manage your personal information and settings'}
+              </p>
             </Link>
           </div>
         </div>
 
         {/* Recent Activity */}
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">กิจกรรมล่าสุด</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">{t.recentActivity}</h3>
           <div className="space-y-3">
             <div className="flex items-center p-3 bg-gray-50 rounded-lg">
               <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
@@ -73,8 +86,8 @@ export default function DashboardPage() {
                 </svg>
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-800">เข้าสู่ระบบสำเร็จ</p>
-                <p className="text-xs text-gray-500">เมื่อสักครู่</p>
+                <p className="text-sm font-medium text-gray-800">{t.loginSuccess}</p>
+                <p className="text-xs text-gray-500">{t.loginSuccessTime}</p>
               </div>
             </div>
           </div>
@@ -83,9 +96,3 @@ export default function DashboardPage() {
     </SidebarLayout>
   );
 }
-
-// Metadata สำหรับ SEO
-export const metadata = {
-  title: 'แดชบอร์ด - English Korat',
-  description: 'แดshboard หลักของระบบ English Korat',
-};

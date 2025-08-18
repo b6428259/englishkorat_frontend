@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import ClientProvider from "../components/common/ClientProvider";
 
 export const metadata: Metadata = {
   title: "English Korat",
@@ -14,7 +15,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased font-sans">
-        {children}
+        <ClientProvider>
+          {children}
+        </ClientProvider>
       </body>
     </html>
   );
