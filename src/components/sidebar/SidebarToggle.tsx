@@ -14,12 +14,13 @@ import { SidebarToggleProps } from './types';
  * Chevron icon component for the toggle button
  */
 const ChevronIcon = ({ expanded }: { expanded: boolean }) => (
-  <svg 
-    className={`w-4 h-4 transition-transform duration-300 ${expanded ? 'rotate-180' : 'rotate-0'}`} 
-    fill="none" 
-    stroke="currentColor" 
+  <svg
+    className={`w-5 h-5 transition-transform duration-300 ${expanded ? 'rotate-180' : 'rotate-0'}`}
+    fill="none"
+    stroke="currentColor"
     viewBox="0 0 24 24"
-    strokeWidth={2.5}
+    strokeWidth={2.2}
+    style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.08))' }}
   >
     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
   </svg>
@@ -34,15 +35,15 @@ const SidebarToggle: React.FC<SidebarToggleProps> = ({ expanded, isMobile, onTog
 
   return (
     <motion.div
-      className="absolute top-1/2 -right-4 transform -translate-y-1/2 z-50"
+      className="absolute top-1/2 -right-5 transform -translate-y-1/2 z-50"
       initial={false}
-      animate={{ 
+      animate={{
         x: expanded ? 0 : 0,
-        opacity: 1 
+        opacity: 1
       }}
-      transition={{ 
-        duration: 0.2,
-        ease: "easeInOut" 
+      transition={{
+        duration: 0.25,
+        ease: 'easeInOut'
       }}
     >
       <Button
@@ -51,9 +52,10 @@ const SidebarToggle: React.FC<SidebarToggleProps> = ({ expanded, isMobile, onTog
         radius="full"
         variant="solid"
         color="primary"
-        className="w-8 h-8 min-w-8 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 cursor-pointer"
+        className="w-9 h-9 min-w-9 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer border border-gray-200 bg-white text-gray-700"
+        style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}
         onPress={onToggle}
-        aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
+        aria-label={expanded ? 'Collapse sidebar' : 'Expand sidebar'}
       >
         <ChevronIcon expanded={expanded} />
       </Button>

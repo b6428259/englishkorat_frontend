@@ -5,39 +5,48 @@ import Head from 'next/head';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import Footer from './Footer';
+import Breadcrumb from './Breadcrumb';
+import { useSidebar } from '../../contexts/SidebarContext';
+
+interface BreadcrumbItem {
+  label: string;
+  href?: string;
+}
 
 interface SidebarLayoutProps {
   children: React.ReactNode;
   title?: string;
   description?: string;
+  breadcrumbItems?: BreadcrumbItem[];
+  showBreadcrumb?: boolean;
 }
 
 const SidebarLayout: React.FC<SidebarLayoutProps> = ({ 
   children, 
   title = 'English Korat', 
-  description = 'English Korat - Learn English Online' 
+  description = 'English Korat - Learn English Online',
+  breadcrumbItems,
+  showBreadcrumb = true
 }) => {
-  const [isMobile, setIsMobile] = useState(false);
-  const [sidebarExpanded, setSidebarExpanded] = useState(false); // Default to collapsed
+  const { expanded, setExpanded, isMobile, setIsMobile } = useSidebar();
 
-  // Single source of truth: จัดการ responsive ที่นี่ที่เดียว
+  // Handle responsive behavior
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 1024; // lg breakpoint
       setIsMobile(mobile);
-      // Keep sidebar collapsed by default on both mobile and desktop
-      if (mobile && sidebarExpanded) {
-        setSidebarExpanded(false); // Auto-close on mobile resize
-      }
+      
+      // Don't automatically change expanded state on resize
+      // Let user's preference persist
     };
 
     handleResize(); // set initial
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [sidebarExpanded]);
+  }, [setIsMobile]);
 
-  const handleSidebarToggle = (expanded: boolean) => {
-    setSidebarExpanded(expanded);
+  const handleSidebarToggle = (newExpanded: boolean) => {
+    setExpanded(newExpanded);
   };
 
   return (
@@ -51,7 +60,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({
       <div className="min-h-screen bg-gray-50">
         {/* Sidebar (controlled) */}
         <Sidebar 
-          expanded={sidebarExpanded} 
+          expanded={expanded} 
           isMobile={isMobile}
           onToggle={handleSidebarToggle} 
         />
@@ -60,16 +69,21 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({
         <div 
           className={`
             transition-all duration-300 ease-in-out min-h-screen flex flex-col
-            ${!isMobile ? (sidebarExpanded ? 'ml-[280px]' : 'ml-[80px]') : 'ml-0'}
           `}
-          style={{ 
-            marginLeft: isMobile ? '0px' : (sidebarExpanded ? '280px' : '80px'),
-            width: isMobile ? '100%' : `calc(100% - ${sidebarExpanded ? '280px' : '80px'})`
-          }}
         >
-          <Header />
-          <main className="flex-1 p-6">
+          <Header 
+            className={`transition-all duration-300 ease-in-out fixed top-0 left-0 z-40 h-16 
+              ${!isMobile ? (expanded ? 'ml-[280px] max-w-[calc(100vw-280px)] w-[calc(100%-280px)]' : 'ml-[80px] max-w-[calc(100vw-80px)] w-[calc(100%-80px)]') : 'ml-0 w-full max-w-full'}
+            `}
+          />
+          <main 
+            className={`
+              flex-1 p-6 transition-all duration-300 ease-in-out
+              ${!isMobile ? (expanded ? 'ml-[280px]' : 'ml-[80px]') : 'ml-0'}
+            `}
+          >
             <div className="max-w-7xl mx-auto">
+              {showBreadcrumb && <Breadcrumb items={breadcrumbItems} />}
               {children}
             </div>
           </main>

@@ -14,6 +14,8 @@ export interface SidebarChildItem {
   label: string;
   /** Navigation href for the child item */
   href: string;
+  /** Optional icon for the child item */
+  icon?: React.ReactNode;
 }
 
 /**
