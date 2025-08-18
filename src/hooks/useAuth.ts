@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { authService } from '../services/auth.service';
 import { LoginRequest, RegisterRequest, User, AuthResponse } from '../types/auth.types';
 
@@ -29,8 +29,8 @@ export const useAuth = (): UseAuthReturn => {
         setUser(response.data.user);
       }
       return response;
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
+    } catch (err: unknown) {
+      const errorMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
       setError(errorMessage);
       throw err;
     } finally {
@@ -47,8 +47,8 @@ export const useAuth = (): UseAuthReturn => {
         setUser(response.data.user);
       }
       return response;
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก';
+    } catch (err: unknown) {
+      const errorMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก';
       setError(errorMessage);
       throw err;
     } finally {
