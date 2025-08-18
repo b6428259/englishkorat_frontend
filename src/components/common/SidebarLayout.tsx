@@ -17,31 +17,24 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({
   title = 'English Korat', 
   description = 'English Korat - Learn English Online' 
 }) => {
-  const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [sidebarExpanded, setSidebarExpanded] = useState(false); // Default to collapsed
 
-  // Handle responsive behavior
+  // Single source of truth: จัดการ responsive ที่นี่ที่เดียว
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 1024; // lg breakpoint
       setIsMobile(mobile);
-      
-      if (mobile) {
-        setSidebarExpanded(false);
-      } else {
-        setSidebarExpanded(true);
+      // Keep sidebar collapsed by default on both mobile and desktop
+      if (mobile && sidebarExpanded) {
+        setSidebarExpanded(false); // Auto-close on mobile resize
       }
     };
 
-    // Set initial state
-    handleResize();
-
-    // Add event listener
+    handleResize(); // set initial
     window.addEventListener('resize', handleResize);
-
-    // Cleanup
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [sidebarExpanded]);
 
   const handleSidebarToggle = (expanded: boolean) => {
     setSidebarExpanded(expanded);
@@ -56,8 +49,12 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({
       </Head>
       
       <div className="min-h-screen bg-gray-50">
-        {/* Sidebar */}
-        <Sidebar onToggle={handleSidebarToggle} />
+        {/* Sidebar (controlled) */}
+        <Sidebar 
+          expanded={sidebarExpanded} 
+          isMobile={isMobile}
+          onToggle={handleSidebarToggle} 
+        />
         
         {/* Main content area */}
         <div 
@@ -65,18 +62,17 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({
             transition-all duration-300 ease-in-out min-h-screen flex flex-col
             ${!isMobile ? (sidebarExpanded ? 'ml-[280px]' : 'ml-[80px]') : 'ml-0'}
           `}
+          style={{ 
+            marginLeft: isMobile ? '0px' : (sidebarExpanded ? '280px' : '80px'),
+            width: isMobile ? '100%' : `calc(100% - ${sidebarExpanded ? '280px' : '80px'})`
+          }}
         >
-          {/* Header - adjusted for sidebar */}
           <Header />
-          
-          {/* Main content */}
           <main className="flex-1 p-6">
             <div className="max-w-7xl mx-auto">
               {children}
             </div>
           </main>
-          
-          {/* Footer */}
           <Footer />
         </div>
       </div>
