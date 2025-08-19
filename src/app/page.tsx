@@ -17,7 +17,7 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       {/* Header */}
       <header className="bg-[#334293] shadow-sm sticky top-0 z-50">
-        <div className="max-w-8xl px-2 mx-50">
+        <div className="max-w-8xl px-2 mx-30">
           <div className="flex justify-between items-center py-2">
             <div className="flex items-center">
               <Image
@@ -31,15 +31,18 @@ export default function Home() {
             </div>
 
             {/* Navigation */}
-            <nav className="hidden md:flex items-center space-x-10">
-              <Button href="/" variant="link">หน้าแรก</Button>
-              <Button onClick={handleCoursesClick} variant="link">คอร์สเรียน</Button>
-              <Button href="/about" variant="link">เกี่ยวกับเรา</Button>
-              <Button href="/contact" variant="link">ติดต่อ</Button>
+            <nav className="hidden md:flex items-center space-x-20">
+              <Link href="/" >หน้าแรก</Link>
+              <Link href="/course">คอร์สเรียน</Link>
+              <Link href="/about">เกี่ยวกับเรา</Link>
+              <Link href="/contact" >ติดต่อ</Link>
             </nav>
 
-            <div className="flex items-center space-x-11">
+            <div className="flex items-center space-x-5">
             
+              <Button href="/auth" variant="secondary">
+                สมัครเรียน
+              </Button>
               <Button href="/auth" variant="secondary">
                 เข้าสู่ระบบ
               </Button>
@@ -178,7 +181,7 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+      <section className="py-20 bg-[#334293] text-white">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-4xl font-bold mb-6">
             พร้อมเปลี่ยนชีวิตด้วยภาษาอังกฤษแล้วหรือยัง?
