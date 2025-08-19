@@ -12,6 +12,7 @@ export interface Translations {
   profile: string;
   studentRegistration: string;
   logout: string;
+  schedule: string;
 
   // Common
   welcome: string;
@@ -89,6 +90,7 @@ export const translations: Record<Language, Translations> = {
     studentRegistration: 'ลงทะเบียนนักเรียน',
     logout: 'ออกจากระบบ',
     systemSettings: 'การตั้งค่าระบบ',
+    schedule: 'ตารางเรียน',
 
     // Common
     welcome: 'ยินดีต้อนรับ',
@@ -165,6 +167,7 @@ export const translations: Record<Language, Translations> = {
     studentRegistration: 'Student Registration',
     logout: 'Logout',
     systemSettings: 'System Settings',
+    schedule: 'Schedule',
 
     // Common
     welcome: 'Welcome',

@@ -10,7 +10,7 @@ type ButtonProps = {
   type?: 'button' | 'submit' | 'reset';
   className?: string;
   style?: React.CSSProperties;
-  variant?: 'primary' | 'secondary' | 'outline' | 'link' | 'kuy';
+  variant?: 'primary' | 'secondary' | 'outline' | 'link' | 'monthViewClicked' | 'monthView' | 'weekViewClicked' | 'weekView' | 'dayViewClicked' | 'dayView';
 };
 
 const Button: React.FC<ButtonProps> = ({
@@ -31,7 +31,12 @@ const Button: React.FC<ButtonProps> = ({
     secondary: "bg-[#EFE957] text-[#334293] hover:bg-[#EFD157]",
     outline: "border-2 border-[#334293] text-[#334293] hover:bg-[#EFE957]",
     link: "text-[#EFE957] hover:text-[#EFD157]",
-    kuy: "text-white"
+    monthViewClicked: "rounded-e-sm bg-[#334293] text-white",
+    monthView: "border-1 border-[#334293] rounded-e-sm bg-white text-[#334293]",
+    weekViewClicked: "rounded-sm bg-[#334293] text-white",
+    weekView: "border-1 border-[#334293] rounded-sm bg-white text-[#334293]",
+    dayViewClicked: "rounded-s-sm bg-[#334293] text-white",
+    dayView: "border-1 border-[#334293] rounded-s-sm bg-white text-[#334293]"
   };
 
   const combinedClass = `${baseStyle} ${variants[variant]} ${className}`;
