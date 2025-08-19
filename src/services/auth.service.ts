@@ -7,7 +7,7 @@ export const authService = {
     const response = await api.post('/auth/login', credentials); 
     // เก็บ token ใน localStorage
     if (typeof window !== 'undefined' && response.data.success && response.data.data.token) {
-      window.localStorage.setItem('token', response.data.data.token);
+      window.localStorage.setItem('authToken', response.data.data.token);
     }
     return response.data; 
   }, 
@@ -16,7 +16,7 @@ export const authService = {
     const response = await api.post('/auth/register', userData);
     // เก็บ token ใน localStorage หลังจากสมัครสมาชิกสำเร็จ
     if (typeof window !== 'undefined' && response.data.success && response.data.data.token) {
-      window.localStorage.setItem('token', response.data.data.token);
+      window.localStorage.setItem('authToken', response.data.data.token);
     }
     return response.data;
   },
@@ -24,19 +24,19 @@ export const authService = {
   logout: async (): Promise<void> => { 
     await api.post('/auth/logout'); 
     if (typeof window !== 'undefined') {
-      window.localStorage.removeItem('token'); 
+      window.localStorage.removeItem('authToken'); 
     }
   },
 
   // ตรวจสอบว่ายังล็อกอินอยู่หรือไม่
   isAuthenticated: (): boolean => {
     if (typeof window === 'undefined') return false;
-    return !!window.localStorage.getItem('token');
+    return !!window.localStorage.getItem('authToken');
   },
 
   // ดึง token ปัจจุบัน
   getToken: (): string | null => {
     if (typeof window === 'undefined') return null;
-    return window.localStorage.getItem('token');
+    return window.localStorage.getItem('authToken');
   },
 }; 

@@ -23,13 +23,21 @@ const SystemSettingsPage = () => {
           </section>
 
           {/* Example: Language Switch */}
-          <section>
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Language</h2>
-            <div className="flex gap-4">
-              <button className="px-4 py-2 rounded bg-[#334293] text-white hover:bg-[#2a3875]">English</button>
-              <button className="px-4 py-2 rounded bg-gray-200 text-gray-800 hover:bg-gray-300">ไทย</button>
-            </div>
-          </section>
+        <section>
+  <h2 className="text-xl font-semibold text-gray-800 mb-4">Language</h2>
+  <div className="flex gap-4">
+    <button className="px-4 py-2 rounded bg-[#334293] text-white hover:bg-[#2a3875] flex items-center gap-2">
+      {/* ธงอังกฤษ */}
+      <span className="text-xl">🇬🇧</span>
+      English
+    </button>
+    <button className="px-4 py-2 rounded bg-gray-200 text-gray-800 hover:bg-gray-300 flex items-center gap-2">
+      {/* ธงไทย */}
+      <span className="text-xl">🇹🇭</span>
+      ไทย
+    </button>
+  </div>
+</section>
 
           {/* Example: System Info */}
           <section>

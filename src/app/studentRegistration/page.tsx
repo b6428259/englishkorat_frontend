@@ -34,7 +34,7 @@ export default function StudentRegistrationPage() {
   };
 
   const handleCancel = () => {
-    router.push('/dashboard');
+    router.back();
   };
 
   return (

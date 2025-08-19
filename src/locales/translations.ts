@@ -1,6 +1,9 @@
 export type Language = 'th' | 'en';
 
 export interface Translations {
+  recentCEFR: string;
+  currentEducation: string;
+  notest: any;
   newStudent: string;
   systemUpdate: string;
   systemUpdateDesc: string;
@@ -136,12 +139,15 @@ export const translations: Record<Language, Translations> = {
     lastNameTh: 'นามสกุล (ภาษาไทย)',
     coursePreferences: 'ความต้องการเรียน',
     selectLevel: 'เลือกระดับ',
+    notest: 'ไม่เคยมีการทดสอบ (No Test)',
     beginner: 'เริ่มต้น (Beginner)',
     elementary: 'พื้นฐาน (Elementary)',
     intermediate: 'ปานกลาง (Intermediate)',
     upperIntermediate: 'ปานกลาง-สูง (Upper-Intermediate)',
     advanced: 'สูง (Advanced)',
-      learningNeeds: 'ความต้องการเรียน',
+    learningNeeds: 'ความต้องการเรียน',
+    currentEducation: 'ระดับการศึกษาปัจจุบัน',
+    recentCEFR: 'ระดับ CEFR ล่าสุด',
 
       // Placeholders
       pleaseEnterName: 'กรุณากรอกชื่อ',
@@ -212,12 +218,15 @@ export const translations: Record<Language, Translations> = {
     lastNameTh: 'Last Name (Thai)',
     coursePreferences: 'Course Preferences',
     selectLevel: 'Select Level',
+    notest: 'No Test Record',
     beginner: 'Beginner',
     elementary: 'Elementary',
     intermediate: 'Intermediate',
     upperIntermediate: 'Upper-Intermediate',
     advanced: 'Advanced',
     learningNeeds: 'Learning Needs',
+    currentEducation: 'Current Education Level',
+    recentCEFR: 'Recent CEFR Level',
 
     // Placeholders
     pleaseEnterName: 'Please enter name',
