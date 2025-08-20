@@ -62,7 +62,7 @@ export default function newStudentRegistrationByAdmin() {
       console.log('Creating student:', data);
       
       // API call to create student - replace with actual endpoint
-      const response = await fetch('http://localhost:3000/api/v1/students', {
+      const response = await fetch('http://54.254.53.52:3000/api/v1/students', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

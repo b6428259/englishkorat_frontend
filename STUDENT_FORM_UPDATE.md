@@ -23,7 +23,7 @@
    - **🆕 กรองตามระดับภาษาที่เลือก (Level Matching)**
 
 5. **การเชื่อมต่อ API จริง**
-   - ดึงข้อมูลคอร์สจาก `http://localhost:3000/api/v1/course`
+   - ดึงข้อมูลคอร์สจาก `http://54.254.53.52:3000/api/v1/course`
    - จัดการ Authentication Token ผ่าน localStorage
    - สร้าง Service layer สำหรับจัดการ API calls
 
@@ -109,14 +109,14 @@ interface Course {
 
 ```typescript
 // GET Courses
-GET http://localhost:3000/api/v1/course
+GET http://54.254.53.52:3000/api/v1/course
 Headers: {
   "Authorization": "Bearer {{token}}",
   "Content-Type": "application/json"
 }
 
 // POST Student (TODO)
-POST http://localhost:3000/api/v1/students
+POST http://54.254.53.52:3000/api/v1/students
 Headers: {
   "Authorization": "Bearer {{token}}",
   "Content-Type": "application/json"

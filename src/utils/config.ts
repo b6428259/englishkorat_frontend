@@ -7,7 +7,7 @@ export const ENV_CONFIG = {
     BASE_URL: `https://${process.env.NEXT_PUBLIC_S3_BUCKET || process.env.S3_BUCKET || ''}.s3.${process.env.NEXT_PUBLIC_AWS_REGION || process.env.AWS_REGION || ''}.amazonaws.com`,
   },
   API: {
-    BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1',
+    BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://54.254.53.52:3000/api/v1',
   }
 } as const;
 

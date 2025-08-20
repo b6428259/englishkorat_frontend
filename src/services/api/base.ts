@@ -1,7 +1,7 @@
 import axios, { AxiosResponse, AxiosError } from 'axios';
 import { getSecureToken, removeSecureToken } from '../../utils/secureStorage';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://54.254.53.52:3000/api/v1';
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
