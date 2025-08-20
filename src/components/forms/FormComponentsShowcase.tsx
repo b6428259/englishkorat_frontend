@@ -3,12 +3,19 @@
 import React from 'react';
 import { Select, TeacherTypeSelector, TimeSlotSelector } from '../forms';
 
+interface TimeSlot {
+  id: string;
+  day: string;
+  timeFrom: string;
+  timeTo: string;
+}
+
 // Example component to showcase the new form components
 export const FormComponentsShowcase: React.FC = () => {
   const [selectValue, setSelectValue] = React.useState('');
   const [teacherType, setTeacherType] = React.useState('');
-  const [preferredSlots, setPreferredSlots] = React.useState<any[]>([]);
-  const [unavailableSlots, setUnavailableSlots] = React.useState<any[]>([]);
+  const [preferredSlots, setPreferredSlots] = React.useState<TimeSlot[]>([]);
+  const [unavailableSlots, setUnavailableSlots] = React.useState<TimeSlot[]>([]);
 
   const selectOptions = [
     { value: '', label: 'เลือกตัวเลือก', disabled: true },

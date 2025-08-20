@@ -15,7 +15,7 @@ const iconProps = {
   className: '', // สีจะกำหนดใน Sidebar.tsx ตาม active
 };
 
-export const LogoutIcon = (props: any) => (
+export const LogoutIcon = (props: React.SVGProps<SVGElement>) => (
   <HiOutlineDocumentText {...iconProps} {...props} />
 );
 

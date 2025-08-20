@@ -4,12 +4,12 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import SidebarLayout from '@/components/common/SidebarLayout';
 import { useLanguage } from '@/contexts/LanguageContext';
-import StudentForm from '@/components/forms/StudentForm';
+import StudentForm, { StudentFormData } from '@/components/forms/StudentForm';
 import { courseService } from '@/services/course.service';
 import { authService } from '@/services/auth.service';
 import type { Course } from '@/services/api/courses'; // Import the Course type from the correct location
 
-export default function newStudentRegistrationByAdmin() {
+export default function NewStudentRegistrationByAdmin() {
   const { t, language } = useLanguage();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -27,7 +27,7 @@ export default function newStudentRegistrationByAdmin() {
 
         const coursesData = await courseService.getCourses();
         // Map courses to include missing branch_id, branch_name, branch_code if needed
-        const mappedCourses = coursesData.data.courses.map((course: any) => ({
+        const mappedCourses = coursesData.data.courses.map((course: Course) => ({
           ...course,
           branch_id: course.branch_id ?? 0,
           branch_name: course.branch_name ?? '',
@@ -49,7 +49,7 @@ export default function newStudentRegistrationByAdmin() {
     fetchCourses();
   }, [router]);
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: StudentFormData) => {
     setLoading(true);
     try {
       const token = authService.getToken();
