@@ -7,7 +7,12 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 const SystemSettingsPage = () => {
   const { t } = useLanguage();
   return (
-    <SidebarLayout>
+    <SidebarLayout
+      breadcrumbItems={[
+        { label: t.settings },
+        { label: t.systemSettings || "System Settings" }
+      ]}
+    >
       <div className="bg-white rounded-lg shadow-sm p-8 max-w-2xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-6">{t.systemSettings || "System Settings"}</h1>
         <div className="space-y-8">

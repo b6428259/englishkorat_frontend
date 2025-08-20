@@ -28,14 +28,22 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({ items, showHome = true }) => {
     // Path name translations
     const pathTranslations: Record<string, { th: string; en: string }> = {
       dashboard: { th: 'แดชบอร์ด', en: 'Dashboard' },
-      students: { th: 'นักเรียน', en: 'Students' },
+      students: { th: 'จัดการนักเรียน', en: 'Student Management' },
       new: { th: 'เพิ่มใหม่', en: 'New' },
       list: { th: 'รายชื่อ', en: 'List' },
+      assign: { th: 'มอบหมาย', en: 'Assign' },
       settings: { th: 'การตั้งค่า', en: 'Settings' },
       profile: { th: 'โปรไฟล์', en: 'Profile' },
       password: { th: 'รหัสผ่าน', en: 'Password' },
       system: { th: 'ระบบ', en: 'System' },
-      studentRegistration: { th: 'ลงทะเบียนนักเรียน', en: 'Student Registration' }
+      systemSettings: { th: 'การตั้งค่าระบบ', en: 'System Settings' },
+      studentRegistration: { th: 'ลงทะเบียนนักเรียน', en: 'Student Registration' },
+      schedule: { th: 'ตารางเรียน', en: 'Schedule' },
+      auth: { th: 'เข้าสู่ระบบ', en: 'Authentication' },
+      courses: { th: 'หลักสูตร', en: 'Courses' },
+      teachers: { th: 'ครู', en: 'Teachers' },
+      analytics: { th: 'วิเคราะห์ข้อมูล', en: 'Analytics' },
+      reports: { th: 'รายงาน', en: 'Reports' }
     };
 
     let currentPath = '';
@@ -59,10 +67,11 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({ items, showHome = true }) => {
 
   const breadcrumbItems = items || generateBreadcrumbs();
 
-  if (breadcrumbItems.length === 0) return null;
+  // Don't render if on root path and no specific items provided
+  if (pathname === '/' || (breadcrumbItems.length === 0 && !items)) return null;
 
   return (
-    <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-6" aria-label="Breadcrumb">
+    <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-6 bg-white p-3 rounded-lg shadow-sm" aria-label="Breadcrumb">
       {showHome && (
         <>
           <Link 

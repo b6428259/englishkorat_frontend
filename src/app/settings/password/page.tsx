@@ -98,7 +98,12 @@ export default function ChangePasswordPage() {
   };
 
   return (
-    <SidebarLayout>
+    <SidebarLayout
+      breadcrumbItems={[
+        { label: t.settings, href: '/settings' },
+        { label: t.changePassword }
+      ]}
+    >
       <div className="bg-white rounded-lg shadow-sm p-6 max-w-md mx-auto">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{t.changePassword}</h1>

@@ -193,7 +193,7 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
                   required
                   value={formData.username}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-colors duration-200 ${
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-colors duration-200 text-black ${
                     errors.username 
                       ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
                       : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500'
@@ -218,7 +218,7 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
                   required
                   value={formData.password}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-colors duration-200 ${
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-colors duration-200 text-black ${
                     errors.password 
                       ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
                       : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500'

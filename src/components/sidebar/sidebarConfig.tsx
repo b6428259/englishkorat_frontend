@@ -7,6 +7,7 @@
 import { SidebarItem } from './types';
 import { Translations } from '@/locales/translations';
 import { HiOutlineSquares2X2, HiOutlineChartBar, HiOutlineDocumentText, HiOutlineCog, HiOutlineIdentification, HiOutlineUser, HiOutlineKey } from 'react-icons/hi2';
+import { GrSchedules } from "react-icons/gr";
 
 // Icon props for easy future customization
 const iconProps = {
@@ -26,35 +27,52 @@ export const getSidebarItems = (t: Translations): SidebarItem[] => [
     icon: <HiOutlineSquares2X2 {...iconProps} />,
   },
   {
+    id: 'teacher-portal',
+    label: t.teacherPortal,
+    icon: <HiOutlineUser {...iconProps} />,
+    children: [
+      { id: 'schedule', label: t.schedule, href: '/schedule', icon: <GrSchedules {...iconProps} /> },
+    ],
+  },
+  {
     id: 'dashboard-analytic',
-    label: 'Analytics',
+    label: t.analytics,
     href: '/dashboard/analytic',
     icon: <HiOutlineChartBar {...iconProps} />,
   },
   {
     id: 'dashboard-report',
-    label: 'Reports',
+    label: t.reports,
     href: '/dashboard/report',
     icon: <HiOutlineDocumentText {...iconProps} />,
   },
   {
     id: 'student-management',
-    label: 'จัดการนักเรียน',
+    label: t.studentManagement,
     icon: <HiOutlineIdentification {...iconProps} />,
     children: [
-      { id: 'student-registration', label: t.studentRegistration, href: '/studentRegistration', icon: <HiOutlineIdentification {...iconProps} /> },
-      { id: 'student-new', label: 'นักเรียนใหม่', href: '/students/new', icon: <HiOutlineUser {...iconProps} /> },
-      { id: 'student-list', label: 'รายชื่อนักเรียน', href: '/students/list', icon: <HiOutlineDocumentText {...iconProps} /> },
+      { id: 'student-assign', label: t.studentRegistration, href: '/students/assign', icon: <HiOutlineIdentification {...iconProps} /> },
+      { id: 'student-new', label: t.studentNew, href: '/students/new', icon: <HiOutlineUser {...iconProps} /> },
+      { id: 'student-list', label: t.studentList, href: '/students/list', icon: <HiOutlineDocumentText {...iconProps} /> },
+    ],
+  },
+  {
+    id: 'teacher-management',
+    label: t.teacherManagement,
+    icon: <HiOutlineUser {...iconProps} />,
+    children: [
+      { id: 'teacher-list', label: t.teacherList, href: '/teachers/list', icon: <HiOutlineDocumentText {...iconProps} /> },
+      { id: 'teacher-new', label: t.teacherNew, href: '/teachers/new', icon: <HiOutlineUser {...iconProps} /> },
     ],
   },
   {
     id: 'settings',
-    label: 'Settings',
+    label: t.settings,
     icon: <HiOutlineCog {...iconProps} />,
     children: [
-      { id: 'settings-profile', label: 'Personal Info', href: '/settings/profile', icon: <HiOutlineUser {...iconProps} /> },
-      { id: 'settings-system', label: 'System Settings', href: '/settings/system', icon: <HiOutlineCog {...iconProps} /> },
-      { id: 'settings-password', label: 'Change Password', href: '/settings/password', icon: <HiOutlineKey {...iconProps} /> },
+      { id: 'settings-profile', label: t.settingsProfile, href: '/settings/profile', icon: <HiOutlineUser {...iconProps} /> },
+      { id: 'settings-system', label: t.settingsSystem, href: '/settings/system', icon: <HiOutlineCog {...iconProps} /> },
+      { id: 'settings-password', label: t.settingsPassword, href: '/settings/password', icon: <HiOutlineKey {...iconProps} /> },
     ],
   },
 ];

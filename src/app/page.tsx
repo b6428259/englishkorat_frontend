@@ -39,8 +39,8 @@ export default function Home() {
             </nav>
 
             <div className="flex items-center space-x-5">
-            
-              <Button href="/auth" variant="secondary">
+
+              <Button href="/students/new" variant="secondary">
                 สมัครเรียน
               </Button>
               <Button href="/auth" variant="secondary">

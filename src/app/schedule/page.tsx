@@ -131,7 +131,11 @@ export default function SchedulePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
-    <SidebarLayout>
+    <SidebarLayout
+      breadcrumbItems={[
+        { label: t.schedule }
+      ]}
+    >
       <div className="space-y-6">
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h1 className="text-3xl font-bold text-black mb-6">{t.schedule}</h1>

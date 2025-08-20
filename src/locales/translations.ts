@@ -1,6 +1,19 @@
 export type Language = 'th' | 'en';
 
 export interface Translations {
+  teacherManagement: string;
+  teacherList: string;
+  teacherNew: string;
+  teacherPortal: string;
+  analytics: string;
+  reports: string;
+  studentManagement: string;
+  studentNew: string;
+  studentList: string;
+  settings: string;
+  settingsProfile: string;
+  settingsSystem: string;
+  settingsPassword: string;
   recentCEFR: string;
   currentEducation: string;
   notest: string;
@@ -94,8 +107,6 @@ export interface Translations {
   // Placeholders
   pleaseEnterName: string;
   pleaseEnterLastName: string;
-  pleaseEnterEmail: string;
-  pleaseEnterPhone: string;
   pleaseEnterAddress: string;
 }
 
@@ -115,6 +126,19 @@ export const translations: Record<Language, Translations> = {
     logout: 'ออกจากระบบ',
     systemSettings: 'การตั้งค่าระบบ',
     schedule: 'ตารางเรียน',
+    teacherPortal: 'Teacher Portal',
+    analytics: 'วิเคราะห์ข้อมูล',
+    reports: 'รายงาน',
+    studentManagement: 'การจัดการนักเรียน',
+    studentNew: 'นักเรียนใหม่',
+    studentList: 'รายชื่อนักเรียน',
+    settings: 'การตั้งค่า',
+    settingsProfile: 'ข้อมูลส่วนตัว',
+    settingsSystem: 'การตั้งค่าระบบ',
+    settingsPassword: 'เปลี่ยนรหัสผ่าน',
+    teacherList: 'รายชื่อครู',
+    teacherNew: 'เพิ่มครูใหม่',
+    teacherManagement: 'การจัดการครู',
 
     // Authentication
     login: 'เข้าสู่ระบบ',
@@ -195,8 +219,6 @@ export const translations: Record<Language, Translations> = {
       // Placeholders
       pleaseEnterName: 'กรุณากรอกชื่อ',
       pleaseEnterLastName: 'กรุณากรอกนามสกุล',
-      pleaseEnterEmail: 'กรุณากรอกอีเมล',
-      pleaseEnterPhone: 'กรุณากรอกเบอร์โทรศัพท์',
       pleaseEnterAddress: 'กรุณากรอกที่อยู่',
     },
 
@@ -215,6 +237,21 @@ export const translations: Record<Language, Translations> = {
     logout: 'Logout',
     systemSettings: 'System Settings',
     schedule: 'Schedule',
+    teacherPortal: 'Teacher Portal',
+    analytics: 'Analytics',
+    reports: 'Reports',
+    studentManagement: 'Student Management',
+    settings: 'Settings',
+    studentList: 'Student List',
+    studentNew: 'New Student',
+    settingsPassword: 'Change Password',
+    settingsProfile: 'Profile Settings',
+    settingsSystem: 'System Settings',
+    teacherManagement: 'Teacher Management',
+    teacherList: 'Teacher List',
+    teacherNew: 'New Teacher',
+
+
 
     // Authentication
     login: 'Login',
@@ -295,8 +332,6 @@ export const translations: Record<Language, Translations> = {
     // Placeholders
     pleaseEnterName: 'Please enter name',
     pleaseEnterLastName: 'Please enter last name',
-    pleaseEnterEmail: 'Please enter email',
-    pleaseEnterPhone: 'Please enter phone number',
     pleaseEnterAddress: 'Please enter address',
   }
 }

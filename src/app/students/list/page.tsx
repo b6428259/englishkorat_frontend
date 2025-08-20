@@ -7,7 +7,12 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 export default function StudentListPage() {
   const { t } = useLanguage();
   return (
-    <SidebarLayout>
+    <SidebarLayout
+      breadcrumbItems={[
+        { label: t.studentManagement, href: '/students' },
+        { label: t.studentList }
+      ]}
+    >
       <div className="bg-white rounded-lg shadow-sm p-8">
         <h1 className="text-2xl font-bold mb-4">รายชื่อนักเรียน</h1>
         <p className="text-gray-700">แสดงรายชื่อนักเรียนทั้งหมดที่ลงทะเบียนในระบบ</p>

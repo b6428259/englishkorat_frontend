@@ -2,14 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import SidebarLayout from '../../../components/common/SidebarLayout';
-import { useLanguage } from '../../../contexts/LanguageContext';
-import StudentForm from '../../../components/forms/StudentForm';
-import { courseService } from '../../../services/course.service';
-import { authService } from '../../../services/auth.service';
-import type { Course } from '../../../services/course.service'; // Import the Course type from your service/model
+import SidebarLayout from '@/components/common/SidebarLayout';
+import { useLanguage } from '@/contexts/LanguageContext';
+import StudentForm from '@/components/forms/StudentForm';
+import { courseService } from '@/services/course.service';
+import { authService } from '@/services/auth.service';
+import type { Course } from '@/services/api/courses'; // Import the Course type from the correct location
 
-export default function StudentNewPage() {
+export default function newStudentRegistrationByAdmin() {
   const { t, language } = useLanguage();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -27,7 +27,7 @@ export default function StudentNewPage() {
 
         const coursesData = await courseService.getCourses();
         // Map courses to include missing branch_id, branch_name, branch_code if needed
-        const mappedCourses = coursesData.map((course: any) => ({
+        const mappedCourses = coursesData.data.courses.map((course: any) => ({
           ...course,
           branch_id: course.branch_id ?? 0,
           branch_name: course.branch_name ?? '',
@@ -107,12 +107,13 @@ export default function StudentNewPage() {
   }
 
   return (
-    <SidebarLayout 
-      breadcrumbItems={[
-        { label: language === 'th' ? 'นักเรียน' : 'Students', href: '/students/list' },
-        { label: language === 'th' ? 'เพิ่มนักเรียนใหม่' : 'Add New Student' }
-      ]}
-    >
+<SidebarLayout
+  breadcrumbItems={[
+    { label: language === 'th' ? 'จัดการนักเรียน' : 'Student Management', href: '/students' },
+    { label: language === 'th' ? 'เพิ่มนักเรียนใหม่' : 'Add New Student' }
+  ]}
+>
+
       <div className="bg-white rounded-lg shadow-sm p-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -131,6 +132,6 @@ export default function StudentNewPage() {
           availableCourses={courses}
         />
       </div>
-    </SidebarLayout>
+ </SidebarLayout>
   );
 }
