@@ -2,6 +2,7 @@
 
 import { LanguageProvider } from '../../contexts/LanguageContext';
 import { SidebarProvider } from '../../contexts/SidebarContext';
+import { ToastProvider } from './Toast';
 
 interface ClientProviderProps {
   children: React.ReactNode;
@@ -11,7 +12,9 @@ export default function ClientProvider({ children }: ClientProviderProps) {
   return (
     <LanguageProvider>
       <SidebarProvider>
-        {children}
+        <ToastProvider>
+          {children}
+        </ToastProvider>
       </SidebarProvider>
     </LanguageProvider>
   );

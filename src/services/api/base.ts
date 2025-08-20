@@ -36,8 +36,8 @@ api.interceptors.response.use(
       }
     } else if (error.response?.status === 403) {
       console.error('Access forbidden:', error.response.data);
-    } else if (error.response?.status >= 500) {
-      console.error('Server error:', error.response.data);
+    } else if ((error.response?.status ?? 0) >= 500) {
+      console.error('Server error:', error.response?.data);
     } else if (error.code === 'ECONNABORTED') {
       console.error('Request timeout');
     }

@@ -75,6 +75,12 @@ export const getSidebarItems = (t: Translations): SidebarItem[] => [
       { id: 'settings-password', label: t.settingsPassword, href: '/settings/password', icon: <HiOutlineKey {...iconProps} /> },
     ],
   },
+  {
+    id: 'LineOA',
+    label: t.lineOA,
+    href: '/lineoa',
+    icon: <HiOutlineDocumentText {...iconProps} />,
+  }
 ];
 
 /**

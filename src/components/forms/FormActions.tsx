@@ -49,16 +49,13 @@ export const FormActions: React.FC<FormActionsProps> = ({
           {cancelText}
         </Button>
       )}
-      {onSubmit && (
-        <Button
-          type="submit"
-          variant="primary"
-          onClick={onSubmit}
-          loading={loading}
-        >
-          {submitText}
-        </Button>
-      )}
+      <Button
+        type="submit"
+        variant="primary"
+        loading={loading}
+      >
+        {submitText}
+      </Button>
     </div>
   );
 };
