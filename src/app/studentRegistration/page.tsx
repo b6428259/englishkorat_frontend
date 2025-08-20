@@ -75,7 +75,7 @@ export default function StudentRegistration() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const result = await response.json();
+      await response.json();
       
       // Show success message
       alert(language === 'th' ? 'เพิ่มนักเรียนสำเร็จ!' : 'Student added successfully!');

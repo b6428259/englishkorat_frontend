@@ -10,7 +10,7 @@ import { authService } from '@/services/auth.service';
 import type { Course } from '@/services/api/courses'; // Import the Course type from the correct location
 
 export default function NewStudentRegistrationByAdmin() {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -75,7 +75,7 @@ export default function NewStudentRegistrationByAdmin() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const result = await response.json();
+      await response.json();
       
       // Show success message
       alert(language === 'th' ? 'เพิ่มนักเรียนสำเร็จ!' : 'Student added successfully!');

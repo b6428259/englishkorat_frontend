@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import SidebarLayout from "../../components/common/SidebarLayout";
-import Link from "next/link";
 import { useLanguage } from "../../contexts/LanguageContext";
 import Button from "@/components/common/Button";
 import { ButtonGroup } from "@heroui/react";
@@ -124,10 +123,15 @@ const courseColors: Record<string, string> = {
 };
 
 export default function SchedulePage() {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
+  
+  // TODO: Implement schedule functionality
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [currentDate, setCurrentDate] = useState(new Date(2025, 7, 19)); // Aug 19, 2025
   const [viewMode, setViewMode] = useState("DAY"); // View {Month, Week, Day}
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedAppointment, setSelectedAppointment] = useState(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
