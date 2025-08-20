@@ -3,19 +3,40 @@ export type Language = 'th' | 'en';
 export interface Translations {
   recentCEFR: string;
   currentEducation: string;
-  notest: any;
+  notest: string;
   newStudent: string;
   systemUpdate: string;
   systemUpdateDesc: string;
   notifications: string;
   newStudentDesc: string;
   systemSettings: string;
+  
   // Navigation
   dashboard: string;
   profile: string;
   studentRegistration: string;
   logout: string;
   schedule: string;
+
+  // Authentication
+  login: string;
+  loginTitle: string;
+  registerTitle: string;
+  username: string;
+  password: string;
+  confirmPassword: string;
+  dontHaveAccount: string;
+  alreadyHaveAccount: string;
+  loginButton: string;
+  registerButton: string;
+  processing: string;
+  pleaseEnterUsername: string;
+  pleaseEnterPassword: string;
+  pleaseEnterEmail: string;
+  phoneOptional: string;
+  lineIdOptional: string;
+  pleaseEnterPhone: string;
+  pleaseEnterLineId: string;
 
   // Common
   welcome: string;
@@ -94,6 +115,26 @@ export const translations: Record<Language, Translations> = {
     logout: 'ออกจากระบบ',
     systemSettings: 'การตั้งค่าระบบ',
     schedule: 'ตารางเรียน',
+
+    // Authentication
+    login: 'เข้าสู่ระบบ',
+    loginTitle: 'เข้าสู่ระบบ',
+    registerTitle: 'สมัครสมาชิก',
+    username: 'ชื่อผู้ใช้',
+    password: 'รหัสผ่าน',
+    confirmPassword: 'ยืนยันรหัสผ่าน',
+    dontHaveAccount: 'ยังไม่มีบัญชี? ',
+    alreadyHaveAccount: 'มีบัญชีแล้ว? ',
+    loginButton: 'เข้าสู่ระบบ',
+    registerButton: 'สมัครสมาชิก',
+    processing: 'กำลังดำเนินการ...',
+    pleaseEnterUsername: 'กรุณากรอกชื่อผู้ใช้',
+    pleaseEnterPassword: 'กรุณากรอกรหัสผ่าน',
+    pleaseEnterEmail: 'กรุณากรอกอีเมล',
+    phoneOptional: 'เบอร์โทรศัพท์ (ไม่บังคับ)',
+    lineIdOptional: 'Line ID (ไม่บังคับ)',
+    pleaseEnterPhone: 'กรุณากรอกเบอร์โทรศัพท์',
+    pleaseEnterLineId: 'กรุณากรอก Line ID',
 
     // Common
     welcome: 'ยินดีต้อนรับ',
@@ -174,6 +215,26 @@ export const translations: Record<Language, Translations> = {
     logout: 'Logout',
     systemSettings: 'System Settings',
     schedule: 'Schedule',
+
+    // Authentication
+    login: 'Login',
+    loginTitle: 'Login',
+    registerTitle: 'Register',
+    username: 'Username',
+    password: 'Password',
+    confirmPassword: 'Confirm Password',
+    dontHaveAccount: "Don't have an account? ",
+    alreadyHaveAccount: 'Already have an account? ',
+    loginButton: 'Login',
+    registerButton: 'Register',
+    processing: 'Processing...',
+    pleaseEnterUsername: 'Please enter username',
+    pleaseEnterPassword: 'Please enter password',
+    pleaseEnterEmail: 'Please enter email',
+    phoneOptional: 'Phone (Optional)',
+    lineIdOptional: 'Line ID (Optional)',
+    pleaseEnterPhone: 'Please enter phone number',
+    pleaseEnterLineId: 'Please enter Line ID',
 
     // Common
     welcome: 'Welcome',
