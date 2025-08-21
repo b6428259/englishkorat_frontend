@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
+import Image from 'next/image';
 // Memoized animated label component with stable key
 const SidebarLabel = React.memo<{ 
   visible: boolean; 
@@ -200,10 +201,12 @@ const SidebarComponent: React.FC<SidebarProps> = ({ className = '', expanded, is
         <div className="flex items-center gap-3 p-4 border-b border-gray-100 overflow-hidden rounded-t-xl bg-gradient-to-r from-white to-gray-50">
           {/* โลโก้ mock เป็นรูปโปรไฟล์วงกลม (fixed size, no shrink) */}
           <div className="flex-shrink-0" style={{ width: 40, height: 40, minWidth: 40, minHeight: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '9999px', background: '#e5e7eb', overflow: 'hidden' }}>
-            <img
+            <Image
               src="https://ui-avatars.com/api/?name=EK&background=334293&color=fff&size=64"
               alt="Profile"
-              style={{ width: 40, height: 40, objectFit: 'cover', minWidth: 40, minHeight: 40 }}
+              width={40}
+              height={40}
+              style={{ objectFit: 'cover', minWidth: 40, minHeight: 40 }}
             />
           </div>
           {/* ข้อความชื่อ - แสดงหลังขยายเสร็จเท่านั้น */}
