@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from 'next/navigation';
 import SidebarLayout from '../../../components/common/SidebarLayout';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
@@ -48,7 +48,7 @@ export default function TeacherDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchTeacherDetail = async () => {
+  const fetchTeacherDetail = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -65,13 +65,13 @@ export default function TeacherDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [teacherId]);
 
   useEffect(() => {
     if (teacherId) {
       fetchTeacherDetail();
     }
-  }, [teacherId]);
+  }, [teacherId, fetchTeacherDetail]);
 
   const handleBack = () => {
     router.push('/teachers/list');

@@ -5,14 +5,12 @@ import { useRouter } from "next/navigation";
 import SidebarLayout from '@/components/common/SidebarLayout';
 import { ProtectedRoute } from '@/components/common/ProtectedRoute';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useAuth } from '@/contexts/AuthContext';
 import StudentForm, { StudentFormData } from '@/components/forms/StudentForm';
 import { courseService } from '@/services/course.service';
 import type { Course } from '@/services/api/courses';
 
 export default function NewStudentRegistrationByAdmin() {
   const { language } = useLanguage();
-  const { user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);

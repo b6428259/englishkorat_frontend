@@ -13,15 +13,13 @@ interface DateInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement
 export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
   ({ 
     className = '', 
-    variant = 'primary', 
     error = false, 
     language = 'th',
     onChange,
     value,
     placeholder,
-    disabled,
-    ...props 
-  }, ref) => {
+    disabled
+  }) => {
     const handleDateChange = (dateStr: string) => {
       onChange?.({ target: { value: dateStr } });
     };

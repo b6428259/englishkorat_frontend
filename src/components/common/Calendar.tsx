@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { HiCalendarDays, HiChevronLeft, HiChevronRight, HiXMark } from 'react-icons/hi2';
 
 interface CalendarProps {
@@ -35,7 +35,7 @@ export const Calendar: React.FC<CalendarProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Parse selected date
-  const selectedDate = value ? new Date(value) : null;
+  const selectedDate = useMemo(() => value ? new Date(value) : null, [value]);
 
   // Month names
   const monthNames = language === 'th' ? [
@@ -72,7 +72,6 @@ export const Calendar: React.FC<CalendarProps> = ({
     const month = currentMonth.getMonth();
     
     const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
     const startDate = new Date(firstDay);
     startDate.setDate(startDate.getDate() - firstDay.getDay());
     
@@ -199,9 +198,6 @@ export const Calendar: React.FC<CalendarProps> = ({
 
   const calendarDays = getCalendarDays();
   const today = new Date();
-  const currentMonthYear = language === 'th' 
-    ? `${monthNames[currentMonth.getMonth()]} ${currentMonth.getFullYear() + 543}`
-    : `${monthNames[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`;
 
   return (
     <div ref={calendarRef} className={`relative ${className}`}>

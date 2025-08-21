@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Image from 'next/image';
 import LoadingSpinner from './LoadingSpinner';
 
 interface AvatarProps {
@@ -54,13 +55,16 @@ const Avatar: React.FC<AvatarProps> = ({
               <LoadingSpinner size={size === 'sm' ? 'sm' : 'md'} />
             </div>
           )}
-          <img
-            src={src}
-            alt={alt}
-            className={`w-full h-full object-cover rounded-full ${loading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
-            onLoad={handleLoad}
-            onError={handleError}
-          />
+          <div className="relative w-full h-full">
+            <Image
+              src={src}
+              alt={alt}
+              fill
+              className={`object-cover rounded-full ${loading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+              onLoad={handleLoad}
+              onError={handleError}
+            />
+          </div>
         </>
       ) : (
         <div className="w-full h-full bg-gray-200 rounded-full flex items-center justify-center">

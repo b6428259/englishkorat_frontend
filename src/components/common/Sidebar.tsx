@@ -35,6 +35,7 @@ const SidebarLabel = React.memo<{
 
 SidebarLabel.displayName = 'SidebarLabel';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -124,7 +125,8 @@ const SidebarComponent: React.FC<SidebarProps> = ({ className = '', expanded, is
       animatingLabelsRef.current = false;
       forceUpdate({});
     }
-  }, []); // Run only on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only on mount - expanded should not be a dependency here
 
   // Prevent flash by setting initial state immediately
   if (typeof window !== 'undefined' && labelsVisibleRef.current === undefined) {
@@ -199,10 +201,12 @@ const SidebarComponent: React.FC<SidebarProps> = ({ className = '', expanded, is
         {/* Header */}
         <div className="flex items-center gap-3 p-4 border-b border-gray-100 overflow-hidden rounded-t-xl bg-gradient-to-r from-white to-gray-50">
           {/* โลโก้ mock เป็นรูปโปรไฟล์วงกลม (fixed size, no shrink) */}
-          <div className="flex-shrink-0" style={{ width: 40, height: 40, minWidth: 40, minHeight: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '9999px', background: '#e5e7eb', overflow: 'hidden' }}>
-            <img
+          <div className="flex-shrink-0 relative" style={{ width: 40, height: 40, minWidth: 40, minHeight: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '9999px', background: '#e5e7eb', overflow: 'hidden' }}>
+            <Image
               src="https://ui-avatars.com/api/?name=EK&background=334293&color=fff&size=64"
               alt="Profile"
+              width={40}
+              height={40}
               style={{ width: 40, height: 40, objectFit: 'cover', minWidth: 40, minHeight: 40 }}
             />
           </div>
