@@ -52,13 +52,6 @@ export const FormErrorSummary: React.FC<FormErrorSummaryProps> = ({
       }
     }
   }, [errorEntries, autoScroll]);
-
-  // Auto-scroll to first error when errors appear
-  const scrollToFirstErrorCallback = React.useCallback(() => {
-    if (errorEntries.length > 0 && autoScroll) {
-      scrollToFirstError();
-    }
-  }, [errorEntries.length, scrollToFirstError]);
   
   if (errorEntries.length === 0) {
     return null;

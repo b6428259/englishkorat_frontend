@@ -17,7 +17,6 @@ interface FormActionsProps {
 export const FormActions: React.FC<FormActionsProps> = ({
   children,
   onCancel,
-  onSubmit,
   cancelText = 'ยกเลิก',
   submitText = 'บันทึก',
   loading = false,

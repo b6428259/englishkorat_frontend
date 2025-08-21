@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from 'next/navigation';
 import SidebarLayout from '../../../components/common/SidebarLayout';
 import TeachersTable from '../../../components/common/TeachersTable';
@@ -21,7 +21,7 @@ export default function TeacherListPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [teacherTypeFilter, setTeacherTypeFilter] = useState('');
 
-  const fetchTeachers = async (page: number = currentPage, limit: number = itemsPerPage) => {
+  const fetchTeachers = useCallback(async (page: number = currentPage, limit: number = itemsPerPage) => {
     try {
       setLoading(true);
       setError(null);
@@ -41,11 +41,11 @@ export default function TeacherListPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, itemsPerPage]);
 
   useEffect(() => {
     fetchTeachers();
-  }, []);
+  }, [fetchTeachers]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
