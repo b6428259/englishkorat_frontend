@@ -45,7 +45,7 @@ const handleSubmit = async (data: StudentFormData) => {
     // ตัวอย่าง log request ที่จะส่งไปหลังบ้าน
     const requestPayload = {
       method: 'POST',
-      url: `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/students/register`,
+      url: `${process.env.NEXT_PUBLIC_API_BASE_URL}/students/register`,
       headers: {
         'Content-Type': 'application/json'
         // หมายเหตุ: endpoint นี้ไม่ต้องใช้ token
