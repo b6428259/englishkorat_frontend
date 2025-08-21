@@ -25,7 +25,7 @@ src/
 
 ### 1. เข้าถึงหน้า Auth
 ```
-http://54.254.53.52:3000/auth
+https://api.englishkorat.site/auth
 ```
 
 ### 2. คุณสมบัติของหน้า Auth
@@ -52,7 +52,7 @@ http://54.254.53.52:3000/auth
 ### Base URL
 ```typescript
 // ใน .env.local
-NEXT_PUBLIC_API_BASE_URL=http://54.254.53.52:3000/api/v1
+NEXT_PUBLIC_API_BASE_URL=https://api.englishkorat.site/api/v1
 ```
 
 ### Endpoints ที่ใช้
@@ -123,7 +123,7 @@ const ProtectedPage = () => {
 
 ```bash
 # .env.local
-NEXT_PUBLIC_API_BASE_URL=http://54.254.53.52:3000/api/v1
+NEXT_PUBLIC_API_BASE_URL=https://api.englishkorat.site/api/v1
 ```
 
 ## Notes สำหรับ Developer

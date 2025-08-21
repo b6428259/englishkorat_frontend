@@ -5,7 +5,9 @@ export const API_ENDPOINTS = {
     LOGOUT: '/auth/logout', 
     REGISTER: '/auth/register',
     REFRESH: '/auth/refresh',
-    VERIFY: '/auth/verify'
+    VERIFY: '/auth/verify',
+    PROFILE: '/auth/profile',
+    CHANGE_PASSWORD: '/auth/change-password'
   },
   
   // User management endpoints

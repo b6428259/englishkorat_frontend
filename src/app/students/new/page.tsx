@@ -3,14 +3,16 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import SidebarLayout from '@/components/common/SidebarLayout';
+import { ProtectedRoute } from '@/components/common/ProtectedRoute';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import StudentForm, { StudentFormData } from '@/components/forms/StudentForm';
 import { courseService } from '@/services/course.service';
-import { authService } from '@/services/auth.service';
-import type { Course } from '@/services/api/courses'; // Import the Course type from the correct location
+import type { Course } from '@/services/api/courses';
 
 export default function NewStudentRegistrationByAdmin() {
   const { language } = useLanguage();
+  const { user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -20,11 +22,6 @@ export default function NewStudentRegistrationByAdmin() {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        if (!authService.isAuthenticated()) {
-          router.push('/auth');
-          return;
-        }
-
         const coursesData = await courseService.getCourses();
         // Map courses to include missing branch_id, branch_name, branch_code if needed
         const mappedCourses = coursesData.data.courses.map((course: Course) => ({
@@ -36,59 +33,70 @@ export default function NewStudentRegistrationByAdmin() {
         setCourses(mappedCourses);
       } catch (error) {
         console.error('Error fetching courses:', error);
-        // If token is invalid, redirect to login
-        if (error instanceof Error && error.message.includes('authentication')) {
-          router.push('/auth');
-          return;
-        }
       } finally {
         setLoadingCourses(false);
       }
     };
 
     fetchCourses();
-  }, [router]);
+  }, []);
 
-  const handleSubmit = async (data: StudentFormData) => {
-    setLoading(true);
-    try {
-      const token = authService.getToken();
-      if (!token) {
-        alert(language === 'th' ? 'กรุณาเข้าสู่ระบบใหม่' : 'Please login again');
-        router.push('/auth');
-        return;
-      }
+const handleSubmit = async (data: StudentFormData) => {
+  setLoading(true);
+  try {
+    // ตัวอย่าง log request ที่จะส่งไปหลังบ้าน
+    const requestPayload = {
+      method: 'POST',
+      url: `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/students/register`,
+      headers: {
+        'Content-Type': 'application/json'
+        // หมายเหตุ: endpoint นี้ไม่ต้องใช้ token
+      },
+      body: data
+    };
+    
+    console.log('=== Sample Request to Backend ===');
+    console.log('URL:', requestPayload.url);
+    console.log('Method:', requestPayload.method);
+    console.log('Headers:', JSON.stringify(requestPayload.headers, null, 2));
+    console.log('Body:', JSON.stringify(requestPayload.body, null, 2));
+    console.log('================================');
 
-      console.log('Creating student:', data);
+    // ส่ง request จริง
+    const response = await fetch(requestPayload.url, {
+      method: requestPayload.method,
+      headers: requestPayload.headers,
+      body: JSON.stringify(requestPayload.body)
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error('Response error:', result);
       
-      // API call to create student - replace with actual endpoint
-      const response = await fetch('http://54.254.53.52:3000/api/v1/students', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      await response.json();
-      
-      // Show success message
-      alert(language === 'th' ? 'เพิ่มนักเรียนสำเร็จ!' : 'Student added successfully!');
-      
-      // Redirect to student list
-      router.push('/students/list');
-    } catch (error) {
-      console.error('Error creating student:', error);
-      alert(language === 'th' ? 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' : 'An error occurred. Please try again.');
-    } finally {
-      setLoading(false);
+      // Show specific error message from backend
+      const errorMessage = result.message || 'An error occurred';
+      alert(language === 'th' 
+        ? `เกิดข้อผิดพลาด: ${errorMessage}` 
+        : `Error: ${errorMessage}`
+      );
+      return;
     }
-  };
+
+    console.log('Registration successful:', result);
+    
+    alert(language === 'th' ? 'ลงทะเบียนนักเรียนสำเร็จ!' : 'Student registration successful!');
+    router.push('/students/list');
+  } catch (error) {
+    console.error('Error registering student:', error);
+    alert(language === 'th' 
+      ? 'เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง' 
+      : 'Connection error occurred. Please try again.'
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleCancel = () => {
     router.back();
@@ -96,23 +104,26 @@ export default function NewStudentRegistrationByAdmin() {
 
   if (loadingCourses) {
     return (
-      <SidebarLayout>
-        <div className="flex justify-center items-center h-64">
-          <div className="text-gray-600">
-            {language === 'th' ? 'กำลังโหลดข้อมูลคอร์ส...' : 'Loading courses...'}
+      <ProtectedRoute minRole="teacher">
+        <SidebarLayout>
+          <div className="flex justify-center items-center h-64">
+            <div className="text-gray-600">
+              {language === 'th' ? 'กำลังโหลดข้อมูลคอร์ส...' : 'Loading courses...'}
+            </div>
           </div>
-        </div>
-      </SidebarLayout>
+        </SidebarLayout>
+      </ProtectedRoute>
     );
   }
 
   return (
-<SidebarLayout
-  breadcrumbItems={[
-    { label: language === 'th' ? 'จัดการนักเรียน' : 'Student Management', href: '/students' },
-    { label: language === 'th' ? 'เพิ่มนักเรียนใหม่' : 'Add New Student' }
-  ]}
->
+    <ProtectedRoute minRole="teacher">
+      <SidebarLayout
+        breadcrumbItems={[
+          { label: language === 'th' ? 'จัดการนักเรียน' : 'Student Management', href: '/students' },
+          { label: language === 'th' ? 'เพิ่มนักเรียนใหม่' : 'Add New Student' }
+        ]}
+      >
 
       <div className="bg-white rounded-lg shadow-sm p-8">
         <div className="mb-6">
@@ -132,6 +143,7 @@ export default function NewStudentRegistrationByAdmin() {
           availableCourses={courses}
         />
       </div>
- </SidebarLayout>
+    </SidebarLayout>
+    </ProtectedRoute>
   );
 }

@@ -20,6 +20,7 @@ import {
 export interface StudentFormData {
   firstName: string;
   lastName: string;
+  citizenId: string;
   firstNameEn?: string;
   lastNameEn?: string;
   dateOfBirth: string;
@@ -92,6 +93,7 @@ const StudentForm: React.FC<StudentFormProps> = ({
   const [formData, setFormData] = useState<StudentFormData>({
     firstName: initialData.firstName || '',
     lastName: initialData.lastName || '',
+    citizenId: initialData.citizenId || '',
     firstNameEn: initialData.firstNameEn || '',
     lastNameEn: initialData.lastNameEn || '',
     dateOfBirth: initialData.dateOfBirth || '',
@@ -318,6 +320,13 @@ const StudentForm: React.FC<StudentFormProps> = ({
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
       
+      // Special handling for citizenId - format and clean
+      if (field === 'citizenId') {
+        // Remove all non-digit characters and limit to 13 digits
+        const cleanValue = value.replace(/\D/g, '').substring(0, 13);
+        newData.citizenId = cleanValue;
+      }
+      
       // Reset dependent fields when main options change
       if (field === 'preferredLanguage') {
         // Reset language level and recent test when language changes
@@ -377,6 +386,31 @@ const StudentForm: React.FC<StudentFormProps> = ({
     }
     if (!formData.lastName.trim()) {
       newErrors.lastName = language === 'th' ? 'กรุณากรอกนามสกุล' : 'Last name is required';
+    }
+    // citizenId validation
+    if (!formData.citizenId.trim()) {
+      newErrors.citizenId = language === 'th' ? 'กรุณากรอกเลขบัตรประชาชน' : 'Citizen ID is required';
+    } else {
+      // Remove all non-digit characters
+      const cleanCitizenId = formData.citizenId.replace(/\D/g, '');
+      
+      if (cleanCitizenId.length !== 13) {
+        newErrors.citizenId = language === 'th' ? 'เลขบัตรประชาชนต้องมี 13 หลัก' : 'Citizen ID must be 13 digits';
+      } else {
+        // Thai citizen ID checksum validation
+        const digits = cleanCitizenId.split('').map(Number);
+        let sum = 0;
+        
+        for (let i = 0; i < 12; i++) {
+          sum += digits[i] * (13 - i);
+        }
+        
+        const checkDigit = (11 - (sum % 11)) % 10;
+        
+        if (checkDigit !== digits[12]) {
+          newErrors.citizenId = language === 'th' ? 'รูปแบบเลขบัตรประชาชนไม่ถูกต้อง' : 'Invalid Thai Citizen ID format';
+        }
+      }
     }
     if (!formData.dateOfBirth) {
       newErrors.dateOfBirth = language === 'th' ? 'กรุณาเลือกวันเกิด' : 'Date of birth is required';
@@ -485,6 +519,8 @@ const StudentForm: React.FC<StudentFormProps> = ({
             />
           </FormField>
 
+         
+
           <FormField 
             label={language === 'th' ? 'ชื่อ (อังกฤษ)' : 'First Name (English)'}
           >
@@ -504,6 +540,23 @@ const StudentForm: React.FC<StudentFormProps> = ({
               value={formData.lastNameEn}
               onChange={(e) => handleInputChange('lastNameEn', e.target.value)}
               placeholder={language === 'th' ? 'นามสกุลภาษาอังกฤษ (ไม่บังคับ)' : 'English last name (optional)'}
+            />
+          </FormField>
+
+           <FormField
+            label={language === 'th' ? 'เลขบัตรประชาชน' : 'Citizen ID'}
+            required
+            error={errors.citizenId}
+          >
+            <Input
+              name="citizenId"
+              value={formData.citizenId}
+              onChange={(e) => handleInputChange('citizenId', e.target.value)}
+              placeholder={language === 'th' ? 'กรุณากรอกเลขบัตรประชาชน 13 หลัก' : 'Please enter 13-digit Citizen ID'}
+              error={!!errors.citizenId}
+              maxLength={13}
+              inputMode="numeric"
+              pattern="[0-9]*"
             />
           </FormField>
 

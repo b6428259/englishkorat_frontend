@@ -1,6 +1,8 @@
 export type Language = 'th' | 'en';
 
 export interface Translations {
+  studentPortal: string;
+  studentSchedule: string;
   lineOA: string;
   teacherManagement: string;
   teacherList: string;
@@ -142,6 +144,8 @@ export const translations: Record<Language, Translations> = {
     teacherNew: 'เพิ่มครูใหม่',
     teacherManagement: 'การจัดการครู',
     lineOA: 'Line OA',
+    studentPortal: 'Student Portal',
+    studentSchedule: 'ตารางเรียนนักเรียน',
 
     // Authentication
     login: 'เข้าสู่ระบบ',
@@ -241,6 +245,8 @@ export const translations: Record<Language, Translations> = {
     systemSettings: 'System Settings',
     schedule: 'Schedule',
     teacherPortal: 'Teacher Portal',
+    studentPortal: 'Student Portal',
+    studentSchedule: 'Student Schedule',
     analytics: 'Analytics',
     reports: 'Reports',
     studentManagement: 'Student Management',

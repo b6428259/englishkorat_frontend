@@ -1,6 +1,6 @@
 import { api } from './base';
 import { API_ENDPOINTS } from './endpoints';
-import { LoginRequest, RegisterRequest, AuthResponse } from '../../types/auth.types';
+import { LoginRequest, RegisterRequest, AuthResponse, ProfileResponse, UpdateProfileRequest, ChangePasswordRequest } from '../../types/auth.types';
 import { setSecureToken, getSecureToken, removeSecureToken, hasValidToken } from '../../utils/secureStorage';
 
 export const authApi = {
@@ -71,6 +71,48 @@ export const authApi = {
       setSecureToken(response.data.data.token, response.data.data.user.id.toString());
     }
     
+    return response.data;
+  },
+
+  /**
+   * Get user profile
+   */
+  getProfile: async (): Promise<ProfileResponse> => {
+    const response = await api.get(API_ENDPOINTS.AUTH.PROFILE);
+    return response.data;
+  },
+
+  /**
+   * Update user profile
+   */
+  updateProfile: async (profileData: UpdateProfileRequest): Promise<ProfileResponse> => {
+    const formData = new FormData();
+    
+    Object.keys(profileData).forEach(key => {
+      const value = profileData[key as keyof UpdateProfileRequest];
+      if (value !== undefined) {
+        if (key === 'avatar' && value instanceof File) {
+          formData.append(key, value);
+        } else if (typeof value === 'string') {
+          formData.append(key, value);
+        }
+      }
+    });
+
+    const response = await api.put(API_ENDPOINTS.AUTH.PROFILE, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    return response.data;
+  },
+
+  /**
+   * Change password
+   */
+  changePassword: async (passwordData: ChangePasswordRequest): Promise<{ success: boolean; message: string }> => {
+    const response = await api.put(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, passwordData);
     return response.data;
   }
 };

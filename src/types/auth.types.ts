@@ -25,6 +25,8 @@ export interface User {
   branch_code?: string;
   status: 'active' | 'inactive';
   created_at: string;
+  updated_at?: string;
+  avatar?: string;
 }
 
 export interface AuthResponse {
@@ -39,4 +41,24 @@ export interface AuthResponse {
 export interface AuthError {
   success: false;
   message: string;
+}
+
+export interface ProfileResponse {
+  success: boolean;
+  data: {
+    user: User;
+  };
+}
+
+export interface UpdateProfileRequest {
+  username?: string;
+  email?: string;
+  phone?: string;
+  line_id?: string;
+  avatar?: File;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
 }

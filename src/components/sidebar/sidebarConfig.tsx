@@ -31,8 +31,16 @@ export const getSidebarItems = (t: Translations): SidebarItem[] => [
     label: t.teacherPortal,
     icon: <HiOutlineUser {...iconProps} />,
     children: [
-      { id: 'schedule', label: t.schedule, href: '/schedule', icon: <GrSchedules {...iconProps} /> },
+      { id: 'schedule', label: t.schedule, href: '/teacher/schedule', icon: <GrSchedules {...iconProps} /> },
     ],
+  },
+  {
+    id: 'student-portal',
+    label: t.studentPortal,
+    icon: <HiOutlineUser {...iconProps} />,
+    children: [
+      { id: 'schedule', label: t.studentSchedule, href: '/student/schedule', icon: <GrSchedules {...iconProps} /> },
+    ]
   },
   {
     id: 'dashboard-analytic',
