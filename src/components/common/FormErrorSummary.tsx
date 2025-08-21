@@ -58,11 +58,15 @@ export const FormErrorSummary: React.FC<FormErrorSummaryProps> = ({
   };
 
   // Auto-scroll to first error when errors appear
-  React.useEffect(() => {
-    if (errorEntries.length > 0) {
+  const scrollToFirstErrorCallback = React.useCallback(() => {
+    if (errorEntries.length > 0 && autoScroll) {
       scrollToFirstError();
     }
-  }, [errorEntries.length]);
+  }, [errorEntries.length, autoScroll, scrollToFirstError]);
+
+  React.useEffect(() => {
+    scrollToFirstErrorCallback();
+  }, [scrollToFirstErrorCallback]);
 
   const getFieldDisplayName = (fieldName: string): string => {
     const fieldNames = language === 'th' ? {

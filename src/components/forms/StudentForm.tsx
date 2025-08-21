@@ -443,7 +443,8 @@ const StudentForm: React.FC<StudentFormProps> = ({
           : (language === 'th' ? 'บันทึกข้อมูลสำเร็จ' : 'Successfully Saved'),
         language === 'th' ? 'ข้อมูลนักเรียนได้รับการบันทึกเรียบร้อยแล้ว' : 'Student information has been saved successfully.'
       );
-    } catch (error) {
+    } catch (err) {
+      console.error('Form submission error:', err);
       errorToast(
         language === 'th' ? 'เกิดข้อผิดพลาด' : 'An Error Occurred',
         language === 'th' ? 'ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง' : 'Unable to save data. Please try again.'

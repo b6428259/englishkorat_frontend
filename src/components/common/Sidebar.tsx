@@ -254,8 +254,8 @@ const SidebarComponent: React.FC<SidebarProps> = ({ className = '', expanded, is
                 >
                   <span className="flex-shrink-0">
                     {React.isValidElement(item.icon)
-                      ? React.cloneElement(item.icon as React.ReactElement<any>, {
-                          className: `${(item.icon as React.ReactElement<any>).props.className ?? ''} ${isActive ? 'text-white' : 'text-gray-700'}`.trim()
+                      ? React.cloneElement(item.icon as React.ReactElement<React.ComponentProps<'svg'>>, {
+                          className: `${(item.icon as React.ReactElement<React.ComponentProps<'svg'>>).props.className ?? ''} ${isActive ? 'text-white' : 'text-gray-700'}`.trim()
                         })
                       : item.icon}
                   </span>
@@ -337,8 +337,8 @@ const SidebarComponent: React.FC<SidebarProps> = ({ className = '', expanded, is
                                 {child.icon && (
                                   <span className="flex-shrink-0">
                                     {React.isValidElement(child.icon)
-                                      ? React.cloneElement(child.icon as React.ReactElement<any>, {
-                                          className: `${(child.icon as React.ReactElement<any>).props.className ?? ''} ${childActive ? 'text-[#334293]' : 'text-gray-700'}`.trim()
+                                      ? React.cloneElement(child.icon as React.ReactElement<React.ComponentProps<'svg'>>, {
+                                          className: `${(child.icon as React.ReactElement<React.ComponentProps<'svg'>>).props.className ?? ''} ${childActive ? 'text-[#334293]' : 'text-gray-700'}`.trim()
                                         })
                                       : child.icon}
                                   </span>

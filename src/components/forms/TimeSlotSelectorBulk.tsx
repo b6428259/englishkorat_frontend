@@ -307,7 +307,7 @@ export const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
                   </label>
                     <Select
                       value={bulkSlot.timeFrom}
-                      onChange={(val: any) => setBulkSlot(prev => ({ ...prev, timeFrom: val }))}
+                      onChange={(e) => setBulkSlot(prev => ({ ...prev, timeFrom: e.target.value }))}
                       options={timeOptions}
                       placeholder={language === 'th' ? 'เลือกเวลาเริ่ม' : 'Select Start Time'}
                       disabled={false}
@@ -320,7 +320,7 @@ export const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
                   </label>
                     <Select
                       value={bulkSlot.timeTo}
-                      onChange={(val: any) => setBulkSlot(prev => ({ ...prev, timeTo: val }))}
+                      onChange={(e) => setBulkSlot(prev => ({ ...prev, timeTo: e.target.value }))}
                       options={timeOptions.filter(time => !bulkSlot.timeFrom || time.value > bulkSlot.timeFrom)}
                       placeholder={language === 'th' ? 'เลือกเวลาสิ้นสุด' : 'Select End Time'}
                       disabled={false}

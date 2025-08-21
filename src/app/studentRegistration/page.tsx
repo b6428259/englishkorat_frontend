@@ -9,7 +9,7 @@ import { courseService } from '@/services/course.service';
 import { authService } from '@/services/auth.service';
 import type { Course } from '@/services/api/courses'; // Import the Course type from the correct location
 
-export default function studentRegistration() {
+export default function StudentRegistration() {
   const { t, language } = useLanguage();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -27,7 +27,7 @@ export default function studentRegistration() {
 
         const coursesData = await courseService.getCourses();
         // Map courses to include missing branch_id, branch_name, branch_code if needed
-        const mappedCourses = coursesData.data.courses.map((course: any) => ({
+        const mappedCourses = coursesData.data.courses.map((course: Course) => ({
           ...course,
           branch_id: course.branch_id ?? 0,
           branch_name: course.branch_name ?? '',
