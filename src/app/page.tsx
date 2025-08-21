@@ -82,9 +82,11 @@ export default function Home() {
               <div className="flex items-center space-x-6 pt-4">
                 <div className="flex items-center space-x-2">
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <img
+                    <Image
                       src="/icons/follower.png"
                       alt="Follower"
+                      width={24}
+                      height={24}
                       className="w-6 h-6"
                     />
                   </div>
@@ -96,9 +98,11 @@ export default function Home() {
 
                 <div className="flex items-center space-x-2">
                   <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                    <img
+                    <Image
                       src="/icons/graduate.png"
                       alt="Follower"
+                      width={32}
+                      height={32}
                       className="w-8 h-8"
                     />
                   </div>

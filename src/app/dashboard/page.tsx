@@ -4,6 +4,7 @@ import SidebarLayout from '../../components/common/SidebarLayout';
 import { ProtectedRoute } from '../../components/common/ProtectedRoute';
 import { RoleGuard } from '../../components/common/RoleGuard';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -48,9 +49,11 @@ export default function DashboardPage() {
                 </div>
                 {user?.avatar && (
                   <div className="w-16 h-16 rounded-full overflow-hidden bg-white/20">
-                    <img
+                    <Image
                       src={`${process.env.NEXT_PUBLIC_API_URL}/${user.avatar}`}
                       alt={user.username}
+                      width={64}
+                      height={64}
                       className="w-full h-full object-cover"
                     />
                   </div>

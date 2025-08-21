@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import Footer from './Footer';
 import Breadcrumb from './Breadcrumb';
+import BottomNavbar from './BottomNavbar';
+import MobileMenuDrawer from './MobileMenuDrawer';
 import { useSidebar } from '../../contexts/SidebarContext';
 
 interface BreadcrumbItem {
@@ -29,6 +31,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({
   showBreadcrumb = true
 }) => {
   const { expanded, setExpanded, isMobile, setIsMobile } = useSidebar();
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
   // Handle responsive behavior
   useEffect(() => {
@@ -36,8 +39,10 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({
       const mobile = window.innerWidth < 1024; // lg breakpoint
       setIsMobile(mobile);
       
-      // Don't automatically change expanded state on resize
-      // Let user's preference persist
+      // Close mobile drawer when switching to desktop
+      if (!mobile) {
+        setIsMobileDrawerOpen(false);
+      }
     };
 
     handleResize(); // set initial
@@ -49,6 +54,14 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({
     setExpanded(newExpanded);
   };
 
+  const handleMobileMoreClick = () => {
+    setIsMobileDrawerOpen(true);
+  };
+
+  const handleMobileDrawerClose = () => {
+    setIsMobileDrawerOpen(false);
+  };
+
   return (
     <>
       <Head>
@@ -58,17 +71,20 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({
       </Head>
       
       <div className="min-h-screen bg-gray-50">
-        {/* Sidebar (controlled) */}
-        <Sidebar 
-          expanded={expanded} 
-          isMobile={isMobile}
-          onToggle={handleSidebarToggle} 
-        />
+        {/* Desktop Sidebar - hidden on mobile */}
+        {!isMobile && (
+          <Sidebar 
+            expanded={expanded} 
+            isMobile={isMobile}
+            onToggle={handleSidebarToggle} 
+          />
+        )}
         
         {/* Main content area */}
         <div 
           className={`
             transition-all duration-300 ease-in-out min-h-screen flex flex-col
+            ${isMobile ? 'pb-20' : ''}
           `}
         >
           <Header 
@@ -80,6 +96,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({
             className={`
               flex-1 p-6 transition-all duration-300 ease-in-out pt-20
               ${!isMobile ? (expanded ? 'ml-[280px]' : 'ml-[80px]') : 'ml-0'}
+              ${isMobile ? 'pb-6' : ''}
             `}
           >
             <div className="max-w-7xl mx-auto">
@@ -87,8 +104,19 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({
               {children}
             </div>
           </main>
-          <Footer />
+          {!isMobile && <Footer />}
         </div>
+
+        {/* Mobile Bottom Navigation - shown only on mobile */}
+        {isMobile && (
+          <BottomNavbar onMoreClick={handleMobileMoreClick} />
+        )}
+
+        {/* Mobile Menu Drawer */}
+        <MobileMenuDrawer 
+          isOpen={isMobileDrawerOpen}
+          onClose={handleMobileDrawerClose}
+        />
       </div>
     </>
   );

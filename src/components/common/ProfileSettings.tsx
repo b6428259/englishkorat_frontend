@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { UpdateProfileRequest } from '../../types/auth.types';
 import { Button } from '../forms/Button';
 import { Input } from '../forms/Input';
 import { FormField } from '../forms/FormField';
@@ -89,7 +90,7 @@ export const ProfileSettings: React.FC = () => {
     e.preventDefault();
     
     try {
-      const updateData: any = {
+      const updateData: UpdateProfileRequest = {
         username: profileForm.username,
         email: profileForm.email,
         phone: profileForm.phone,
@@ -108,11 +109,12 @@ export const ProfileSettings: React.FC = () => {
       });
       setSelectedAvatar(null);
       setAvatarPreview(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์';
       showToast({
         type: 'error',
         title: 'เกิดข้อผิดพลาด',
-        message: error.message || 'เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์'
+        message: errorMessage
       });
     }
   };
@@ -154,11 +156,12 @@ export const ProfileSettings: React.FC = () => {
         newPassword: '',
         confirmPassword: '',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน';
       showToast({
         type: 'error',
         title: 'เกิดข้อผิดพลาด',
-        message: error.message || 'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน'
+        message: errorMessage
       });
     }
   };

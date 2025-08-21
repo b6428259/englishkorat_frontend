@@ -1,13 +1,13 @@
 "use client";
 import { useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth, UserRole } from '../../contexts/AuthContext';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  requiredRoles?: string[];
-  minRole?: string;
+  requiredRoles?: UserRole[];
+  minRole?: UserRole;
   redirectTo?: string;
 }
 
@@ -29,12 +29,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       }
 
       // Check role-based access
-      if (requiredRoles && !hasRole(requiredRoles as any)) {
+      if (requiredRoles && !hasRole(requiredRoles)) {
         router.replace('/dashboard'); // Redirect to dashboard if role not allowed
         return;
       }
 
-      if (minRole && !hasMinRole(minRole as any)) {
+      if (minRole && !hasMinRole(minRole)) {
         router.replace('/dashboard'); // Redirect to dashboard if role level insufficient
         return;
       }
@@ -60,7 +60,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // Check role restrictions
-  if (requiredRoles && !hasRole(requiredRoles as any)) {
+  if (requiredRoles && !hasRole(requiredRoles)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -71,7 +71,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  if (minRole && !hasMinRole(minRole as any)) {
+  if (minRole && !hasMinRole(minRole)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

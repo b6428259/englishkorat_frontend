@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Image from 'next/image';
 import LoadingSpinner from './LoadingSpinner';
 
 interface AvatarProps {
@@ -25,6 +26,17 @@ const Avatar: React.FC<AvatarProps> = ({
     lg: 'w-16 h-16',
     xl: 'w-24 h-24',
     '2xl': 'w-32 h-32'
+  };
+
+  const getSizeValue = (size: string) => {
+    const sizeMap = {
+      sm: 32,
+      md: 48,
+      lg: 64,
+      xl: 96,
+      '2xl': 128
+    };
+    return sizeMap[size as keyof typeof sizeMap] || 48;
   };
 
   const textSizeClasses = {
@@ -54,9 +66,11 @@ const Avatar: React.FC<AvatarProps> = ({
               <LoadingSpinner size={size === 'sm' ? 'sm' : 'md'} />
             </div>
           )}
-          <img
+          <Image
             src={src}
             alt={alt}
+            width={getSizeValue(size)}
+            height={getSizeValue(size)}
             className={`w-full h-full object-cover rounded-full ${loading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
             onLoad={handleLoad}
             onError={handleError}
