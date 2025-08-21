@@ -6,6 +6,16 @@ import { useRouter } from 'next/navigation';
 
 export type UserRole = 'student' | 'teacher' | 'admin' | 'owner';
 
+interface ApiError {
+  response?: {
+    status: number;
+    data?: {
+      message: string;
+    };
+  };
+  message: string;
+}
+
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
@@ -72,10 +82,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Token might be invalid, logout
         await handleLogout();
       }
-    } catch (err: any) {
-      console.error('Failed to load user profile:', err);
+    } catch (err: unknown) {
+      const apiError = err as ApiError;
+      console.error('Failed to load user profile:', apiError);
       // If unauthorized, clear auth state
-      if (err.response?.status === 401) {
+      if (apiError.response?.status === 401) {
         await handleLogout();
       }
       setError('ไม่สามารถโหลดข้อมูลผู้ใช้ได้');
@@ -95,8 +106,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         router.push('/dashboard');
       }
       return response;
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
+    } catch (err: unknown) {
+      const apiError = err as ApiError;
+      const errorMessage = apiError.response?.data?.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
       setError(errorMessage);
       throw err;
     } finally {
@@ -115,8 +127,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         router.push('/dashboard');
       }
       return response;
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก';
+    } catch (err: unknown) {
+      const apiError = err as ApiError;
+      const errorMessage = apiError.response?.data?.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก';
       setError(errorMessage);
       throw err;
     } finally {
@@ -150,8 +163,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.success) {
         setUser(response.data.user);
       }
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์';
+    } catch (err: unknown) {
+      const apiError = err as ApiError;
+      const errorMessage = apiError.response?.data?.message || 'เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์';
       setError(errorMessage);
       throw err;
     } finally {
@@ -168,8 +182,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (!response.success) {
         throw new Error(response.message);
       }
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน';
+    } catch (err: unknown) {
+      const apiError = err as ApiError;
+      const errorMessage = apiError.response?.data?.message || apiError.message || 'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน';
       setError(errorMessage);
       throw err;
     } finally {
@@ -186,9 +201,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.success) {
         setUser(response.data.user);
       }
-    } catch (err: any) {
-      console.error('Failed to refresh profile:', err);
-      if (err.response?.status === 401) {
+    } catch (err: unknown) {
+      const apiError = err as ApiError;
+      console.error('Failed to refresh profile:', apiError);
+      if (apiError.response?.status === 401) {
         await handleLogout();
       }
     }
