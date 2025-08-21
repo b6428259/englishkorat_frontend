@@ -3,15 +3,8 @@
 import Button from "@/components/common/Button";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 export default function Home() {
-  const router = useRouter();
-
-  const handleCoursesClick = () => {
-    console.log("Courses button clicked");
-    router.push("/courses");
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">

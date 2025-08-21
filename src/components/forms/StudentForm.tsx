@@ -17,7 +17,7 @@ import {
   TimeSlotSelector
 } from '../forms';
 
-interface StudentFormData {
+export interface StudentFormData {
   firstName: string;
   lastName: string;
   firstNameEn?: string;

@@ -18,7 +18,7 @@ interface BreadcrumbProps {
 
 const Breadcrumb: React.FC<BreadcrumbProps> = ({ items, showHome = true }) => {
   const pathname = usePathname();
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
 
   // Auto-generate breadcrumbs from pathname if items not provided
   const generateBreadcrumbs = (): BreadcrumbItem[] => {
