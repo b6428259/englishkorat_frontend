@@ -1,5 +1,5 @@
 "use client";
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { User, LoginRequest, RegisterRequest, AuthResponse, UpdateProfileRequest, ChangePasswordRequest } from '../types/auth.types';
 import { authApi } from '../services/api/auth';
 import { useRouter } from 'next/navigation';
@@ -67,7 +67,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Load user profile on app initialization
-  const loadUserProfile = async () => {
+  const loadUserProfile = useCallback(async () => {
     if (!authApi.isAuthenticated()) {
       setIsLoading(false);
       return;
@@ -93,7 +93,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []); // Empty dependency array since this should only run on mount
 
   // Login function
   const login = async (credentials: LoginRequest): Promise<AuthResponse> => {
@@ -213,7 +213,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Initialize auth state on mount
   useEffect(() => {
     loadUserProfile();
-  }, []);
+  }, [loadUserProfile]);
 
   const value: AuthContextType = {
     user,
