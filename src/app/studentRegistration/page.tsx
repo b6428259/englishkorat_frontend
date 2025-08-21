@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import SidebarLayout from '@/components/common/SidebarLayout';
 import { useLanguage } from '@/contexts/LanguageContext';
-import StudentForm from '@/components/forms/StudentForm';
+import StudentForm, { StudentFormData } from '@/components/forms/StudentForm';
 import { courseService } from '@/services/course.service';
 import { authService } from '@/services/auth.service';
 import type { Course } from '@/services/api/courses'; // Import the Course type from the correct location
@@ -49,7 +49,7 @@ export default function StudentRegistration() {
     fetchCourses();
   }, [router]);
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: StudentFormData) => {
     setLoading(true);
     try {
       const token = authService.getToken();
@@ -75,7 +75,7 @@ export default function StudentRegistration() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const result = await response.json();
+      await response.json();
       
       // Show success message
       alert(language === 'th' ? 'เพิ่มนักเรียนสำเร็จ!' : 'Student added successfully!');

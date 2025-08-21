@@ -18,12 +18,8 @@ export const FormErrorSummary: React.FC<FormErrorSummaryProps> = ({
 }) => {
   const errorEntries = Object.entries(errors);
   
-  if (errorEntries.length === 0) {
-    return null;
-  }
-
-  const scrollToFirstError = () => {
-    if (!autoScroll) return;
+  const scrollToFirstError = React.useCallback(() => {
+    if (!autoScroll || errorEntries.length === 0) return;
     
     const firstErrorField = errorEntries[0][0];
     
@@ -55,18 +51,18 @@ export const FormErrorSummary: React.FC<FormErrorSummaryProps> = ({
         }, 300);
       }
     }
-  };
+  }, [errorEntries, autoScroll]);
 
   // Auto-scroll to first error when errors appear
   const scrollToFirstErrorCallback = React.useCallback(() => {
     if (errorEntries.length > 0 && autoScroll) {
       scrollToFirstError();
     }
-  }, [errorEntries.length, autoScroll, scrollToFirstError]);
-
-  React.useEffect(() => {
-    scrollToFirstErrorCallback();
-  }, [scrollToFirstErrorCallback]);
+  }, [errorEntries.length, scrollToFirstError]);
+  
+  if (errorEntries.length === 0) {
+    return null;
+  }
 
   const getFieldDisplayName = (fieldName: string): string => {
     const fieldNames = language === 'th' ? {
