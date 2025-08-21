@@ -6,6 +6,7 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import Footer from './Footer';
 import Breadcrumb from './Breadcrumb';
+import MobileBottomNavbar from './MobileBottomNavbar';
 import { useSidebar } from '../../contexts/SidebarContext';
 
 interface BreadcrumbItem {
@@ -58,12 +59,22 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({
       </Head>
       
       <div className="min-h-screen bg-gray-50">
-        {/* Sidebar (controlled) */}
-        <Sidebar 
-          expanded={expanded} 
-          isMobile={isMobile}
-          onToggle={handleSidebarToggle} 
-        />
+        {/* Desktop Sidebar */}
+        {!isMobile && (
+          <Sidebar 
+            expanded={expanded} 
+            isMobile={false}
+            onToggle={handleSidebarToggle} 
+          />
+        )}
+        
+        {/* Mobile Bottom Navbar */}
+        {isMobile && (
+          <MobileBottomNavbar 
+            expanded={expanded}
+            onToggle={handleSidebarToggle}
+          />
+        )}
         
         {/* Main content area */}
         <div 
@@ -79,7 +90,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({
           <main 
             className={`
               flex-1 p-6 transition-all duration-300 ease-in-out pt-20
-              ${!isMobile ? (expanded ? 'ml-[280px]' : 'ml-[80px]') : 'ml-0'}
+              ${!isMobile ? (expanded ? 'ml-[280px]' : 'ml-[80px]') : 'ml-0 pb-20'}
             `}
           >
             <div className="max-w-7xl mx-auto">
