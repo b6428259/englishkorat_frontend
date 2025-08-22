@@ -14,17 +14,29 @@ export const ENV_CONFIG = {
 // Helper function to construct S3 URLs
 export const getS3Url = (path: string | undefined): string | null => {
   if (!path) return null;
-  
   // If path is already a full URL, return as is
   if (path.startsWith('http')) {
     return path;
   }
-  
+  // If BASE_URL is invalid, return a valid relative path
+  if (!ENV_CONFIG.S3.BASE_URL || ENV_CONFIG.S3.BASE_URL === 'https://.s3..amazonaws.com') {
+    return path.startsWith('/') ? path : `/${path}`;
+  }
   // Otherwise, construct the full S3 URL
   return `${ENV_CONFIG.S3.BASE_URL}/${path}`;
 };
 
 // Helper function to construct avatar URLs specifically
 export const getAvatarUrl = (avatar: string | undefined): string | null => {
-  return getS3Url(avatar);
+  const url = getS3Url(avatar);
+  // Validate constructed URL
+  try {
+    if (url) {
+      new URL(url);
+      return url;
+    }
+  } catch {
+    return null;
+  }
+  return null;
 };

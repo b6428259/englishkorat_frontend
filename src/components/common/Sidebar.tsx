@@ -200,15 +200,37 @@ const SidebarComponent: React.FC<SidebarProps> = ({ className = '', expanded, is
       >
         {/* Header */}
         <div className="flex items-center gap-3 p-4 border-b border-gray-100 overflow-hidden rounded-t-xl bg-gradient-to-r from-white to-gray-50">
-          {/* โลโก้ mock เป็นรูปโปรไฟล์วงกลม (fixed size, no shrink) */}
           <div className="flex-shrink-0 relative" style={{ width: 40, height: 40, minWidth: 40, minHeight: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '9999px', background: '#e5e7eb', overflow: 'hidden' }}>
-            <Image
-              src="https://ui-avatars.com/api/?name=EK&background=334293&color=fff&size=64"
-              alt="Profile"
-              width={40}
-              height={40}
-              style={{ width: 40, height: 40, objectFit: 'cover', minWidth: 40, minHeight: 40 }}
-            />
+            {/* Use real avatar if available, fallback to ui-avatars.com */}
+            {(() => {
+              const { user } = require('@/hooks/useAuth').useAuth();
+              const { getAvatarUrl } = require('@/utils/config');
+              const { validateImageUrl } = require('@/utils/validateImageUrl');
+              const avatarUrl = user?.avatar ? getAvatarUrl(user.avatar) : null;
+              const validUrl = validateImageUrl(avatarUrl);
+              if (validUrl) {
+                return (
+                  <Image
+                    src={validUrl}
+                    alt={user?.username || 'Profile'}
+                    width={40}
+                    height={40}
+                    unoptimized={true}
+                    style={{ width: 40, height: 40, objectFit: 'cover', minWidth: 40, minHeight: 40 }}
+                  />
+                );
+              }
+              return (
+                <Image
+                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.username || 'EK')}&background=334293&color=fff&size=64`}
+                  alt={user?.username || 'Profile'}
+                  width={40}
+                  height={40}
+                  unoptimized={true}
+                  style={{ width: 40, height: 40, objectFit: 'cover', minWidth: 40, minHeight: 40 }}
+                />
+              );
+            })()}
           </div>
           {/* ข้อความชื่อ - แสดงหลังขยายเสร็จเท่านั้น */}
           <SidebarLabel
@@ -217,7 +239,10 @@ const SidebarComponent: React.FC<SidebarProps> = ({ className = '', expanded, is
             className="font-semibold text-gray-900 whitespace-nowrap"
             itemId="header-title"
           >
-            {t.englishKorat}
+            {(() => {
+              const { user } = require('@/hooks/useAuth').useAuth();
+              return user?.username || t.englishKorat;
+            })()}
           </SidebarLabel>
         </div>
 

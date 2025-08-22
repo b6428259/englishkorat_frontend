@@ -5,6 +5,8 @@ import { ProtectedRoute } from '../../components/common/ProtectedRoute';
 import { RoleGuard } from '../../components/common/RoleGuard';
 import Link from 'next/link';
 import Image from 'next/image';
+import { getAvatarUrl } from '@/utils/config';
+import { validateImageUrl } from '@/utils/validateImageUrl';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -49,13 +51,22 @@ export default function DashboardPage() {
                 </div>
                 {user?.avatar && (
                   <div className="w-16 h-16 rounded-full overflow-hidden bg-white/20">
-                    <Image
-                      src={`${process.env.NEXT_PUBLIC_API_URL}/${user.avatar}`}
-                      alt={user.username}
-                      width={64}
-                      height={64}
-                      className="w-full h-full object-cover"
-                    />
+                    {validateImageUrl(getAvatarUrl(user.avatar)) ? (
+                      <Image
+                        src={validateImageUrl(getAvatarUrl(user.avatar)) as string}
+                        alt={user.username}
+                        width={64}
+                        height={64}
+                        className="w-full h-full object-cover"
+                        unoptimized={true}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

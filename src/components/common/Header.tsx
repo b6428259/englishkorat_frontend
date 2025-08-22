@@ -113,9 +113,9 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
 
   return (
     <header className={`fixed top-0 left-0 w-full bg-white shadow-sm border-b z-40 ${className}`}>
-      <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">{t.englishKorat}</h1>
-        <div className="flex items-center gap-4">
+      <div className="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{t.englishKorat}</h1>
+        <div className="flex items-center gap-6">
           {/* Show user info only if authenticated */}
           {isAuthenticated && user && (
             <>
@@ -138,7 +138,7 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
 
                 {/* Notification Dropdown */}
                 {notificationOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-y-auto">
+                  <div className="absolute right-0 top-full mt-3 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-y-auto">
                     {/* Header */}
                     <div className="flex items-center justify-between p-4 border-b border-gray-100">
                       <h3 className="text-lg font-semibold text-gray-900">
@@ -214,7 +214,7 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
               <div className="relative" ref={profileRef}>
                 <button
                   type="button"
-                  className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#334293] transition-colors"
+                  className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#334293] transition-colors"
                   onClick={() => setProfileOpen(!profileOpen)}
                 >
                   <Avatar
@@ -224,17 +224,17 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
                     fallbackInitials={getUserInitials(user.username)}
                   />
                   <div className="hidden md:block text-left">
-                    <p className="text-sm font-medium text-gray-900">{user.username}</p>
-                    <p className="text-xs text-gray-500">{getRoleDisplayName(user.role)}</p>
+                    <p className="text-sm font-medium text-gray-900 leading-tight">{user.username}</p>
+                    <p className="text-xs text-gray-500 leading-tight">{getRoleDisplayName(user.role)}</p>
                   </div>
                 </button>
 
                 {/* Profile Dropdown */}
                 {profileOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
+                  <div className="absolute right-0 top-full mt-3 w-72 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
                     {/* User Info */}
                     <div className="p-5 bg-gradient-to-r from-[#334293] to-[#2a3875] text-white">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-4">
                         <Avatar
                           src={getAvatarUrl(user.avatar)}
                           alt={user.username}
@@ -242,8 +242,8 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
                           fallbackInitials={getUserInitials(user.username)}
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-white truncate text-lg">{user.username}</p>
-                          <p className="text-blue-100 text-sm">{user.email || 'ไม่ระบุอีเมล'}</p>
+                          <p className="font-semibold text-white truncate text-lg leading-tight">{user.username}</p>
+                          <p className="text-blue-100 text-sm leading-tight">{user.email || 'ไม่ระบุอีเมล'}</p>
                           <div className="flex items-center gap-2 mt-1">
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/20 text-white">
                               {getRoleDisplayName(user.role)}
@@ -292,7 +292,6 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
               </div>
             </>
           )}
-          
           <LanguageSwitch />
         </div>
       </div>

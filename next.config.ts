@@ -9,6 +9,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/api/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'ekls-test-bucket.s3.ap-southeast-1.amazonaws.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
 };

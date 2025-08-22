@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-  "dev": "next dev --turbopack -p 3001",
+    "dev": "next dev --turbopack -p 3001",
     "build": "next build",
-  "start": "next start -p 3001",
+    "start": "next start -p 3001",
     "lint": "next lint"
   },
   "dependencies": {
@@ -17,6 +17,8 @@
     "@tailwindcss/line-clamp": "^0.4.4",
     "@tanstack/react-query": "^5.85.0",
     "axios": "^1.11.0",
+    "country": "^0.2.0",
+    "country-flag-icons": "^1.5.19",
     "crypto-js": "^4.2.0",
     "framer-motion": "^12.23.12",
     "js-cookie": "^3.0.5",

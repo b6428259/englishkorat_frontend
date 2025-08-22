@@ -1,6 +1,9 @@
 export type Language = 'th' | 'en';
 
 export interface Translations {
+  language: string;
+  privacyPolicy: string;
+  termsOfService: string;
   studentPortal: string;
   studentSchedule: string;
   lineOA: string;
@@ -33,6 +36,12 @@ export interface Translations {
   studentRegistration: string;
   logout: string;
   schedule: string;
+  home: string;
+  courses: string;
+  about: string;
+  contact: string;
+  privacy: string;
+  terms: string;
   
 
   // Authentication
@@ -64,11 +73,128 @@ export interface Translations {
   cancel: string;
   submit: string;
   register: string;
+  readMore: string;
+  backToHome: string;
+  getStarted: string;
+  learnMore: string;
+  viewCourses: string;
+
+  // Homepage
+  heroTitle: string;
+  heroSubtitle: string;
+  heroDescription: string;
+  startLearning: string;
+  whyChooseUs: string;
+  whyChooseDesc: string;
+  changeLifeIn3Months: string;
+  changeLifeDesc: string;
+  perfectForBeginners: string;
+  perfectForBeginnersDesc: string;
+  guaranteedResults: string;
+  guaranteedResultsDesc: string;
+  readyToChange: string;
+  readyToChangeDesc: string;
+  joinUs: string;
+  freeRegistration: string;
+  freeConsultation: string;
+  monthsResult: string;
+  followers: string;
+  successfulStudents: string;
+  rating: string;
+
+  // Courses Page
+  coursesTitle: string;
+  coursesDescription: string;
+  courseFeatures: string;
+  basicCourse: string;
+  basicCourseDesc: string;
+  intermediateCourse: string;
+  intermediateCourseDesc: string;
+  advancedCourse: string;
+  advancedCourseDesc: string;
+  businessCourse: string;
+  businessCourseDesc: string;
+  courseBenefits: string;
+  flexibleSchedule: string;
+  smallClasses: string;
+  practicalFocus: string;
+  progressTracking: string;
+
+  // About Page
+  aboutTitle: string;
+  aboutDescription: string;
+  ourMission: string;
+  ourMissionDesc: string;
+  ourVision: string;
+  ourVisionDesc: string;
+  ourTeam: string;
+  ourTeamDesc: string;
+  ourMethod: string;
+  ourMethodDesc: string;
+  whyTrustUs: string;
+  experiencedTeachers: string;
+  experiencedTeachersDesc: string;
+  provenMethod: string;
+  provenMethodDesc: string;
+  comprehensiveSupport: string;
+  comprehensiveSupportDesc: string;
+
+  // Contact Page
+  contactTitle: string;
+  contactDescription: string;
+  getInTouch: string;
+  address: string;
+  phone: string;
+  email: string;
+  businessHours: string;
+  mondayFriday: string;
+  saturdaySunday: string;
+  followUs: string;
+  contactForm: string;
+  yourName: string;
+  yourEmail: string;
+  yourMessage: string;
+  sendMessage: string;
+
+  // Privacy Policy Page
+  privacyTitle: string;
+  privacyDescription: string;
+  informationCollection: string;
+  informationCollectionDesc: string;
+  informationUse: string;
+  informationUseDesc: string;
+  informationProtection: string;
+  informationProtectionDesc: string;
+  cookiePolicy: string;
+  cookiePolicyDesc: string;
+  thirdPartyServices: string;
+  thirdPartyServicesDesc: string;
+  userRights: string;
+  userRightsDesc: string;
+  policyUpdates: string;
+  policyUpdatesDesc: string;
+
+  // Terms of Service Page
+  termsTitle: string;
+  termsDescription: string;
+  serviceTerms: string;
+  serviceTermsDesc: string;
+  userResponsibilities: string;
+  userResponsibilitiesDesc: string;
+  paymentTerms: string;
+  paymentTermsDesc: string;
+  cancellationPolicy: string;
+  cancellationPolicyDesc: string;
+  intellectualProperty: string;
+  intellectualPropertyDesc: string;
+  limitationLiability: string;
+  limitationLiabilityDesc: string;
+  termination: string;
+  terminationDesc: string;
 
   // Dashboard
   welcomeMessage: string;
   welcomeSubMessage: string;
-  courses: string;
   quickActions: string;
   recentActivity: string;
   loginSuccess: string;
@@ -77,9 +203,6 @@ export interface Translations {
   // Profile
   personalInfo: string;
   name: string;
-  email: string;
-  phone: string;
-  address: string;
   englishLevel: string;
   saveData: string;
 
@@ -112,6 +235,114 @@ export interface Translations {
   pleaseEnterName: string;
   pleaseEnterLastName: string;
   pleaseEnterAddress: string;
+  
+  // CTA Section - Additional
+  readyToTransform: string;
+  withEnglish: string;
+  question: string;
+  joinSuccessfulStudents: string;
+  followersCount: string;
+  studentsSuccess: string;
+  onlineOrBranch: string;
+  registerFree: string;
+  consultFree: string;
+  monthsResults: string;
+  reviewScore: string;
+  
+  // Footer
+  footerDescription: string;
+  mainMenu: string;
+  koratBranch: string;
+  koratLocation: string;
+  weekdayHours: string;
+  weekendHours: string;
+  allRightsReserved: string;
+  developedBy: string;
+  
+  // Courses Page
+  coursesPageTitle: string;
+  coursesPageSubtitle: string;
+  askForAdvice: string;
+  filterByLevel: string;
+  filterByType: string;
+  ourCourses: string;
+  whyOurCourses: string;
+  whyOurCoursesDesc: string;
+  readyToStartLearning: string;
+  readyToStartLearningDesc: string;
+  contactForInfo: string;
+  
+  // About Page
+  aboutPageTitle: string;
+  aboutPageSubtitle: string;
+  contactUs: string;     
+  missionStatement: string;
+  ourStory: string;
+  storyParagraph1: string;
+  storyParagraph2: string;
+  storyParagraph3: string;
+  ourValues: string;
+  valuesDescription: string;
+  qualityEducation: string;
+  qualityEducationDesc: string;
+  innovation: string;
+  innovationDesc: string;
+  studentCare: string;
+  studentCareDesc: string;
+  results: string;
+  resultsDesc: string;
+  community: string;
+  communityDesc: string;
+  excellence: string;
+  excellenceDesc: string;
+  meetOurTeam: string;
+  teamDescription: string;
+  ourAchievements: string;
+  achievementsDescription: string;
+  readyToJoin: string;
+  readyToJoinDescription: string;
+  startToday: string;
+  
+  // Contact Page
+  contactPageTitle: string;
+  contactPageSubtitle: string;
+  registerNow: string;
+  callNow: string;
+  contactMethods: string;
+  contactMethodsDesc: string;
+  phoneDesc: string;
+  lineDesc: string;
+  emailDesc: string;
+  facebookDesc: string;
+  sendMessageDesc: string;
+  fullName: string;
+  phoneNumber: string;
+  emailAddress: string;
+  subject: string;
+  pleaseSelectSubject: string;
+  courseInquiry: string;
+  scheduleInquiry: string;
+  pricingInquiry: string;
+  generalInquiry: string;
+  messagePlaceholder: string;
+  location: string;
+  openingHours: string;
+  quickContact: string;
+  findUs: string;
+  findUsDesc: string;
+  openMap: string;
+  frequentlyAsked: string;
+  faqDesc: string;
+  readyToTalk: string;
+  readyToTalkDesc: string;
+  
+  // Privacy Policy Page
+  privacyPolicyTitle: string;
+  privacyPolicyDescription: string;
+  
+  // Terms of Service Page
+  termsOfServiceTitle: string;
+  termsOfServiceDescription: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -122,6 +353,9 @@ export const translations: Record<Language, Translations> = {
     systemUpdateDesc: 'มีการอัปเดตระบบล่าสุด',
     notifications: 'การแจ้งเตือน',
     newStudentDesc: 'มีนักเรียนใหม่ลงทะเบียน',
+    language: 'ภาษา',
+    privacyPolicy: 'นโยบายความเป็นส่วนตัว',
+    termsOfService: 'ข้อกำหนดการใช้งาน',
 
     // Navigation
     dashboard: 'แดชบอร์ด',
@@ -130,6 +364,12 @@ export const translations: Record<Language, Translations> = {
     logout: 'ออกจากระบบ',
     systemSettings: 'การตั้งค่าระบบ',
     schedule: 'ตารางเรียน',
+    home: 'หน้าแรก',
+    courses: 'คอร์สเรียน',
+    about: 'เกี่ยวกับเรา',
+    contact: 'ติดต่อ',
+    privacy: 'นโยบายความเป็นส่วนตัว',
+    terms: 'ข้อกำหนดการใช้งาน',
     teacherPortal: 'Teacher Portal',
     analytics: 'วิเคราะห์ข้อมูล',
     reports: 'รายงาน',
@@ -169,18 +409,135 @@ export const translations: Record<Language, Translations> = {
 
     // Common
     welcome: 'ยินดีต้อนรับ',
-    englishKorat: 'English Korat',
+    englishKorat: 'ระบบจัดการภายใน English Korat Languges School',
     menu: 'เมนู',
     close: 'ปิด',
     save: 'บันทึก',
     cancel: 'ยกเลิก',
     submit: 'ยืนยัน',
     register: 'ลงทะเบียน',
+    readMore: 'อ่านเพิ่มเติม',
+    backToHome: 'กลับหน้าแรก',
+    getStarted: 'เริ่มต้นเรียน',
+    learnMore: 'เรียนรู้เพิ่มเติม',
+    viewCourses: 'ดูคอร์สเรียน',
+
+    // Homepage
+    heroTitle: 'English Korat',
+    heroSubtitle: 'เราทำให้คุณพูดได้',
+    heroDescription: 'ที่เรียนที่ดีที่สุด สำหรับคนที่ #อ่อนภาษาอังกฤษ เปลี่ยนชีวิตหลังเรียน ใน 3 เดือน ‼️',
+    startLearning: 'เริ่มเรียนวันนี้',
+    whyChooseUs: 'ทำไมต้องเลือก English Korat?',
+    whyChooseDesc: 'เรามีวิธีการสอนที่เป็นเอกลักษณ์ที่จะทำให้คุณพูดภาษาอังกฤษได้อย่างมั่นใจ',
+    changeLifeIn3Months: 'เปลี่ยนชีวิตใน 3 เดือน',
+    changeLifeDesc: 'วิธีการสอนที่พิสูจน์แล้วว่าสามารถทำให้คุณพูดภาษาอังกฤษได้ในเวลาอันสั้น',
+    perfectForBeginners: 'เหมาะสำหรับคนอ่อนภาษา',
+    perfectForBeginnersDesc: 'เราเข้าใจปัญหาของคนไทยที่เรียนภาษาอังกฤษ และมีวิธีแก้ไขที่ตรงจุด',
+    guaranteedResults: 'ผลลัพธ์ที่รับประกันได้',
+    guaranteedResultsDesc: 'มีนักเรียนกว่า 24,000+ คนที่ประสบความสำเร็จกับเรา',
+    readyToChange: 'พร้อมเปลี่ยนชีวิตด้วยภาษาอังกฤษแล้วหรือยัง?',
+    readyToChangeDesc: 'เข้าร่วมกับนักเรียนกว่า 24,000+ คนที่ประสบความสำเร็จกับเรา เรียนออนไลน์หรือที่สาขาก็ได้ เลือกตามความสะดวกของคุณ',
+    joinUs: 'เข้าร่วมกับเรา',
+    freeRegistration: '🚀 ลงทะเบียนเรียนฟรี',
+    freeConsultation: '📞 ปรึกษาฟรี',
+    monthsResult: 'เดือนเห็นผล',
+    followers: 'ผู้ติดตาม',
+    successfulStudents: 'นักเรียนสำเร็จ',
+    rating: 'คะแนนรีวิว',
+
+    // Courses Page
+    coursesTitle: 'คอร์สเรียนภาษาอังกฤษ',
+    coursesDescription: 'เลือกคอร์สที่เหมาะกับระดับและความต้องการของคุณ พร้อมวิธีการสอนที่เป็นเอกลักษณ์',
+    courseFeatures: 'คุณสมบัติของคอร์ส',
+    basicCourse: 'คอร์สพื้นฐาน (Basic)',
+    basicCourseDesc: 'เหมาะสำหรับผู้เริ่มต้นเรียนภาษาอังกฤษ เน้นพื้นฐานการสื่อสาร',
+    intermediateCourse: 'คอร์สปานกลาง (Intermediate)',
+    intermediateCourseDesc: 'สำหรับผู้ที่มีพื้นฐานแล้ว ต้องการพัฒนาทักษะให้สูงขึ้น',
+    advancedCourse: 'คอร์สสูง (Advanced)',
+    advancedCourseDesc: 'เน้นการใช้ภาษาระดับสูง เพื่อการทำงานและการสื่อสารที่ซับซ้อน',
+    businessCourse: 'คอร์สธุรกิจ (Business)',
+    businessCourseDesc: 'ภาษาอังกฤษเพื่อการทำงาน การเจรจา และการนำเสนอ',
+    courseBenefits: 'ประโยชน์ที่ได้รับ',
+    flexibleSchedule: 'เรียนยืดหยุ่น',
+    smallClasses: 'คลาสเล็ก',
+    practicalFocus: 'เน้นการใช้จริง',
+    progressTracking: 'ติดตามผล',
+
+    // About Page
+    aboutTitle: 'เกี่ยวกับเรา',
+    aboutDescription: 'English Korat เป็นสถาบันสอนภาษาอังกฤษที่มุ่งมั่นพัฒนาการศึกษาภาษาอังกฤษให้กับคนไทย',
+    ourMission: 'ภารกิจของเรา',
+    ourMissionDesc: 'เราต้องการทำให้คนไทยทุกคนสามารถพูดภาษาอังกฤษได้อย่างมั่นใจ ด้วยวิธีการสอนที่เข้าใจปัญหาของคนไทย',
+    ourVision: 'วิสัยทัศน์',
+    ourVisionDesc: 'เป็นสถาบันสอนภาษาอังกฤษอันดับหนึ่งในภาคตะวันออกเฉียงเหนือ ที่ให้ผลลัพธ์ที่เห็นได้จริง',
+    ourTeam: 'ทีมงานของเรา',
+    ourTeamDesc: 'ทีมผู้สอนที่มีประสบการณ์และใจรักในการสอน พร้อมให้คำปรึกษาในทุกขั้นตอนการเรียนรู้',
+    ourMethod: 'วิธีการสอนของเรา',
+    ourMethodDesc: 'เราใช้วิธีการสอนที่เน้นการฝึกฝนและการใช้งานจริง ไม่เน้นท่องจำ แต่เน้นความเข้าใจและการประยุกต์ใช้',
+    whyTrustUs: 'ทำไมควรเชื่อใจเรา',
+    experiencedTeachers: 'ครูผู้สอนมากประสบการณ์',
+    experiencedTeachersDesc: 'ทีมครูที่มีประสบการณ์การสอนมากกว่า 10 ปี และเข้าใจปัญหาของคนไทย',
+    provenMethod: 'วิธีการที่พิสูจน์แล้ว',
+    provenMethodDesc: 'มีผลงานการสอนที่เป็นที่ยอมรับ กับนักเรียนกว่า 24,000+ คน',
+    comprehensiveSupport: 'การสนับสนุนที่ครอบคลุม',
+    comprehensiveSupportDesc: 'ติดตามผลการเรียนและให้คำปรึกษาตลอดระยะเวลาการเรียน',
+
+    // Contact Page
+    contactTitle: 'ติดต่อเรา',
+    contactDescription: 'พร้อมให้คำปรึกษาและตอบคำถามเกี่ยวกับการเรียนภาษาอังกฤษ',
+    getInTouch: 'ติดต่อเรา',
+    address: 'ที่อยู่',
+    phone: 'โทรศัพท์',
+    email: 'อีเมล',
+    businessHours: 'เวลาทำการ',
+    mondayFriday: 'จันทร์-ศุกร์ 9:00-20:00',
+    saturdaySunday: 'เสาร์-อาทิตย์ 9:00-18:00',
+    followUs: 'ติดตามเรา',
+    contactForm: 'ฟอร์มติดต่อ',
+    yourName: 'ชื่อของคุณ',
+    yourEmail: 'อีเมลของคุณ',
+    yourMessage: 'ข้อความของคุณ',
+    sendMessage: 'ส่งข้อความ',
+
+    // Privacy Policy Page
+    privacyTitle: 'นโยบายความเป็นส่วนตัว',
+    privacyDescription: 'เราให้ความสำคัญกับความเป็นส่วนตัวของข้อมูลของคุณ',
+    informationCollection: 'การเก็บรวบรวมข้อมูล',
+    informationCollectionDesc: 'เราเก็บรวบรวมข้อมูลที่จำเป็นสำหรับการให้บริการการศึกษาเท่านั้น',
+    informationUse: 'การใช้ข้อมูล',
+    informationUseDesc: 'ข้อมูลของคุณจะถูกใช้เพื่อการจัดการการเรียนการสอนและการติดต่อสื่อสาร',
+    informationProtection: 'การปกป้องข้อมูล',
+    informationProtectionDesc: 'เรามีมาตรการรักษาความปลอดภัยข้อมูลในระดับสูง',
+    cookiePolicy: 'นโยบายคุกกี้',
+    cookiePolicyDesc: 'เราใช้คุกกี้เพื่อปรับปรุงประสบการณ์การใช้งานเว็บไซต์',
+    thirdPartyServices: 'บริการของบุคคลที่สาม',
+    thirdPartyServicesDesc: 'เราอาจใช้บริการของบุคคลที่สามในการให้บริการบางส่วน',
+    userRights: 'สิทธิของผู้ใช้',
+    userRightsDesc: 'คุณมีสิทธิในการเข้าถึง แก้ไข และลบข้อมูลส่วนบุคคลของคุณ',
+    policyUpdates: 'การอัปเดตนโยบาย',
+    policyUpdatesDesc: 'นโยบายนี้อาจมีการปรับปรุงเปลี่ยนแปลงตามความเหมาะสม',
+
+    // Terms of Service Page
+    termsTitle: 'ข้อกำหนดการใช้งาน',
+    termsDescription: 'ข้อกำหนดและเงื่อนไขในการใช้บริการ',
+    serviceTerms: 'เงื่อนไขการใช้บริการ',
+    serviceTermsDesc: 'การใช้บริการของเราถือว่าคุณยอมรับข้อกำหนดเหล่านี้',
+    userResponsibilities: 'ความรับผิดชอบของผู้ใช้',
+    userResponsibilitiesDesc: 'ผู้ใช้ต้องใช้บริการอย่างถูกต้องและไม่ละเมิดสิทธิของผู้อื่น',
+    paymentTerms: 'เงื่อนไขการชำระเงิน',
+    paymentTermsDesc: 'การชำระค่าเรียนต้องทำตามเงื่อนไขที่กำหนด',
+    cancellationPolicy: 'นโยบายการยกเลิก',
+    cancellationPolicyDesc: 'การยกเลิกคอร์สต้องแจ้งล่วงหน้าตามเงื่อนไขที่กำหนด',
+    intellectualProperty: 'ทรัพย์สินทางปัญญา',
+    intellectualPropertyDesc: 'เนื้อหาการสอนและสื่อการเรียนเป็นลิขสิทธิ์ของสถาบัน',
+    limitationLiability: 'ข้อจำกัดความรับผิดชอบ',
+    limitationLiabilityDesc: 'สถาบันจำกัดความรับผิดชอบตามกรอบกฎหมาย',
+    termination: 'การยุติบริการ',
+    terminationDesc: 'สถาบันสงวนสิทธิในการยุติบริการในกรณีที่มีการละเมิดข้อกำหนด',
 
     // Dashboard
     welcomeMessage: 'ยินดีต้อนรับ!',
     welcomeSubMessage: 'คุณได้เข้าสู่ระบบเรียบร้อยแล้ว เริ่มต้นการเรียนรู้ภาษาอังกฤษกับเรา',
-    courses: 'หลักสูตร',
     quickActions: 'การดำเนินการด่วน',
     recentActivity: 'กิจกรรมล่าสุด',
     loginSuccess: 'เข้าสู่ระบบสำเร็จ',
@@ -189,9 +546,6 @@ export const translations: Record<Language, Translations> = {
     // Profile
     personalInfo: 'ข้อมูลส่วนตัว',
     name: 'ชื่อ',
-    email: 'อีเมล',
-    phone: 'เบอร์โทรศัพท์',
-    address: 'ที่อยู่',
     englishLevel: 'ระดับภาษาอังกฤษ',
     saveData: 'บันทึกข้อมูล',
 
@@ -223,11 +577,119 @@ export const translations: Record<Language, Translations> = {
     currentEducation: 'ระดับการศึกษาปัจจุบัน',
     recentCEFR: 'ระดับ CEFR ล่าสุด',
 
-      // Placeholders
-      pleaseEnterName: 'กรุณากรอกชื่อ',
-      pleaseEnterLastName: 'กรุณากรอกนามสกุล',
-      pleaseEnterAddress: 'กรุณากรอกที่อยู่',
-    },
+    // Placeholders
+    pleaseEnterName: 'กรุณากรอกชื่อ',
+    pleaseEnterLastName: 'กรุณากรอกนามสกุล',
+    pleaseEnterAddress: 'กรุณากรอกที่อยู่',
+    
+    // CTA Section - Additional
+    readyToTransform: 'พร้อมเปลี่ยนชีวิต',
+    withEnglish: 'ด้วยภาษาอังกฤษ',
+    question: 'แล้วหรือยัง?',
+    joinSuccessfulStudents: 'เข้าร่วมกับนักเรียนกว่า',
+    followersCount: '24,000+ คน',
+    studentsSuccess: 'ที่ประสบความสำเร็จกับเรา',
+    onlineOrBranch: 'เรียนออนไลน์หรือที่สาขาก็ได้ เลือกตามความสะดวกของคุณ',
+    registerFree: 'ลงทะเบียนเรียนฟรี',
+    consultFree: 'ปรึกษาฟรี',
+    monthsResults: 'เดือนเห็นผล',
+    reviewScore: 'คะแนนรีวิว',
+    
+    // Footer
+    footerDescription: 'เราทำให้คุณพูดได้ - สถาบันสอนภาษาอังกฤษที่ดีที่สุดในโคราช พร้อมเปลี่ยนชีวิตคุณใน 3 เดือน',
+    mainMenu: 'เมนูหลัก',
+    koratBranch: 'สาขาโคราช',
+    koratLocation: 'นครราชสีมา (โคราช)',
+    weekdayHours: 'จันทร์-ศุกร์ 9:00-20:00',
+    weekendHours: 'เสาร์-อาทิต์ 9:00-18:00',
+    allRightsReserved: 'สงวนลิขสิทธิ์.',
+    developedBy: 'พัฒนาโดย English Korat Team',
+    
+    // Courses Page
+    coursesPageTitle: 'คอร์สเรียนภาษาอังกฤษ',
+    coursesPageSubtitle: 'เลือกคอร์สที่เหมาะกับคุณ เรียนกับเราแล้วพูดได้จริงใน 3 เดือน',
+    askForAdvice: 'ขอคำแนะนำ',
+    filterByLevel: 'กรองตามระดับ',
+    filterByType: 'กรองตามประเภท',
+    ourCourses: 'คอร์สของเรา',
+    whyOurCourses: 'ทำไมต้องเลือกคอร์สของเรา',
+    whyOurCoursesDesc: 'เราใส่ใจทุกรายละเอียด เพื่อให้คุณได้รับการเรียนรู้ที่ดีที่สุด',
+    readyToStartLearning: 'พร้อมเริ่มเรียนแล้วหรือยัง?',
+    readyToStartLearningDesc: 'เข้าร่วมกับเราวันนี้ และเริ่มต้นการเปลี่ยนแปลงชีวิตของคุณ',
+    contactForInfo: 'ติดต่อสอบถาม',
+    
+    // About Page
+    aboutPageTitle: 'เกี่ยวกับเรา',
+    aboutPageSubtitle: 'English Korat - สถาบันสอนภาษาอังกฤษที่ทำให้คุณพูดได้จริง',
+    contactUs: 'ติดต่อเรา',
+    missionStatement: 'เราตั้งใจจะทำให้ทุกคนพูดภาษาอังกฤษได้อย่างมั่นใจ ใน 3 เดือน',
+    ourStory: 'เรื่องราวของเรา',
+    storyParagraph1: 'English Korat เริ่มต้นขึ้นในปี 2019 ด้วยความตั้งใจที่จะแก้ไขปัญหาของคนไทยที่เรียนภาษาอังกฤษมานานแต่ยังพูดไม่ได้ เราเห็นว่าปัญหานี้เกิดจากวิธีการสอนที่เน้นไวยากรณ์มากเกินไป แต่ขาดการฝึกฝนการสนทนาจริง',
+    storyParagraph2: 'ด้วยประสบการณ์ในการสอนมากกว่า 10 ปี เราได้พัฒนาวิธีการสอนที่เน้นการใช้งานจริง ทำให้นักเรียนสามารถพูดได้อย่างมั่นใจในเวลาเพียง 3 เดือน วิธีการนี้ได้รับการพิสูจน์แล้วจากนักเรียนกว่า 1,000 คนที่ประสบความสำเร็จ',
+    storyParagraph3: 'วันนี้ English Korat ได้กลายเป็นสถาบันชั้นนำในจังหวัดนครราชสีมา ด้วยผู้ติดตามมากกว่า 24,000 คน เราภูมิใจที่ได้เป็นส่วนหนึ่งในการเปลี่ยนแปลงชีวิตของผู้คน ทำให้พวกเขามีโอกาสที่ดีขึ้นในการทำงานและชีวิต',
+    ourValues: 'ค่านิยมของเรา',
+    valuesDescription: 'ค่านิยมที่ขับเคลื่อนเราในการสร้างการเรียนรู้ที่มีคุณภาพ',
+    qualityEducation: 'การศึกษาคุณภาพ',
+    qualityEducationDesc: 'เราใส่ใจในทุกรายละเอียดของการสอน เพื่อให้นักเรียนได้รับความรู้ที่มีคุณภาพสูงสุด',
+    innovation: 'นวัตกรรม',
+    innovationDesc: 'เราพัฒนาวิธีการสอนใหม่ ๆ อยู่เสมอ เพื่อให้การเรียนรู้เป็นเรื่องที่สนุกและมีประสิทธิภาพ',
+    studentCare: 'ใส่ใจนักเรียน',
+    studentCareDesc: 'เราให้ความสำคัญกับทุกคน ดูแลและสนับสนุนให้นักเรียนทุกคนประสบความสำเร็จ',
+    results: 'ผลลัพธ์',
+    resultsDesc: 'เราให้ความสำคัญกับผลลัพธ์ที่เกิดขึ้นจริง มุ่งมั่นที่จะทำให้นักเรียนพูดได้จริงใน 3 เดือน',
+    community: 'ชุมชน',
+    communityDesc: 'เราสร้างชุมชนการเรียนรู้ที่อบอุ่น ทุกคนช่วยเหลือและสนับสนุนซึ่งกันและกัน',
+    excellence: 'ความเป็นเลิศ',
+    excellenceDesc: 'เราไม่หยุดที่จะพัฒนาและปรับปรุง เพื่อให้บริการที่เป็นเลิศแก่นักเรียนทุกคน',
+    meetOurTeam: 'ทีมงานของเรา',
+    teamDescription: 'ทีมงานมืออาชีพที่มีประสบการณ์และทุ่มเทเพื่อความสำเร็จของนักเรียน',
+    ourAchievements: 'ความสำเร็จของเรา',
+    achievementsDescription: 'ผลงานที่เราภูมิใจและเป็นแรงผลักดันให้เราก้าวต่อไป',
+    readyToJoin: 'พร้อมเข้าร่วมกับเรา?',
+    readyToJoinDescription: 'เริ่มต้นเปลี่ยนแปลงชีวิตของคุณวันนี้ เรียนกับเราและพูดภาษาอังกฤษได้ใน 3 เดือน',
+    startToday: 'เริ่มต้นวันนี้',
+    
+    // Contact Page
+    contactPageTitle: 'ติดต่อเรา',
+    contactPageSubtitle: 'พร้อมให้คำปรึกษาและตอบทุกคำถามของคุณ ติดต่อเราได้ทุกช่องทาง',
+    registerNow: 'ลงทะเบียนทันที',
+    callNow: 'โทรเลย',
+    contactMethods: 'ช่องทางการติดต่อ',
+    contactMethodsDesc: 'เลือกช่องทางที่สะดวกสำหรับคุณ เราพร้อมให้บริการทุกวัน',
+    phoneDesc: 'โทรสอบถามข้อมูลได้ทันที',
+    lineDesc: 'แชทสอบถามผ่าน LINE',
+    emailDesc: 'ส่งอีเมลสอบถามรายละเอียด',
+    facebookDesc: 'ติดตามข่าวสารและสอบถาม',
+    sendMessageDesc: 'ส่งข้อความให้เรา เราจะติดต่อกลับโดยเร็วที่สุด',
+    fullName: 'ชื่อ-นามสกุล',
+    phoneNumber: 'เบอร์โทรศัพท์',
+    emailAddress: 'อีเมล',
+    subject: 'หัวข้อสอบถาม',
+    pleaseSelectSubject: 'กรุณาเลือกหัวข้อ',
+    courseInquiry: 'สอบถามคอร์สเรียน',
+    scheduleInquiry: 'สอบถามตารางเรียน',
+    pricingInquiry: 'สอบถามราคา',
+    generalInquiry: 'สอบถามทั่วไป',
+    messagePlaceholder: 'กรุณาระบุข้อความที่ต้องการสอบถาม...',
+    location: 'ที่ตั้ง',
+    openingHours: 'เวลาทำการ',
+    quickContact: 'ติดต่อด่วน',
+    findUs: 'หาเรา',
+    findUsDesc: 'ดูตำแหน่งที่ตั้งของเราใน Google Maps',
+    openMap: 'เปิดแผนที่',
+    frequentlyAsked: 'คำถามที่พบบ่อย',
+    faqDesc: 'คำตอบสำหรับคำถามที่นักเรียนถามบ่อย ๆ',
+    readyToTalk: 'พร้อมพูดคุยกับเรา?',
+    readyToTalkDesc: 'ติดต่อเราเพื่อเริ่มต้นเปลี่ยนแปลงชีวิตของคุณไปกับภาষาอังกฤษ',
+    
+    // Privacy Policy Page
+    privacyPolicyTitle: 'นโยบายความเป็นส่วนตัว',
+    privacyPolicyDescription: 'เราให้ความสำคัญกับความเป็นส่วนตัวและการปกป้องข้อมูลส่วนบุคคลของคุณ',
+    
+    // Terms of Service Page
+    termsOfServiceTitle: 'ข้อกำหนดการใช้งาน',
+    termsOfServiceDescription: 'ข้อกำหนดและเงื่อนไขการใช้บริการของ English Korat',
+  },
 
   en: {
     // New properties
@@ -236,6 +698,9 @@ export const translations: Record<Language, Translations> = {
     systemUpdateDesc: 'There is a recent system update',
     notifications: 'Notifications',
     newStudentDesc: 'A new student has registered',
+    language: 'Language',
+    privacyPolicy: 'Privacy Policy',
+    termsOfService: 'Terms of Service',
 
     // Navigation
     dashboard: 'Dashboard',
@@ -244,6 +709,12 @@ export const translations: Record<Language, Translations> = {
     logout: 'Logout',
     systemSettings: 'System Settings',
     schedule: 'Schedule',
+    home: 'Home',
+    courses: 'Courses',
+    about: 'About Us',
+    contact: 'Contact',
+    privacy: 'Privacy Policy',
+    terms: 'Terms of Service',
     teacherPortal: 'Teacher Portal',
     studentPortal: 'Student Portal',
     studentSchedule: 'Student Schedule',
@@ -260,8 +731,6 @@ export const translations: Record<Language, Translations> = {
     teacherList: 'Teacher List',
     teacherNew: 'New Teacher',
     lineOA: 'Line OA',
-
-
 
     // Authentication
     login: 'Login',
@@ -285,18 +754,135 @@ export const translations: Record<Language, Translations> = {
 
     // Common
     welcome: 'Welcome',
-    englishKorat: 'English Korat',
+    englishKorat: 'English Korat Language School Management System',
     menu: 'Menu',
     close: 'Close',
     save: 'Save',
     cancel: 'Cancel',
     submit: 'Submit',
     register: 'Register',
+    readMore: 'Read More',
+    backToHome: 'Back to Home',
+    getStarted: 'Get Started',
+    learnMore: 'Learn More',
+    viewCourses: 'View Courses',
+
+    // Homepage
+    heroTitle: 'English Korat',
+    heroSubtitle: 'We Make You Speak',
+    heroDescription: 'The best place to learn for those who are #weak in English. Transform your life after studying in just 3 months ‼️',
+    startLearning: 'Start Learning Today',
+    whyChooseUs: 'Why Choose English Korat?',
+    whyChooseDesc: 'We have unique teaching methods that will help you speak English confidently',
+    changeLifeIn3Months: 'Transform Your Life in 3 Months',
+    changeLifeDesc: 'Proven teaching methods that can help you speak English in a short time',
+    perfectForBeginners: 'Perfect for Beginners',
+    perfectForBeginnersDesc: 'We understand Thai people\'s English learning challenges and have targeted solutions',
+    guaranteedResults: 'Guaranteed Results',
+    guaranteedResultsDesc: 'Over 24,000+ students have succeeded with us',
+    readyToChange: 'Ready to Transform Your Life with English?',
+    readyToChangeDesc: 'Join over 24,000+ students who have succeeded with us. Learn online or at our branch - choose what\'s convenient for you',
+    joinUs: 'Join Us',
+    freeRegistration: '🚀 Free Registration',
+    freeConsultation: '📞 Free Consultation',
+    monthsResult: 'Months to See Results',
+    followers: 'Followers',
+    successfulStudents: 'Successful Students',
+    rating: 'Review Rating',
+
+    // Courses Page
+    coursesTitle: 'English Language Courses',
+    coursesDescription: 'Choose the course that fits your level and needs with our unique teaching methods',
+    courseFeatures: 'Course Features',
+    basicCourse: 'Basic Course',
+    basicCourseDesc: 'Perfect for English beginners, focusing on basic communication skills',
+    intermediateCourse: 'Intermediate Course',
+    intermediateCourseDesc: 'For those with basic knowledge who want to advance their skills',
+    advancedCourse: 'Advanced Course',
+    advancedCourseDesc: 'Focus on high-level language use for work and complex communication',
+    businessCourse: 'Business Course',
+    businessCourseDesc: 'English for work, negotiation, and presentations',
+    courseBenefits: 'Course Benefits',
+    flexibleSchedule: 'Flexible Schedule',
+    smallClasses: 'Small Classes',
+    practicalFocus: 'Practical Focus',
+    progressTracking: 'Progress Tracking',
+
+    // About Page
+    aboutTitle: 'About Us',
+    aboutDescription: 'English Korat is an English language institute dedicated to developing English education for Thai people',
+    ourMission: 'Our Mission',
+    ourMissionDesc: 'We want every Thai person to be able to speak English confidently with teaching methods that understand Thai people\'s problems',
+    ourVision: 'Our Vision',
+    ourVisionDesc: 'To be the number one English language institute in Northeast Thailand that delivers real, visible results',
+    ourTeam: 'Our Team',
+    ourTeamDesc: 'Experienced teachers with passion for teaching, ready to provide guidance at every step of learning',
+    ourMethod: 'Our Teaching Method',
+    ourMethodDesc: 'We use teaching methods that focus on practice and real-world application, not memorization, but understanding and practical application',
+    whyTrustUs: 'Why Trust Us',
+    experiencedTeachers: 'Experienced Teachers',
+    experiencedTeachersDesc: 'Teaching team with over 10 years of experience who understand Thai people\'s challenges',
+    provenMethod: 'Proven Method',
+    provenMethodDesc: 'Recognized teaching results with over 24,000+ students',
+    comprehensiveSupport: 'Comprehensive Support',
+    comprehensiveSupportDesc: 'Monitor learning progress and provide guidance throughout the learning period',
+
+    // Contact Page
+    contactTitle: 'Contact Us',
+    contactDescription: 'Ready to provide consultation and answer questions about English learning',
+    getInTouch: 'Get in Touch',
+    address: 'Address',
+    phone: 'Phone',
+    email: 'Email',
+    businessHours: 'Business Hours',
+    mondayFriday: 'Monday-Friday 9:00-20:00',
+    saturdaySunday: 'Saturday-Sunday 9:00-18:00',
+    followUs: 'Follow Us',
+    contactForm: 'Contact Form',
+    yourName: 'Your Name',
+    yourEmail: 'Your Email',
+    yourMessage: 'Your Message',
+    sendMessage: 'Send Message',
+
+    // Privacy Policy Page
+    privacyTitle: 'Privacy Policy',
+    privacyDescription: 'We value the privacy of your information',
+    informationCollection: 'Information Collection',
+    informationCollectionDesc: 'We only collect information necessary for providing educational services',
+    informationUse: 'Information Use',
+    informationUseDesc: 'Your information will be used for educational management and communication',
+    informationProtection: 'Information Protection',
+    informationProtectionDesc: 'We have high-level data security measures',
+    cookiePolicy: 'Cookie Policy',
+    cookiePolicyDesc: 'We use cookies to improve website user experience',
+    thirdPartyServices: 'Third Party Services',
+    thirdPartyServicesDesc: 'We may use third-party services in providing some services',
+    userRights: 'User Rights',
+    userRightsDesc: 'You have the right to access, modify, and delete your personal information',
+    policyUpdates: 'Policy Updates',
+    policyUpdatesDesc: 'This policy may be updated as appropriate',
+
+    // Terms of Service Page
+    termsTitle: 'Terms of Service',
+    termsDescription: 'Terms and conditions for using our services',
+    serviceTerms: 'Service Terms',
+    serviceTermsDesc: 'Using our services means you accept these terms',
+    userResponsibilities: 'User Responsibilities',
+    userResponsibilitiesDesc: 'Users must use services properly and not violate others\' rights',
+    paymentTerms: 'Payment Terms',
+    paymentTermsDesc: 'Tuition payments must be made according to specified terms',
+    cancellationPolicy: 'Cancellation Policy',
+    cancellationPolicyDesc: 'Course cancellations must be notified in advance according to specified terms',
+    intellectualProperty: 'Intellectual Property',
+    intellectualPropertyDesc: 'Teaching content and learning materials are copyrighted by the institute',
+    limitationLiability: 'Limitation of Liability',
+    limitationLiabilityDesc: 'The institute limits liability according to legal framework',
+    termination: 'Service Termination',
+    terminationDesc: 'The institute reserves the right to terminate services in case of terms violation',
 
     // Dashboard
     welcomeMessage: 'Welcome!',
     welcomeSubMessage: 'You have successfully logged in. Start your English learning journey with us',
-    courses: 'Courses',
     quickActions: 'Quick Actions',
     recentActivity: 'Recent Activity',
     loginSuccess: 'Login Successful',
@@ -305,9 +891,6 @@ export const translations: Record<Language, Translations> = {
     // Profile
     personalInfo: 'Personal Information',
     name: 'Name',
-    email: 'Email',
-    phone: 'Phone',
-    address: 'Address',
     englishLevel: 'English Level',
     saveData: 'Save Data',
 
@@ -343,5 +926,113 @@ export const translations: Record<Language, Translations> = {
     pleaseEnterName: 'Please enter name',
     pleaseEnterLastName: 'Please enter last name',
     pleaseEnterAddress: 'Please enter address',
+    
+    // CTA Section - Additional
+    readyToTransform: 'Ready to Transform Your Life',
+    withEnglish: 'with English',
+    question: '?',
+    joinSuccessfulStudents: 'Join more than',
+    followersCount: '24,000+ students',
+    studentsSuccess: 'who succeeded with us',
+    onlineOrBranch: 'Study online or at our branch, choose what\'s convenient for you',
+    registerFree: 'Register for Free',
+    consultFree: 'Free Consultation',
+    monthsResults: 'Months to Results',
+    reviewScore: 'Review Score',
+    
+    // Footer
+    footerDescription: 'We make you speak - The best English institute in Korat, ready to transform your life in 3 months',
+    mainMenu: 'Main Menu',
+    koratBranch: 'Korat Branch',
+    koratLocation: 'Nakhon Ratchasima (Korat)',
+    weekdayHours: 'Mon-Fri 9:00-20:00',
+    weekendHours: 'Sat-Sun 9:00-18:00',
+    allRightsReserved: 'All rights reserved.',
+    developedBy: 'Developed by English Korat Team',
+    
+    // Courses Page
+    coursesPageTitle: 'English Courses',
+    coursesPageSubtitle: 'Choose the course that\'s right for you. Learn with us and speak fluently in 3 months',
+    askForAdvice: 'Ask for Advice',
+    filterByLevel: 'Filter by Level',
+    filterByType: 'Filter by Type',
+    ourCourses: 'Our Courses',
+    whyOurCourses: 'Why Choose Our Courses',
+    whyOurCoursesDesc: 'We pay attention to every detail to give you the best learning experience',
+    readyToStartLearning: 'Ready to Start Learning?',
+    readyToStartLearningDesc: 'Join us today and start transforming your life',
+    contactForInfo: 'Contact for Info',
+    
+    // About Page
+    aboutPageTitle: 'About Us',
+    aboutPageSubtitle: 'English Korat - The institute that makes you really speak English',
+    contactUs: 'Contact Us',
+    missionStatement: 'We are committed to making everyone speak English confidently in 3 months',
+    ourStory: 'Our Story',
+    storyParagraph1: 'English Korat began in 2019 with the intention to solve the problem of Thai people who have studied English for a long time but still can\'t speak. We saw that this problem arose from teaching methods that focused too much on grammar but lacked real conversation practice.',
+    storyParagraph2: 'With more than 10 years of teaching experience, we have developed a practical teaching method that enables students to speak confidently in just 3 months. This method has been proven by more than 1,000 students who have succeeded.',
+    storyParagraph3: 'Today, English Korat has become a leading institute in Nakhon Ratchasima province with more than 24,000 followers. We are proud to be part of transforming people\'s lives, giving them better opportunities in work and life.',
+    ourValues: 'Our Values',
+    valuesDescription: 'The values that drive us to create quality learning',
+    qualityEducation: 'Quality Education',
+    qualityEducationDesc: 'We care about every detail of teaching to provide students with the highest quality knowledge',
+    innovation: 'Innovation',
+    innovationDesc: 'We constantly develop new teaching methods to make learning fun and effective',
+    studentCare: 'Student Care',
+    studentCareDesc: 'We value everyone, care for and support every student to succeed',
+    results: 'Results',
+    resultsDesc: 'We focus on real results, committed to making students speak fluently in 3 months',
+    community: 'Community',
+    communityDesc: 'We create a warm learning community where everyone helps and supports each other',
+    excellence: 'Excellence',
+    excellenceDesc: 'We never stop developing and improving to provide excellent service to all students',
+    meetOurTeam: 'Meet Our Team',
+    teamDescription: 'Professional team with experience and dedication to student success',
+    ourAchievements: 'Our Achievements',
+    achievementsDescription: 'The achievements we are proud of and that drive us forward',
+    readyToJoin: 'Ready to Join Us?',
+    readyToJoinDescription: 'Start transforming your life today. Learn with us and speak English in 3 months',
+    startToday: 'Start Today',
+    
+    // Contact Page
+    contactPageTitle: 'Contact Us',
+    contactPageSubtitle: 'Ready to provide consultation and answer all your questions. Contact us through any channel',
+    registerNow: 'Register Now',
+    callNow: 'Call Now',
+    contactMethods: 'Contact Methods',
+    contactMethodsDesc: 'Choose the channel that\'s convenient for you. We\'re available every day',
+    phoneDesc: 'Call for immediate information',
+    lineDesc: 'Chat via LINE',
+    emailDesc: 'Send email for detailed inquiries',
+    facebookDesc: 'Follow news and inquire',
+    sendMessageDesc: 'Send us a message and we\'ll get back to you as soon as possible',
+    fullName: 'Full Name',
+    phoneNumber: 'Phone Number',
+    emailAddress: 'Email Address',
+    subject: 'Subject',
+    pleaseSelectSubject: 'Please select a subject',
+    courseInquiry: 'Course Inquiry',
+    scheduleInquiry: 'Schedule Inquiry',
+    pricingInquiry: 'Pricing Inquiry',
+    generalInquiry: 'General Inquiry',
+    messagePlaceholder: 'Please specify your inquiry...',
+    location: 'Location',
+    openingHours: 'Opening Hours',
+    quickContact: 'Quick Contact',
+    findUs: 'Find Us',
+    findUsDesc: 'View our location on Google Maps',
+    openMap: 'Open Map',
+    frequentlyAsked: 'Frequently Asked Questions',
+    faqDesc: 'Answers to questions students ask frequently',
+    readyToTalk: 'Ready to Talk to Us?',
+    readyToTalkDesc: 'Contact us to start transforming your life with English',
+    
+    // Privacy Policy Page
+    privacyPolicyTitle: 'Privacy Policy',
+    privacyPolicyDescription: 'We value your privacy and protecting your personal information',
+    
+    // Terms of Service Page
+    termsOfServiceTitle: 'Terms of Service',
+    termsOfServiceDescription: 'Terms and conditions for using English Korat services',
   }
 }

@@ -3,7 +3,7 @@ import "./globals.css";
 import ClientProvider from "../components/common/ClientProvider";
 
 export const metadata: Metadata = {
-  title: "English Korat",
+  title: "EnglishKorat",
   description: "Learn English Online with English Korat",
 };
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import LoadingSpinner from './LoadingSpinner';
+import { validateImageUrl } from '@/utils/validateImageUrl';
 
 interface AvatarProps {
   src?: string | null;
@@ -48,7 +49,7 @@ const Avatar: React.FC<AvatarProps> = ({
 
   return (
     <div className={`${sizeClasses[size]} rounded-full overflow-hidden bg-gray-200 flex items-center justify-center relative ${className}`}>
-      {src && !error ? (
+  {validateImageUrl(src) && !error ? (
         <>
           {loading && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-full">
@@ -57,9 +58,10 @@ const Avatar: React.FC<AvatarProps> = ({
           )}
           <div className="relative w-full h-full">
             <Image
-              src={src}
+              src={validateImageUrl(src) as string}
               alt={alt}
               fill
+              unoptimized={true}
               className={`object-cover rounded-full ${loading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
               onLoad={handleLoad}
               onError={handleError}
