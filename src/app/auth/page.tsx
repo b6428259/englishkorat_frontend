@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import AuthForm from '../../components/forms/AuthForm';
 
-export default function AuthPage() {
+
+function AuthPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get('redirect');
@@ -80,5 +81,13 @@ export default function AuthPage() {
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-100 rounded-full opacity-20"></div>
       </div>
     </div>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AuthPageContent />
+    </Suspense>
   );
 }

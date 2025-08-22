@@ -38,6 +38,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { getAvatarUrl } from '@/utils/config';
+import { validateImageUrl } from '@/utils/validateImageUrl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { getSidebarItems } from '../sidebar/sidebarConfig';
@@ -55,7 +57,7 @@ const ANIM_DURATION = 0.3; // วินาที ต้องเท่ากั�
 const SidebarComponent: React.FC<SidebarProps> = ({ className = '', expanded, isMobile, onToggle }) => {
   const pathname = usePathname();
   const router = useRouter();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const { t } = useLanguage();
 
   // 1) แสดง label เฉพาะหลังขยายเสร็จจริง ๆ (ใช้ ref เพื่อกัน re-render/re-mount)
@@ -203,9 +205,6 @@ const SidebarComponent: React.FC<SidebarProps> = ({ className = '', expanded, is
           <div className="flex-shrink-0 relative" style={{ width: 40, height: 40, minWidth: 40, minHeight: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '9999px', background: '#e5e7eb', overflow: 'hidden' }}>
             {/* Use real avatar if available, fallback to ui-avatars.com */}
             {(() => {
-              const { user } = require('@/hooks/useAuth').useAuth();
-              const { getAvatarUrl } = require('@/utils/config');
-              const { validateImageUrl } = require('@/utils/validateImageUrl');
               const avatarUrl = user?.avatar ? getAvatarUrl(user.avatar) : null;
               const validUrl = validateImageUrl(avatarUrl);
               if (validUrl) {
@@ -240,7 +239,6 @@ const SidebarComponent: React.FC<SidebarProps> = ({ className = '', expanded, is
             itemId="header-title"
           >
             {(() => {
-              const { user } = require('@/hooks/useAuth').useAuth();
               return user?.username || t.englishKorat;
             })()}
           </SidebarLabel>

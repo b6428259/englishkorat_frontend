@@ -5,7 +5,6 @@ import 'country-flag-icons/react/3x2';
 import { US, TH } from 'country-flag-icons/react/3x2';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { Language } from '../../locales/translations';
-import { cursorTo } from 'readline';
 
 interface LanguageSwitchProps {
   className?: string;

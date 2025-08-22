@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import PublicLayout from '@/components/common/Layout';
 import Button from '@/components/common/Button';

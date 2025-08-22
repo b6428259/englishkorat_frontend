@@ -13,7 +13,6 @@ import StructuredData, {
   faqData 
 } from "@/components/common/StructuredData";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Metadata } from "next";
 
 // SEO Metadata will be handled by layout or moved to separate component
 // since this is now a client component due to useLanguage hook
@@ -274,7 +273,7 @@ export default function Home() {
             <div className="lg:col-span-2">
               <div className="flex items-center mb-4">
                 <Image
-                  src="/icons/logo.png"
+                  src="/icons/LogoCutted.jpg"
                   alt="English Korat Logo"
                   width={48}
                   height={48}

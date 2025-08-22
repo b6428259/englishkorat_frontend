@@ -30,18 +30,19 @@ const PublicHeader: React.FC<PublicHeaderProps> = ({ className = "" }) => {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center" onClick={closeMobileMenu}>
-              <Image
-                src="/icons/logo.png"
-                alt="English Korat Logo"
-                width={48}
-                height={48}
-                className="object-contain h-12 w-12 sm:h-18 sm:w-18"
-                priority
-              />
-              <div className="ml-3 hidden sm:block">
-                <h1 className="text-white font-bold text-lg lg:text-xl">English Korat</h1>
-                <p className="text-blue-200 text-xs">{t.heroSubtitle}</p>
+          
+              <div className="mr-3 hidden sm:block space-y-1">
+              <h1 className="text-white font-bold text-lg lg:text-xl">English Korat</h1>
+              <p className="text-blue-200 text-xs">{t.heroSubtitle}</p>
               </div>
+                  <Image
+              src="/icons/LogoCutted.jpg"
+              alt="English Korat Logo"
+              width={48}
+              height={48}
+              className="object-contain h-12 w-12 sm:h-14 sm:w-14 rounded-ms"
+              priority
+              />
             </Link>
           </div>
 
