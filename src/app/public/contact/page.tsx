@@ -334,23 +334,66 @@ export default function ContactPage() {
                 </div>
               </div>
 
-              {/* Map Placeholder */}
-              <div className="bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl p-8 text-center">
-                <div className="text-6xl mb-4">🗺️</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-4">
-                  {t.findUs}
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  {t.findUsDesc}
-                </p>
-                <Button 
-                  href="https://maps.google.com/?q=English+Korat+Nakhon+Ratchasima"
-                  variant="primary"
-                  className="inline-flex items-center"
-                >
-                  <span className="mr-2">🗺️</span>
-                  {t.openMap}
-                </Button>
+              {/* Google Map */}
+              <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                <div className="p-6 bg-gradient-to-r from-[#334293] to-[#2a3875] text-white">
+                  <h3 className="text-xl font-bold mb-4 flex items-center">
+                    <span className="mr-3">📍</span>
+                    {t.findUs}
+                  </h3>
+                  <p className="opacity-90">
+                    {t.findUsDesc}
+                  </p>
+                </div>
+                <div className="h-96 relative">
+                  <iframe
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3850.5234567890123!2d102.0610465!3d14.9810914!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTTCsDU4JzUxLjkiTiAxMDLCsDAzJzM5LjgiRQ!5e0!3m2!1sen!2sth!4v1640123456789!5m2!1sen!2sth"
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen={true}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    title="English Korat Location"
+                    className="absolute inset-0"
+                  ></iframe>
+                </div>
+                <div className="p-6">
+                  <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
+                    <div className="text-center sm:text-left">
+                      <p className="text-gray-900 font-semibold">
+                        {t.koratBranch}
+                      </p>
+                      <p className="text-gray-600 text-sm">
+                        {t.koratLocation}
+                      </p>
+                      <p className="text-gray-500 text-xs mt-1">
+                        {language === 'th' 
+                          ? 'ใกล้ห้างเซ็นทรัล, ตลาดโคราช และมหาวิทยาลัยราช' 
+                          : 'Near Central Plaza, Korat Market, and Rajabhat University'
+                        }
+                      </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Button 
+                        href="https://maps.app.goo.gl/pTTzuZ6bDCguAMMz9"
+                        variant="primary"
+                        className="inline-flex items-center text-sm px-4 py-2"
+                      >
+                        <span className="mr-2">🗺️</span>
+                        {t.openMap}
+                      </Button>
+                      <Button 
+                        href="https://maps.google.com/?q=14.9810914,102.0610465"
+                        variant="outline"
+                        className="inline-flex items-center text-sm px-4 py-2"
+                      >
+                        <span className="mr-2">🧭</span>
+                        {language === 'th' ? 'พิกัด GPS' : 'GPS Coordinates'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import PublicHeader from '@/components/common/PublicHeader';
+import PublicFooter from '@/components/common/PublicFooter';
 
 interface PublicLayoutProps {
   children: React.ReactNode;
@@ -15,6 +16,7 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ children, className = "" })
       <main className="pt-0">
         {children}
       </main>
+      <PublicFooter />
     </div>
   );
 };
