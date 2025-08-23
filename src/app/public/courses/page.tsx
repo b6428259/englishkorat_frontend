@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import PublicLayout from '@/components/common/Layout';
 import Button from '@/components/common/Button';
+import { Select } from '@/components/forms';
 
 export default function CoursesPage() {
   const { t, language } = useLanguage();
@@ -204,32 +205,22 @@ export default function CoursesPage() {
           <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-center justify-center">
             <div className="flex items-center gap-4">
               <span className="font-semibold text-gray-700">{t.filterByLevel}:</span>
-              <select 
+              <Select 
                 value={selectedLevel}
                 onChange={(e) => setSelectedLevel(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#334293] focus:border-transparent"
-              >
-                {levelOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                options={levelOptions}
+                className="min-w-[160px]"
+              />
             </div>
             
             <div className="flex items-center gap-4">
               <span className="font-semibold text-gray-700">{t.filterByType}:</span>
-              <select 
+              <Select 
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#334293] focus:border-transparent"
-              >
-                {typeOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                options={typeOptions}
+                className="min-w-[160px]"
+              />
             </div>
           </div>
         </div>
