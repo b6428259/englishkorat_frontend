@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import PublicLayout from '@/components/common/Layout';
 import Button from '@/components/common/Button';
+import { Input, Textarea, Select } from '@/components/forms';
 
 export default function ContactPage() {
   const { t, language } = useLanguage();
@@ -175,14 +176,13 @@ export default function ContactPage() {
                     <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
                       {t.fullName} *
                     </label>
-                    <input
+                    <Input
                       type="text"
                       id="name"
                       name="name"
                       required
                       value={formData.name}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#334293] focus:border-transparent"
                       placeholder={t.pleaseEnterName}
                     />
                   </div>
@@ -191,13 +191,12 @@ export default function ContactPage() {
                     <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
                       {t.phoneNumber}
                     </label>
-                    <input
+                    <Input
                       type="tel"
                       id="phone"
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#334293] focus:border-transparent"
                       placeholder={language === 'th' ? 'กรุณากรอกเบอร์โทรศัพท์' : 'Please enter phone number'}
                     />
                   </div>
@@ -207,14 +206,13 @@ export default function ContactPage() {
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                     {t.emailAddress} *
                   </label>
-                  <input
+                  <Input
                     type="email"
                     id="email"
                     name="email"
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#334293] focus:border-transparent"
                     placeholder={language === 'th' ? 'กรุณากรอกอีเมล' : 'Please enter email address'}
                   />
                 </div>
@@ -223,34 +221,33 @@ export default function ContactPage() {
                   <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
                     {t.subject} *
                   </label>
-                  <select
+                  <Select
                     id="subject"
                     name="subject"
                     required
                     value={formData.subject}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#334293] focus:border-transparent"
-                  >
-                    <option value="">{t.pleaseSelectSubject}</option>
-                    <option value="course_inquiry">{t.courseInquiry}</option>
-                    <option value="schedule">{t.scheduleInquiry}</option>
-                    <option value="pricing">{t.pricingInquiry}</option>
-                    <option value="general">{t.generalInquiry}</option>
-                  </select>
+                    options={[
+                      { value: '', label: t.pleaseSelectSubject },
+                      { value: 'course_inquiry', label: t.courseInquiry },
+                      { value: 'schedule', label: t.scheduleInquiry },
+                      { value: 'pricing', label: t.pricingInquiry },
+                      { value: 'general', label: t.generalInquiry }
+                    ]}
+                  />
                 </div>
 
                 <div>
                   <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
                     {t.messagePlaceholder} *
                   </label>
-                  <textarea
+                  <Textarea
                     id="message"
                     name="message"
                     required
                     rows={6}
                     value={formData.message}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#334293] focus:border-transparent"
                     placeholder={t.messagePlaceholder}
                   />
                 </div>
