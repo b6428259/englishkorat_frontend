@@ -1,0 +1,34 @@
+{
+  "name": "English Korat - สถาบันสอนภาษาอังกฤษโคราช",
+  "short_name": "English Korat",
+  "description": "สถาบันสอนภาษาอังกฤษที่ดีที่สุดในนครราชสีมา เปลี่ยนชีวิตหลังเรียนใน 3 เดือน",
+  "lang": "th",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#334293",
+  "theme_color": "#334293",
+  "orientation": "portrait-primary",
+  "categories": ["education", "learning", "english", "language"],
+  "icons": [
+    {
+      "src": "/icons/LogoCutted.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/LogoCutted.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "https://scontent.fbkk9-3.fna.fbcdn.net/v/t39.30808-6/525003966_773847038659861_2013571049567836493_n.png?_nc_cat=105&ccb=1-7&_nc_sid=cc71e4&_nc_ohc=Oo91aPRnyPYQ7kNvwFjMYio&_nc_oc=AdnEY2iAAhZ8KTqkMkqkbxOhd7s_AHliYGf9EllJZQQoeJzu3iQYhvz1Z7NHYJnt3ORe38fnBM37ixNkw2y2atgx&_nc_zt=23&_nc_ht=scontent.fbkk9-3.fna&_nc_gid=E2YsfkxFJfeEWG8HeZHHHA&oh=00_AfVWAzb6WMXY1E_wOY8esVt8lXnubH5aN_VdB5dOTgQnJQ&oe=68AF324F",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ]
+}

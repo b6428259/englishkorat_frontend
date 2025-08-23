@@ -173,24 +173,24 @@ export default function CoursesPage() {
         </div>
 
         <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight animate-bounce-in">
             {t.coursesPageTitle}
           </h1>
-          <p className="text-xl md:text-2xl mb-8 opacity-90 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-xl md:text-2xl mb-8 opacity-90 max-w-3xl mx-auto leading-relaxed animate-slide-up">
             {t.coursesPageSubtitle}
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-slide-up">
             <Button 
               href="/public/student/new" 
               variant="secondary"
-              className="px-8 py-4 text-lg font-semibold bg-yellow-400 text-gray-900 hover:bg-yellow-300"
+              className="px-8 py-4 text-lg font-semibold bg-yellow-400 text-gray-900 hover:bg-yellow-300 hover-scale transition-all duration-300"
             >
               🚀 {t.registerNow}
             </Button>
             <Button 
-              href="/contact"
+              href="/public/contact"
               variant="outline" 
-              className="px-8 py-4 text-lg border-2 border-white text-white hover:bg-white hover:text-[#334293]"
+              className="px-8 py-4 text-lg border-2 border-white text-white hover:bg-white hover:text-[#334293] hover-glow transition-all duration-300"
             >
               💬 {t.askForAdvice}
             </Button>
@@ -248,26 +248,28 @@ export default function CoursesPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredCourses.map((course) => (
+            {filteredCourses.map((course, index) => (
               <div 
                 key={course.id}
-                className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden"
+                className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden hover-glow animate-slide-up group"
+                style={{ animationDelay: `${index * 0.1}s` }}
               >
                 {/* Course Image */}
-                <div className="relative h-48 bg-gradient-to-br from-blue-100 to-purple-100">
+                <div className="relative h-48 bg-gradient-to-br from-blue-100 to-purple-100 group-hover:from-blue-200 group-hover:to-purple-200 transition-all duration-300">
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-6xl opacity-20">📚</div>
+                    <div className="text-6xl opacity-20 group-hover:scale-110 transition-transform duration-300">📚</div>
                   </div>
                   <div className="absolute top-4 left-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getLevelBadgeColor(course.level)}`}>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold hover-scale ${getLevelBadgeColor(course.level)}`}>
                       {levelOptions.find(l => l.value === course.level)?.label}
                     </span>
                   </div>
                   <div className="absolute top-4 right-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getTypeBadgeColor(course.type)}`}>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold hover-scale ${getTypeBadgeColor(course.type)}`}>
                       {typeOptions.find(t => t.value === course.type)?.label}
                     </span>
                   </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </div>
 
                 {/* Course Content */}

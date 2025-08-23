@@ -34,29 +34,29 @@ export default function Home() {
       <section className="relative py-8 md:py-16 lg:py-20 px-4 overflow-hidden bg-gradient-to-br from-blue-50 via-white to-indigo-50">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-8 md:gap-12 lg:gap-20 items-center">
-            <div className="space-y-6 md:space-y-8 text-center lg:text-left order-2 lg:order-1">
+            <div className="space-y-6 md:space-y-8 text-center lg:text-left order-2 lg:order-1 animate-slide-in-left">
               <div>
-                <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 leading-tight">
-                  <span className="block text-[#334293] mb-2">{t.heroTitle}</span>
+                <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 leading-tight animate-slide-up">
+                  <span className="block text-[#334293] mb-2 animate-bounce-in">{t.heroTitle}</span>
                   <span className="block text-2xl md:text-3xl lg:text-4xl xl:text-5xl text-gray-800">{t.heroSubtitle}</span>
                 </h1>
-                <p className="text-base md:text-lg lg:text-xl text-gray-600 mt-4 md:mt-6 leading-relaxed">
+                <p className="text-base md:text-lg lg:text-xl text-gray-600 mt-4 md:mt-6 leading-relaxed animate-slide-up">
                   {t.heroDescription}
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center lg:justify-start">
+              <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center lg:justify-start animate-slide-up">
                 <Button 
                   variant="primary" 
                   href="/public/student/new"
-                  className="text-sm md:text-base px-6 md:px-8 py-3 md:py-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+                  className="text-sm md:text-base px-6 md:px-8 py-3 md:py-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover-glow"
                 >
                   {t.startLearning}
                 </Button>
                 <Button 
                   variant="outline" 
                   href="/public/courses"
-                  className="text-sm md:text-base px-6 md:px-8 py-3 md:py-4 border-2 border-[#334293] text-[#334293] hover:bg-[#334293] hover:text-white transition-all duration-300"
+                  className="text-sm md:text-base px-6 md:px-8 py-3 md:py-4 border-2 border-[#334293] text-[#334293] hover:bg-[#334293] hover:text-white transition-all duration-300 hover-scale"
                 >
                   {t.viewCourses}
                 </Button>
@@ -99,17 +99,19 @@ export default function Home() {
             </div>
 
             {/* Hero Image */}
-            <div className="order-1 lg:order-2 flex justify-center">
-              <div className="relative">
+            <div className="order-1 lg:order-2 flex justify-center animate-slide-in-right">
+              <div className="relative animate-float">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-500 rounded-2xl blur-2xl opacity-20 animate-pulse"></div>
                 <Image
-                  src="/promotion-banner.jpg"
+                  src="https://scontent.fbkk9-3.fna.fbcdn.net/v/t39.30808-6/525003966_773847038659861_2013571049567836493_n.png?_nc_cat=105&ccb=1-7&_nc_sid=cc71e4&_nc_ohc=Oo91aPRnyPYQ7kNvwFjMYio&_nc_oc=AdnEY2iAAhZ8KTqkMkqkbxOhd7s_AHliYGf9EllJZQQoeJzu3iQYhvz1Z7NHYJnt3ORe38fnBM37ixNkw2y2atgx&_nc_zt=23&_nc_ht=scontent.fbkk9-3.fna&_nc_gid=E2YsfkxFJfeEWG8HeZHHHA&oh=00_AfVWAzb6WMXY1E_wOY8esVt8lXnubH5aN_VdB5dOTgQnJQ&oe=68AF324F"
                   alt="English Korat - สถาบันสอนภาษาอังกฤษโคราช"
                   width={600}
                   height={450}
-                  className="relative rounded-2xl shadow-2xl w-full max-w-md md:max-w-lg lg:max-w-full"
+                  className="relative rounded-2xl shadow-2xl w-full max-w-md md:max-w-lg lg:max-w-full hover-scale transition-transform duration-500"
                   priority
                 />
+                <div className="absolute -top-4 -right-4 w-8 h-8 bg-yellow-400 rounded-full animate-bounce opacity-80"></div>
+                <div className="absolute -bottom-4 -left-4 w-6 h-6 bg-blue-400 rounded-full animate-pulse opacity-60"></div>
               </div>
             </div>
           </div>
@@ -123,7 +125,7 @@ export default function Home() {
       {/* Features Section */}
       <section className="py-16 md:py-20 lg:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12 md:mb-16">
+          <div className="text-center mb-12 md:mb-16 animate-slide-up">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 md:mb-6">
               {t.whyChooseUs}
             </h2>
@@ -133,7 +135,7 @@ export default function Home() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-            <div className="group text-center p-6 md:p-8 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 transition-all duration-300 transform hover:-translate-y-2 hover:shadow-xl">
+            <div className="group text-center p-6 md:p-8 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 transition-all duration-300 transform hover:-translate-y-2 hover:shadow-xl animate-slide-in-left hover-glow">
               <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
                 <svg className="w-8 h-8 md:w-10 md:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -145,7 +147,7 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="group text-center p-6 md:p-8 rounded-2xl bg-gradient-to-br from-green-50 to-emerald-100 hover:from-green-100 hover:to-emerald-200 transition-all duration-300 transform hover:-translate-y-2 hover:shadow-xl">
+            <div className="group text-center p-6 md:p-8 rounded-2xl bg-gradient-to-br from-green-50 to-emerald-100 hover:from-green-100 hover:to-emerald-200 transition-all duration-300 transform hover:-translate-y-2 hover:shadow-xl animate-slide-up hover-glow">
               <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
                 <svg className="w-8 h-8 md:w-10 md:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />

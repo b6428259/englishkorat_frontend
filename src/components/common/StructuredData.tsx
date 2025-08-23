@@ -45,7 +45,9 @@ export const organizationData = {
     "value": "10-50"
   },
   "sameAs": [
-    "https://www.facebook.com/learningenglishkorat"
+    "https://www.facebook.com/learningenglishkorat",
+    "https://www.tiktok.com/@englishkorat",
+    "https://www.instagram.com/englishkorat"
   ],
   "hasOfferCatalog": {
     "@type": "OfferCatalog",
