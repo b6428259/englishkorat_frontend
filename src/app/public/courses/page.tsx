@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import PublicLayout from '@/components/common/Layout';
+import PublicLayout from '@/components/common/PublicLayout';
 import Button from '@/components/common/Button';
 import { Select } from '@/components/forms';
 
