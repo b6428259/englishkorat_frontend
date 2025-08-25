@@ -5,3 +5,7 @@ export { default as ErrorMessage } from './ErrorMessage';
 export { RoleGuard } from './RoleGuard';
 export { ProfileSettings } from './ProfileSettings';
 export { ProtectedRoute } from './ProtectedRoute';
+export { default as Modal } from './Modal';
+export { default as SuccessModal } from './SuccessModal';
+export { default as ErrorModal } from './ErrorModal';
+export { default as LogoutButton } from './LogoutButton';

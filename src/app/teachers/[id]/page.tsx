@@ -270,18 +270,36 @@ export default function TeacherDetailPage() {
                     <div>
                       <label className="block font-medium text-gray-600 mb-2">ความเชี่ยวชาญ:</label>
                       <div className="bg-gray-50 rounded-lg p-4">
-                        <p className="text-gray-900 leading-relaxed">
-                          {teacher.specializations || 'ไม่ระบุ'}
-                        </p>
+                        {teacher.specializations ? (
+                          <ul className="space-y-1">
+                            {teacher.specializations.split(',').map((item, index) => (
+                              <li key={index} className="text-gray-900 flex items-start">
+                                <span className="text-blue-500 mr-2">•</span>
+                                <span>{item.trim()}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-gray-900">ไม่ระบุ</p>
+                        )}
                       </div>
                     </div>
                     
                     <div>
                       <label className="block font-medium text-gray-600 mb-2">คุณสมบัติและประกาศนียบัตร:</label>
                       <div className="bg-gray-50 rounded-lg p-4">
-                        <p className="text-gray-900 leading-relaxed whitespace-pre-line">
-                          {teacher.certifications || 'ไม่ระบุ'}
-                        </p>
+                        {teacher.certifications ? (
+                          <ul className="space-y-1">
+                            {teacher.certifications.split(',').map((item, index) => (
+                              <li key={index} className="text-gray-900 flex items-start">
+                                <span className="text-green-500 mr-2">•</span>
+                                <span>{item.trim()}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-gray-900">ไม่ระบุ</p>
+                        )}
                       </div>
                     </div>
                   </div>

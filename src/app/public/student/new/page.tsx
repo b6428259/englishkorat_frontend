@@ -50,7 +50,10 @@ const handleSubmit = async (data: StudentFormData) => {
       },
       body: data
     };
-    
+
+    // Log request payload
+    console.log('Student registration request:', requestPayload);
+
     // ส่ง request จริง
     const response = await fetch(requestPayload.url, {
       method: requestPayload.method,
@@ -73,7 +76,7 @@ const handleSubmit = async (data: StudentFormData) => {
     }
 
     console.log('Registration successful:', result);
-    
+
     alert(language === 'th' ? 'ลงทะเบียนนักเรียนสำเร็จ!' : 'Student registration successful!');
     router.push('/students/list');
   } catch (error) {
