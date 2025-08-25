@@ -19,8 +19,12 @@ export default function LogoutButton() {
       setTimeout(() => {
         router.push('/auth');
       }, 1500);
-    } catch (error: any) {
-      setErrorMessage(error?.message || 'เกิดข้อผิดพลาดในการออกจากระบบ');
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setErrorMessage(error.message || 'เกิดข้อผิดพลาดในการออกจากระบบ');
+      } else {
+        setErrorMessage('เกิดข้อผิดพลาดในการออกจากระบบ');
+      }
       setShowError(true);
     } finally {
       setLoading(false);

@@ -26,7 +26,6 @@ export default function AuthForm({ onSuccess, onError }: AuthFormProps) {
 
   const { login, isLoading, error } = useAuth();
   const { t } = useLanguage();
-  const router = useRouter();
 
   // Form validation
   const validateForm = (): boolean => {
@@ -68,9 +67,12 @@ export default function AuthForm({ onSuccess, onError }: AuthFormProps) {
       if (response.success) {
         onSuccess?.();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Auth error:', error);
-      const errorMessage = error?.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
+      let errorMessage = 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
+      if (typeof error === 'object' && error !== null && 'message' in error && typeof (error as { message?: string }).message === 'string') {
+        errorMessage = (error as { message: string }).message;
+      }
       onError?.(errorMessage);
       setIsSubmitting(false);
     }
