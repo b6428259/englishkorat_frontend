@@ -34,14 +34,14 @@ const Button = React.forwardRef<HTMLAnchorElement | HTMLButtonElement, ButtonPro
     const variants: Record<string, string> = {
       primary: "bg-[#334293] text-white hover:bg-[#EFE957] hover:text-[#334293]",
       secondary: "bg-[#EFE957] text-[#334293] hover:bg-[#EFD157]",
-      outline: "border-2 border-[#334293] text-[#334293] hover:bg-[#EFE957]",
+      outline: "border-2 border-[#334293] text-[#334293] hover:bg-white hover:text-[#334293]",
       link: "text-[#EFE957] hover:text-[#EFD157]",
-      monthViewClicked: "rounded-e-sm bg-[#334293] text-white",
-      monthView: "border-1 border-[#334293] rounded-e-sm bg-white text-[#334293]",
-      weekViewClicked: "rounded-sm bg-[#334293] text-white",
-      weekView: "border-1 border-[#334293] rounded-sm bg-white text-[#334293]",
-      dayViewClicked: "rounded-s-sm bg-[#334293] text-white",
-      dayView: "border-1 border-[#334293] rounded-s-sm bg-white text-[#334293]"
+      monthViewClicked: "rounded-lg bg-[#334293] text-white",
+      monthView: "rounded-lg bg-white text-[#334293]",
+      weekViewClicked: "rounded-lg bg-[#334293] text-white",
+      weekView: "rounded-lg bg-white text-[#334293]",
+      dayViewClicked: "rounded-lg bg-[#334293] text-white",
+      dayView: "rounded-lg bg-white text-[#334293]"
     };
 
     const combinedClass = `${baseStyle} ${variants[variant]} ${className}`;

@@ -200,6 +200,9 @@ export interface Translations {
   loginSuccess: string;
   loginSuccessTime: string;
 
+  //Schedule
+  SelectTeachers: string;
+
   // Profile
   personalInfo: string;
   name: string;
@@ -542,6 +545,9 @@ export const translations: Record<Language, Translations> = {
     recentActivity: 'กิจกรรมล่าสุด',
     loginSuccess: 'เข้าสู่ระบบสำเร็จ',
     loginSuccessTime: 'เมื่อสักครู่',
+
+    //Schedule
+    SelectTeachers: 'เลือกคุณครู',
 
     // Profile
     personalInfo: 'ข้อมูลส่วนตัว',
@@ -887,6 +893,9 @@ export const translations: Record<Language, Translations> = {
     recentActivity: 'Recent Activity',
     loginSuccess: 'Login Successful',
     loginSuccessTime: 'Just now',
+
+    //Schedule
+    SelectTeachers: 'Select Teachers',
 
     // Profile
     personalInfo: 'Personal Information',

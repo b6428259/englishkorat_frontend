@@ -10,4 +10,6 @@ export const colors = {
   grayLight: '#f3f4f6', // gray-100
   gray: '#6b7280', // gray-600
   grayDark: '#374151', // gray-800
+  blueLogo: '#334293',
+  yellowLogo: '#EFE957',
 };

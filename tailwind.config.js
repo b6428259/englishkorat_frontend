@@ -1,5 +1,6 @@
 // tailwind.config.js
 const {heroui} = require("@heroui/theme");
+const colors = require("./src/styles/colors.ts").colors;
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -35,7 +36,9 @@ module.exports = {
           700: '#a16207',
           800: '#854d0e',
           900: '#713f12',
-        }
+        },
+        blueLogo: colors.blueLogo,
+        yellowLogo: colors.yellowLogo,
       },
     },
   },
