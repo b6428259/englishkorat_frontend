@@ -1,6 +1,7 @@
 import React from 'react';
 import { Teacher } from '../../services/api/teachers';
 import Avatar from './Avatar';
+import Button from './Button';
 import { getAvatarUrl } from '../../utils/config';
 
 interface TeachersTableProps {
@@ -212,30 +213,33 @@ const TeachersTable: React.FC<TeachersTableProps> = ({
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div className="flex space-x-3">
+                  <div className="flex space-x-2">
                     {onView && (
-                      <button
+                      <Button
                         onClick={() => onView(teacher)}
-                        className="text-blue-600 hover:text-blue-800"
+                        variant="outline"
+                        className="text-xs px-3 py-1 text-blue-600 border-blue-200 hover:bg-blue-50"
                       >
                         ดู
-                      </button>
+                      </Button>
                     )}
                     {onEdit && (
-                      <button
+                      <Button
                         onClick={() => onEdit(teacher)}
-                        className="text-indigo-600 hover:text-indigo-800"
+                        variant="outline"
+                        className="text-xs px-3 py-1 text-indigo-600 border-indigo-200 hover:bg-indigo-50"
                       >
                         แก้ไข
-                      </button>
+                      </Button>
                     )}
                     {onDelete && (
-                      <button
+                      <Button
                         onClick={() => onDelete(teacher)}
-                        className="text-red-600 hover:text-red-800"
+                        variant="outline"
+                        className="text-xs px-3 py-1 text-red-600 border-red-200 hover:bg-red-50"
                       >
                         ลบ
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </td>

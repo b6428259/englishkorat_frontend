@@ -48,18 +48,21 @@ export interface TeacherResponse {
 
 export interface CreateTeacherRequest {
   first_name: string;
-  last_name: string;
-  nickname?: string;
+  last_name?: string;
+  nickname: string;
   nationality?: string;
   teacher_type: 'Both' | 'Kid' | 'Adults' | 'Admin Team';
   hourly_rate?: number;
-  specializations?: string;
-  certifications?: string;
+  specializations?: string[];
+  certifications?: string[];
   username: string;
+  password: string;
   email?: string;
   phone?: string;
   line_id?: string;
-  branch_id?: number;
+  branch_id: number;
+  active?: boolean;
+  avatar?: File;
 }
 
 export interface UpdateTeacherRequest {
@@ -68,13 +71,14 @@ export interface UpdateTeacherRequest {
   nickname?: string;
   nationality?: string;
   teacher_type?: 'Both' | 'Kid' | 'Adults' | 'Admin Team';
-  hourly_rate?: number;
-  specializations?: string;
-  certifications?: string;
+  hourly_rate?: number | null;
+  specializations?: string[];
+  certifications?: string[];
   email?: string;
   phone?: string;
   line_id?: string;
   active?: boolean;
+  branch_id?: number;
 }
 
 export const teachersApi = {
@@ -99,8 +103,12 @@ export const teachersApi = {
   /**
    * Create new teacher
    */
-  createTeacher: async (teacherData: CreateTeacherRequest): Promise<TeacherResponse> => {
-    const response = await api.post('/teachers', teacherData);
+  createTeacher: async (teacherData: FormData): Promise<TeacherResponse> => {
+    const response = await api.post('/teachers/register', teacherData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   },
 
@@ -109,6 +117,18 @@ export const teachersApi = {
    */
   updateTeacher: async (id: string, teacherData: UpdateTeacherRequest): Promise<TeacherResponse> => {
     const response = await api.put(`/teachers/${id}`, teacherData);
+    return response.data;
+  },
+
+  /**
+   * Update teacher avatar
+   */
+  updateTeacherAvatar: async (id: string, avatarData: FormData): Promise<TeacherResponse> => {
+    const response = await api.put(`/teachers/${id}/avatar`, avatarData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   },
 

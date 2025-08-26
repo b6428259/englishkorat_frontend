@@ -1,27 +1,24 @@
 "use client"
 
-import React, { useState } from "react";
-import { useRouter } from 'next/navigation';
-import SidebarLayout from '../../../components/common/SidebarLayout';
-import LoadingSpinner from '../../../components/common/LoadingSpinner';
-import Avatar from '../../../components/common/Avatar';
-import Button from '../../../components/common/Button';
-import Modal from '../../../components/common/Modal';
-import { FormField } from '../../../components/forms/FormField';
-import { Input } from '../../../components/forms/Input';
-import { Select } from '../../../components/forms/Select';
-import { Textarea } from '../../../components/forms/Textarea';
-import { FormSection } from '../../../components/forms/FormSection';
-import { FormActions } from '../../../components/forms/FormActions';
-import { useLanguage } from '../../../contexts/LanguageContext';
-import { teachersApi } from '../../../services/api/teachers';
+import React, { useState, useEffect, useCallback } from "react";
+import { useRouter, useParams } from 'next/navigation';
+import SidebarLayout from '../../../../components/common/SidebarLayout';
+import LoadingSpinner from '../../../../components/common/LoadingSpinner';
+import ErrorMessage from '../../../../components/common/ErrorMessage';
+import Avatar from '../../../../components/common/Avatar';
+import Button from '../../../../components/common/Button';
+import Modal from '../../../../components/common/Modal';
+import { FormField } from '../../../../components/forms/FormField';
+import { Input } from '../../../../components/forms/Input';
+import { Select } from '../../../../components/forms/Select';
+import { Textarea } from '../../../../components/forms/Textarea';
+import { FormSection } from '../../../../components/forms/FormSection';
+import { FormActions } from '../../../../components/forms/FormActions';
+import { useLanguage } from '../../../../contexts/LanguageContext';
+import { teachersApi, Teacher, UpdateTeacherRequest } from '../../../../services/api/teachers';
+import { getAvatarUrl } from '../../../../utils/config';
 
 interface TeacherFormData {
-  username: string;
-  password: string;
-  email: string;
-  phone: string;
-  line_id: string;
   first_name: string;
   last_name: string;
   nickname: string;
@@ -32,23 +29,32 @@ interface TeacherFormData {
   certifications: string[];
   active: boolean;
   branch_id: string;
-  avatar?: File | null;
+  email: string;
+  phone: string;
+  line_id: string;
 }
 
-export default function CreateTeacherPage() {
+interface TeacherDetail extends Teacher {
+  avatar?: string;
+  branch_name?: string;
+  branch_code?: string;
+}
+
+export default function EditTeacherPage() {
   const { t } = useLanguage();
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const params = useParams();
+  const teacherId = params.id as string;
+  
+  const [teacher, setTeacher] = useState<TeacherDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<TeacherFormData>({
-    username: '',
-    password: '',
-    email: '',
-    phone: '',
-    line_id: '',
     first_name: '',
     last_name: '',
     nickname: '',
@@ -59,7 +65,9 @@ export default function CreateTeacherPage() {
     certifications: [],
     active: true,
     branch_id: '1',
-    avatar: null
+    email: '',
+    phone: '',
+    line_id: ''
   });
 
   const teacherTypeOptions = [
@@ -72,6 +80,51 @@ export default function CreateTeacherPage() {
   const branchOptions = [
     { value: '1', label: 'Branch 1 The Mall Branch' }
   ];
+
+  const fetchTeacherDetail = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await teachersApi.getTeacherById(teacherId);
+      
+      if (response.success) {
+        const teacherData = response.data.teacher;
+        setTeacher(teacherData);
+        
+        // Populate form data
+        setFormData({
+          first_name: teacherData.first_name || '',
+          last_name: teacherData.last_name || '',
+          nickname: teacherData.nickname || '',
+          nationality: teacherData.nationality || '',
+          teacher_type: teacherData.teacher_type || 'Both',
+          hourly_rate: teacherData.hourly_rate?.toString() || '',
+          specializations: teacherData.specializations ? teacherData.specializations.split(',').map(s => s.trim()) : [],
+          certifications: teacherData.certifications ? teacherData.certifications.split(',').map(c => c.trim()) : [],
+          active: teacherData.active === 1,
+          branch_id: teacherData.branch_id?.toString() || '1',
+          email: teacherData.email || '',
+          phone: teacherData.phone || '',
+          line_id: teacherData.line_id || ''
+        });
+        
+        setAvatarPreview(getAvatarUrl(teacherData.avatar));
+      } else {
+        setError('ไม่สามารถโหลดข้อมูลครูได้');
+      }
+    } catch (err) {
+      console.error('Error fetching teacher detail:', err);
+      setError('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+    } finally {
+      setLoading(false);
+    }
+  }, [teacherId]);
+
+  useEffect(() => {
+    if (teacherId) {
+      fetchTeacherDetail();
+    }
+  }, [teacherId, fetchTeacherDetail]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -97,8 +150,9 @@ export default function CreateTeacherPage() {
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setFormData(prev => ({ ...prev, avatar: file }));
+      setAvatarFile(file);
       
+      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatarPreview(reader.result as string);
@@ -109,47 +163,90 @@ export default function CreateTeacherPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setSaving(true);
     setError(null);
 
     try {
-      const submitData = new FormData();
-      
-      Object.entries(formData).forEach(([key, value]) => {
-        if (key === 'avatar' && value) {
-          submitData.append(key, value as File);
-        } else if (key === 'specializations' || key === 'certifications') {
-          (value as string[]).forEach(item => {
-            submitData.append(key + '[]', item);
-          });
-        } else if (key !== 'avatar') {
-          submitData.append(key, value.toString());
-        }
-      });
+      // Update teacher information
+      const updateData: UpdateTeacherRequest = {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        nickname: formData.nickname,
+        nationality: formData.nationality,
+        teacher_type: formData.teacher_type as 'Both' | 'Kid' | 'Adults' | 'Admin Team',
+        hourly_rate: formData.hourly_rate ? Number(formData.hourly_rate) : null,
+        specializations: formData.specializations,
+        certifications: formData.certifications,
+        active: formData.active,
+        branch_id: Number(formData.branch_id)
+      };
 
-      const response = await teachersApi.createTeacher(submitData);
+      const response = await teachersApi.updateTeacher(teacherId, updateData);
       
       if (response.success) {
+        // If there's a new avatar, update it separately
+        if (avatarFile) {
+          const avatarFormData = new FormData();
+          avatarFormData.append('avatar', avatarFile);
+          await teachersApi.updateTeacherAvatar(teacherId, avatarFormData);
+        }
+        
         setShowSuccessModal(true);
       } else {
-        setError('ไม่สามารถสร้างครูใหม่ได้');
+        setError('ไม่สามารถอัพเดทข้อมูลครูได้');
       }
     } catch (err) {
-      console.error('Error creating teacher:', err);
-      setError('เกิดข้อผิดพลาดในการสร้างครู');
+      console.error('Error updating teacher:', err);
+      setError('เกิดข้อผิดพลาดในการอัพเดทข้อมูล');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
   const handleSuccessModalClose = () => {
     setShowSuccessModal(false);
-    router.push('/teachers/list');
+    router.push(`/teachers/${teacherId}`);
   };
 
   const handleCancel = () => {
-    router.push('/teachers/list');
+    router.push(`/teachers/${teacherId}`);
   };
+
+  if (loading) {
+    return (
+      <SidebarLayout
+        breadcrumbItems={[
+          { label: t.teacherManagement },
+          { label: t.teacherList, href: '/teachers/list' },
+          { label: 'แก้ไขข้อมูลครู' }
+        ]}
+      >
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <LoadingSpinner size="lg" className="mx-auto mb-4" />
+            <p className="text-gray-600">กำลังโหลดข้อมูลครู...</p>
+          </div>
+        </div>
+      </SidebarLayout>
+    );
+  }
+
+  if (error || !teacher) {
+    return (
+      <SidebarLayout
+        breadcrumbItems={[
+          { label: t.teacherManagement },
+          { label: t.teacherList, href: '/teachers/list' },
+          { label: 'แก้ไขข้อมูลครู' }
+        ]}
+      >
+        <ErrorMessage 
+          message={error || 'ไม่พบข้อมูลครู'} 
+          onRetry={fetchTeacherDetail}
+        />
+      </SidebarLayout>
+    );
+  }
 
   return (
     <>
@@ -157,14 +254,15 @@ export default function CreateTeacherPage() {
         breadcrumbItems={[
           { label: t.teacherManagement },
           { label: t.teacherList, href: '/teachers/list' },
-          { label: 'เพิ่มครูใหม่' }
+          { label: `${teacher.first_name} ${teacher.last_name}`, href: `/teachers/${teacherId}` },
+          { label: 'แก้ไขข้อมูล' }
         ]}
       >
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">เพิ่มครูใหม่</h1>
-            <p className="text-gray-600">กรอกข้อมูลครูใหม่ให้ครบถ้วน</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">แก้ไขข้อมูลครู</h1>
+            <p className="text-gray-600">แก้ไขข้อมูลของ {teacher.first_name} {teacher.last_name}</p>
           </div>
 
           {error && (
@@ -184,10 +282,10 @@ export default function CreateTeacherPage() {
               <div className="relative inline-block mb-4">
                 <Avatar
                   src={avatarPreview || undefined}
-                  alt="Avatar Preview"
+                  alt={`${teacher.first_name} ${teacher.last_name}`}
                   size="2xl"
                   className="ring-4 ring-white shadow-lg"
-                  fallbackInitials="?"
+                  fallbackInitials={`${teacher.first_name.charAt(0)}${teacher.last_name.charAt(0)}`}
                 />
                 <label className="absolute -bottom-2 -right-2 w-10 h-10 bg-[#334293] text-white rounded-full flex items-center justify-center cursor-pointer hover:bg-[#2a3875] transition-colors duration-200 shadow-lg">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -202,37 +300,13 @@ export default function CreateTeacherPage() {
                   />
                 </label>
               </div>
-              <p className="text-sm text-gray-600">คลิกเพื่ออัพโหลดรูปโปรไฟล์</p>
+              <p className="text-sm text-gray-600">คลิกเพื่อเปลี่ยนรูปโปรไฟล์</p>
+              {avatarFile && (
+                <p className="text-sm text-blue-600 mt-2">✓ รูปภาพจะถูกอัพเดตเมื่อบันทึก</p>
+              )}
             </div>
 
             <div className="bg-white rounded-lg shadow-sm border p-6 space-y-8">
-              {/* Account Information */}
-              <FormSection title="ข้อมูลบัญชี">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <FormField label="ชื่อผู้ใช้" required>
-                    <Input
-                      type="text"
-                      name="username"
-                      value={formData.username}
-                      onChange={handleInputChange}
-                      placeholder="username"
-                      required
-                    />
-                  </FormField>
-                  
-                  <FormField label="รหัสผ่าน" required>
-                    <Input
-                      type="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      placeholder="password"
-                      required
-                    />
-                  </FormField>
-                </div>
-              </FormSection>
-
               {/* Personal Information */}
               <FormSection title="ข้อมูลส่วนตัว">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -369,7 +443,7 @@ export default function CreateTeacherPage() {
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
                   <h4 className="font-medium text-gray-900">สถานะการใช้งาน</h4>
-                  <p className="text-sm text-gray-600">เปิดใช้งานบัญชีครูนี้</p>
+                  <p className="text-sm text-gray-600">เปิด/ปิดการใช้งานบัญชีครูนี้</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -389,16 +463,16 @@ export default function CreateTeacherPage() {
                   type="button"
                   variant="secondary"
                   onClick={handleCancel}
-                  disabled={loading}
+                  disabled={saving}
                 >
                   ยกเลิก
                 </Button>
                 <Button
                   type="submit"
                   variant="primary"
-                  disabled={loading}
+                  disabled={saving}
                 >
-                  {loading ? 'กำลังสร้าง...' : 'สร้างครูใหม่'}
+                  {saving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
                 </Button>
               </FormActions>
             </div>
@@ -410,7 +484,7 @@ export default function CreateTeacherPage() {
       <Modal
         isOpen={showSuccessModal}
         onClose={handleSuccessModalClose}
-        title="สำเร็จ!"
+        title="อัพเดตสำเร็จ!"
       >
         <div className="text-center">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -418,13 +492,13 @@ export default function CreateTeacherPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">สร้างครูใหม่สำเร็จ!</h3>
-          <p className="text-gray-600 mb-6">ข้อมูลครูได้ถูกบันทึกเรียบร้อยแล้ว</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">อัพเดตข้อมูลสำเร็จ!</h3>
+          <p className="text-gray-600 mb-6">ข้อมูลครู {teacher.first_name} {teacher.last_name} ได้ถูกอัพเดตเรียบร้อยแล้ว</p>
           <Button
             onClick={handleSuccessModalClose}
             variant="primary"
           >
-            ไปยังรายชื่อครู
+            ดูข้อมูลครู
           </Button>
         </div>
       </Modal>

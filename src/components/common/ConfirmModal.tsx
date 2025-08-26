@@ -1,16 +1,55 @@
-import React from 'react';
+"use client"
+
+import React, { useState, useEffect } from 'react';
+import Button from './Button';
+import { Input } from '../forms/Input';
+import { FormField } from '../forms/FormField';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface ConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  title: string;
-  message: string;
+  title?: string;
+  message?: string;
   confirmText?: string;
   cancelText?: string;
-  type?: 'danger' | 'warning' | 'info';
+  type?: 'info' | 'warning' | 'danger';
   loading?: boolean;
+  
+  // Advanced confirmation
+  advancedConfirm?: boolean;
+  confirmationText?: string;
+  confirmationPlaceholder?: string;
+  confirmationLabel?: string;
 }
+
+const translations = {
+  th: {
+    confirm: 'ยืนยัน',
+    cancel: 'ยกเลิก',
+    delete: 'ลบ',
+    warning: 'คำเตือน',
+    danger: 'อันตราย',
+    typeToConfirm: 'กรุณาพิมพ์ "{text}" เพื่อยืนยัน',
+    confirmAction: 'ยืนยันการดำเนินการ',
+    areYouSure: 'คุณแน่ใจหรือไม่?',
+    cannotUndo: 'การกระทำนี้ไม่สามารถย้อนกลับได้',
+    loading: 'กำลังดำเนินการ...'
+  },
+  en: {
+    confirm: 'Confirm',
+    cancel: 'Cancel',
+    delete: 'Delete',
+    warning: 'Warning',
+    danger: 'Danger',
+    typeToConfirm: 'Type "{text}" to confirm',
+    confirmAction: 'Confirm Action',
+    areYouSure: 'Are you sure?',
+    cannotUndo: 'This action cannot be undone',
+    loading: 'Processing...'
+  }
+};
 
 const ConfirmModal: React.FC<ConfirmModalProps> = ({
   isOpen,
@@ -18,28 +57,64 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   onConfirm,
   title,
   message,
-  confirmText = 'ยืนยัน',
-  cancelText = 'ยกเลิก',
-  type = 'danger',
-  loading = false
+  confirmText,
+  cancelText,
+  type = 'info',
+  loading = false,
+  advancedConfirm = false,
+  confirmationText = '',
+  confirmationPlaceholder,
+  confirmationLabel
 }) => {
+  const { language } = useLanguage();
+  const t = translations[language as keyof typeof translations] || translations.th;
+  const [inputValue, setInputValue] = useState('');
+  const [canConfirm, setCanConfirm] = useState(!advancedConfirm);
+
+  // Reset input when modal opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      setInputValue('');
+      setCanConfirm(!advancedConfirm);
+    }
+  }, [isOpen, advancedConfirm]);
+
+  // Check if input matches confirmation text
+  useEffect(() => {
+    if (advancedConfirm && confirmationText) {
+      setCanConfirm(inputValue === confirmationText);
+    }
+  }, [inputValue, confirmationText, advancedConfirm]);
+
+  const handleConfirm = () => {
+    if (canConfirm) {
+      onConfirm();
+    }
+  };
+
+  const handleClose = () => {
+    if (!loading) {
+      onClose();
+    }
+  };
+
   if (!isOpen) return null;
 
   const typeStyles = {
-    danger: {
-      icon: 'text-red-600',
-      iconBg: 'bg-red-100',
-      button: 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
+    info: {
+      icon: 'text-blue-600',
+      iconBg: 'bg-blue-100',
+      button: 'primary' as const
     },
     warning: {
       icon: 'text-yellow-600',
       iconBg: 'bg-yellow-100',
-      button: 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500'
+      button: 'primary' as const
     },
-    info: {
-      icon: 'text-blue-600',
-      iconBg: 'bg-blue-100',
-      button: 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+    danger: {
+      icon: 'text-red-600',
+      iconBg: 'bg-red-100',
+      button: 'primary' as const
     }
   };
 
@@ -47,9 +122,22 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-      <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full">
+      <div className="relative bg-white rounded-2xl shadow-xl max-w-md w-full">
+        {/* Close button */}
+        {!loading && (
+          <button
+            onClick={handleClose}
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+
         <div className="p-6">
-          <div className="flex items-center">
+          {/* Icon */}
+          <div className="text-center mb-4">
             <div className={`mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full ${currentStyle.iconBg}`}>
               {type === 'danger' && (
                 <svg className={`h-6 w-6 ${currentStyle.icon}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -67,42 +155,60 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                 </svg>
               )}
             </div>
-            <div className="ml-4 text-left">
-              <h3 className="text-lg font-medium text-gray-900">{title}</h3>
-              <div className="mt-2">
-                <p className="text-sm text-gray-500">{message}</p>
-              </div>
-            </div>
           </div>
-        </div>
-        
-        <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={loading}
-            className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed ${currentStyle.button}`}
-          >
-            {loading ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                กำลังดำเนินการ...
-              </>
-            ) : (
-              confirmText
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
-          >
-            {cancelText}
-          </button>
+
+          {/* Title and Message */}
+          <div className="text-center mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {title || t.areYouSure}
+            </h3>
+            <p className="text-gray-600">
+              {message || t.cannotUndo}
+            </p>
+          </div>
+
+          {/* Advanced confirmation input */}
+          {advancedConfirm && confirmationText && (
+            <div className="mb-6 text-left">
+              <FormField 
+                label={confirmationLabel || t.typeToConfirm.replace('{text}', confirmationText)}
+              >
+                <Input
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  placeholder={confirmationPlaceholder || confirmationText}
+                  disabled={loading}
+                  className={inputValue === confirmationText ? 'border-green-300 bg-green-50' : ''}
+                />
+              </FormField>
+              <p className="text-sm text-gray-500 mt-2">
+                {t.typeToConfirm.replace('{text}', `"${confirmationText}"`)}
+              </p>
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex justify-center space-x-4">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleClose}
+              disabled={loading}
+            >
+              {cancelText || t.cancel}
+            </Button>
+            
+            <Button
+              type="button"
+              variant={currentStyle.button}
+              onClick={handleConfirm}
+              disabled={loading || !canConfirm}
+              className={type === 'danger' ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500' : ''}
+            >
+              {loading ? t.loading : (confirmText || t.confirm)}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
