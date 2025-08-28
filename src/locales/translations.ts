@@ -234,6 +234,9 @@ export interface Translations {
   advanced: string;
   learningNeeds: string;
 
+  //Teachers
+  teachingReport: string;
+
   // Placeholders
   pleaseEnterName: string;
   pleaseEnterLastName: string;
@@ -583,6 +586,9 @@ export const translations: Record<Language, Translations> = {
     currentEducation: 'ระดับการศึกษาปัจจุบัน',
     recentCEFR: 'ระดับ CEFR ล่าสุด',
 
+    //Teachers
+    teachingReport: 'รายงานการสอน',
+
     // Placeholders
     pleaseEnterName: 'กรุณากรอกชื่อ',
     pleaseEnterLastName: 'กรุณากรอกนามสกุล',
@@ -930,6 +936,9 @@ export const translations: Record<Language, Translations> = {
     learningNeeds: 'Learning Needs',
     currentEducation: 'Current Education Level',
     recentCEFR: 'Recent CEFR Level',
+
+    //Teachers
+    teachingReport: 'Teaching Report',
 
     // Placeholders
     pleaseEnterName: 'Please enter name',

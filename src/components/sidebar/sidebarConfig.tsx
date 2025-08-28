@@ -6,6 +6,7 @@
 
 import { SidebarItem } from './types';
 import { Translations } from '@/locales/translations';
+import { HiOutlineDocumentReport } from "react-icons/hi";
 import { HiOutlineSquares2X2, HiOutlineChartBar, HiOutlineDocumentText, HiOutlineCog, HiOutlineIdentification, HiOutlineUser, HiOutlineKey } from 'react-icons/hi2';
 import { GrSchedules } from "react-icons/gr";
 
@@ -31,7 +32,8 @@ export const getSidebarItems = (t: Translations): SidebarItem[] => [
     label: t.teacherPortal,
     icon: <HiOutlineUser {...iconProps} />,
     children: [
-      { id: 'schedule', label: t.schedule, href: '/teacher/schedule', icon: <GrSchedules {...iconProps} /> },
+      { id: 'schedule', label: t.schedule, href: '/teachers/schedule', icon: <GrSchedules {...iconProps} /> },
+      { id: 'teachingReport', label: t.teachingReport, href: '/teachers/teachingReport', icon: <HiOutlineDocumentReport {...iconProps} /> },
     ],
   },
   {
