@@ -46,7 +46,9 @@ export const API_ENDPOINTS = {
     CREATE: '/schedules',
     GET_BY_ID: (id: string) => `/schedules/${id}`,
     UPDATE: (id: string) => `/schedules/${id}`,
-    DELETE: (id: string) => `/schedules/${id}`
+    DELETE: (id: string) => `/schedules/${id}`,
+    TEACHERS: (dateFilter: 'day' | 'week' | 'month') => `/schedules/teachers?date_filter=${dateFilter}`,
+    SESSIONS: (id: string) => `/schedules/${id}/sessions`
   },
   
   // System settings endpoints
