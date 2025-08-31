@@ -29,7 +29,7 @@ const Button = React.forwardRef<HTMLAnchorElement | HTMLButtonElement, ButtonPro
     ref
   ) => {
     const baseStyle =
-      "px-6 py-2 rounded-3xl transition-colors shadow-md hover:shadow-lg hover:scale-105 font-semibold";
+      "px-6 py-2 rounded-3xl transition-colors shadow-md hover:shadow-lg hover:scale-105 font-semibold cursor-pointer";
 
     const variants: Record<string, string> = {
       primary: "bg-[#334293] text-white hover:bg-[#EFE957] hover:text-[#334293]",
