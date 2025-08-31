@@ -6,6 +6,13 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { TimeSlotSelector, type ScheduleTimeSlot } from "@/components/common";
 import { 
+  FormField,
+  Input,
+  Select,
+  Textarea,
+  Checkbox
+} from "@/components/forms";
+import { 
   CreateScheduleRequest, 
   Course, 
   Room, 
@@ -80,138 +87,101 @@ export default function CreateScheduleModal({
                 <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
                 {t.preliminaryInfo}
               </h4>
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t.scheduleName} *
-                  </label>
-                  <input
+                <FormField label={t.scheduleName} required>
+                  <Input
                     type="text"
                     value={scheduleForm.schedule_name || ''}
                     onChange={(e) => setScheduleForm(prev => ({...prev, schedule_name: e.target.value}))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder={language === 'th' ? 'ชื่อตารางเรียน' : 'Schedule name'}
                   />
-                </div>
+                </FormField>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t.selectCourse} *
-                  </label>
-                  <select
-                    value={scheduleForm.course_id || 0}
+                <FormField label={t.selectCourse} required>
+                  <Select
+                    value={(scheduleForm.course_id || 0).toString()}
                     onChange={(e) => setScheduleForm(prev => ({...prev, course_id: parseInt(e.target.value)}))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                  >
-                    <option value={0}>{t.selectCourse}</option>
-                    {courses.map(course => (
-                      <option key={course.id} value={course.id}>
-                        {course.course_name} ({course.course_code})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                    options={[
+                      { value: '0', label: t.selectCourse },
+                      ...courses.map(course => ({
+                        value: course.id.toString(),
+                        label: `${course.course_name} (${course.course_code})`
+                      }))
+                    ]}
+                  />
+                </FormField>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t.selectTeacher}
-                  </label>
-                  <select
-                    value={scheduleForm.teacher_id || 0}
+                <FormField label={t.selectTeacher}>
+                  <Select
+                    value={(scheduleForm.teacher_id || 0).toString()}
                     onChange={(e) => setScheduleForm(prev => ({...prev, teacher_id: parseInt(e.target.value)}))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                  >
-                    <option value={0}>{t.selectTeacher}</option>
-                    {teacherOptions.map(teacher => (
-                      <option key={teacher.id} value={teacher.id}>
-                        {teacher.teacher_nickname} - {teacher.teacher_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                    options={[
+                      { value: '0', label: t.selectTeacher },
+                      ...teacherOptions.map(teacher => ({
+                        value: teacher.id.toString(),
+                        label: `${teacher.teacher_nickname} - ${teacher.teacher_name}`
+                      }))
+                    ]}
+                  />
+                </FormField>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t.selectRoom}
-                  </label>
-                  <select
-                    value={scheduleForm.room_id || 0}
+                <FormField label={t.selectRoom}>
+                  <Select
+                    value={(scheduleForm.room_id || 0).toString()}
                     onChange={(e) => setScheduleForm(prev => ({...prev, room_id: parseInt(e.target.value)}))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                  >
-                    <option value={0}>{t.selectRoom}</option>
-                    {rooms.map(room => (
-                      <option key={room.id} value={room.id}>
-                        {room.room_name} ({language === 'th' ? 'ความจุ' : 'Capacity'}: {room.capacity})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                    options={[
+                      { value: '0', label: t.selectRoom },
+                      ...rooms.map(room => ({
+                        value: room.id.toString(),
+                        label: `${room.room_name} (${language === 'th' ? 'ความจุ' : 'Capacity'}: ${room.capacity})`
+                      }))
+                    ]}
+                  />
+                </FormField>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t.totalHours}
-                  </label>
-                  <input
+                <FormField label={t.totalHours}>
+                  <Input
                     type="number"
-                    value={scheduleForm.total_hours || 30}
+                    value={(scheduleForm.total_hours || 30).toString()}
                     onChange={(e) => setScheduleForm(prev => ({...prev, total_hours: parseInt(e.target.value)}))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     min={1}
                   />
-                </div>
+                </FormField>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t.hoursPerSession}
-                  </label>
-                  <input
+                <FormField label={t.hoursPerSession}>
+                  <Input
                     type="number"
                     step="0.5"
-                    value={scheduleForm.hours_per_session || 3}
+                    value={(scheduleForm.hours_per_session || 3).toString()}
                     onChange={(e) => setScheduleForm(prev => ({...prev, hours_per_session: parseFloat(e.target.value)}))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     min={0.5}
                   />
-                </div>
+                </FormField>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t.maxStudents}
-                  </label>
-                  <input
+                <FormField label={t.maxStudents}>
+                  <Input
                     type="number"
-                    value={scheduleForm.max_students || 6}
+                    value={(scheduleForm.max_students || 6).toString()}
                     onChange={(e) => setScheduleForm(prev => ({...prev, max_students: parseInt(e.target.value)}))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     min={1}
                   />
-                </div>
+                </FormField>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t.startDate} *
-                  </label>
-                  <input
+                <FormField label={t.startDate} required>
+                  <Input
                     type="date"
                     value={scheduleForm.start_date || ''}
                     onChange={(e) => setScheduleForm(prev => ({...prev, start_date: e.target.value}))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                </div>
+                </FormField>
               </div>
 
               <div className="mt-4">
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={scheduleForm.auto_reschedule_holidays || false}
-                    onChange={(e) => setScheduleForm(prev => ({...prev, auto_reschedule_holidays: e.target.checked}))}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
-                  />
-                  <span className="ml-2 text-sm text-gray-700">{t.autoRescheduleHolidays}</span>
-                </label>
+                <Checkbox
+                  label={t.autoRescheduleHolidays}
+                  checked={scheduleForm.auto_reschedule_holidays || false}
+                  onChange={(e) => setScheduleForm(prev => ({...prev, auto_reschedule_holidays: e.target.checked}))}
+                />
               </div>
             </div>
 
@@ -229,18 +199,14 @@ export default function CreateScheduleModal({
             />
 
             {/* Notes */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t.notes}
-              </label>
-              <textarea
+            <FormField label={t.notes}>
+              <Textarea
                 value={scheduleForm.notes || ''}
                 onChange={(e) => setScheduleForm(prev => ({...prev, notes: e.target.value}))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 rows={3}
                 placeholder={language === 'th' ? 'หมายเหตุเพิ่มเติม' : 'Additional notes'}
               />
-            </div>
+            </FormField>
 
             {/* Error Display */}
             {formError && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import SidebarLayout from "../../components/common/SidebarLayout";
 import { useLanguage } from "../../contexts/LanguageContext";
 import Button from "@/components/common/Button";
@@ -102,6 +102,8 @@ export default function SchedulePage() {
   // Create/Edit schedule modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreateSessionModalOpen, setIsCreateSessionModalOpen] = useState(false);
+  // Prevent overlapping or looping fetches
+  const isFetchingRef = useRef(false);
   
   // Form data and options
   const [courses, setCourses] = useState<Course[]>([]);
@@ -175,7 +177,12 @@ export default function SchedulePage() {
 
   // Fetch schedule data based on view mode
   const fetchData = useCallback(async () => {
+    if (isFetchingRef.current) {
+      // A fetch is already in progress; avoid overlapping calls
+      return;
+    }
     try {
+      isFetchingRef.current = true;
       setLoading(true);
       setError(null);
       
@@ -240,8 +247,9 @@ export default function SchedulePage() {
             teacherMap.get(teacherId)!.sessions.push(converted);
           });
 
-          setTeachers(uniqueTeachers);
-          setSelectedTeachers(uniqueTeachers.map(t => t.teacher_id));
+      setTeachers(uniqueTeachers);
+      // Initialize selection only once to avoid re-renders on every fetch
+      setSelectedTeachers(prev => prev.length > 0 ? prev : uniqueTeachers.map(t => t.teacher_id));
         }
       } else {
         // For week/month view, use teachers API
@@ -250,9 +258,9 @@ export default function SchedulePage() {
         });
         
         if (response.success) {
-          setTeachers(response.data.teachers);
-          // Initialize all teachers as selected
-          setSelectedTeachers(response.data.teachers.map(t => t.teacher_id));
+      setTeachers(response.data.teachers);
+      // Initialize all teachers as selected only when nothing selected yet
+      setSelectedTeachers(prev => prev.length > 0 ? prev : response.data.teachers.map(t => t.teacher_id));
         }
       }
     } catch (err) {
@@ -260,6 +268,7 @@ export default function SchedulePage() {
       console.error('Error fetching schedule:', err);
     } finally {
       setLoading(false);
+    isFetchingRef.current = false;
     }
   }, [viewMode, currentDate, language]); // Dependencies for useCallback
 
@@ -292,13 +301,18 @@ export default function SchedulePage() {
     } catch (err) {
       console.error('Error fetching form options:', err);
     }
-  };  useEffect(() => {
-    const loadData = async () => {
-      await fetchData();
-      await fetchFormOptions();
-    };
-    loadData();
+  };
+
+  // Fetch schedule data when view/date changes
+  useEffect(() => {
+    fetchData();
   }, [viewMode, currentDate, fetchData]);
+
+  // Fetch static form options once on mount
+  useEffect(() => {
+    // We only need to load these options once; they rarely change during the session
+    fetchFormOptions();
+  }, []);
 
   // Filter teachers based on selection
   const filteredTeachers = teachers.filter(teacher => 
