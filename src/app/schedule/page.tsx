@@ -8,15 +8,20 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import ErrorMessage from "@/components/common/ErrorMessage";
 import { colors } from "@/styles/colors";
 import { ButtonGroup } from "@heroui/react";
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-} from "@heroui/react";
 import { scheduleService, Teacher, Session, Student, Course, Room, TeacherOption, CreateScheduleRequest, CreateSessionRequest } from "@/services/api/schedules";
-import { TimeSlotSelector, type ScheduleTimeSlot } from "@/components/common";
+import { 
+  SessionDetailModal, 
+  CreateScheduleModal, 
+  CreateSessionsModal 
+} from "./components";
+
+// Extended session form interface for the modals
+interface ExtendedCreateSessionRequest extends CreateSessionRequest {
+  mode: 'single' | 'multiple' | 'bulk';
+  schedule_id: number;
+  session_count?: number;
+  repeat_frequency?: 'daily' | 'weekly' | 'monthly';
+}
 
 // Time slots from 8:00 AM to 10:00 PM
 const timeSlots = Array.from({ length: (22 - 8) * 2 + 1 }, (_, i) => {
@@ -97,7 +102,6 @@ export default function SchedulePage() {
   // Create/Edit schedule modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreateSessionModalOpen, setIsCreateSessionModalOpen] = useState(false);
-  const [editingSchedule, setEditingSchedule] = useState<ScheduleDetail | null>(null);
   
   // Form data and options
   const [courses, setCourses] = useState<Course[]>([]);
@@ -123,7 +127,9 @@ export default function SchedulePage() {
   });
 
   // Session form data
-  const [sessionForm, setSessionForm] = useState<CreateSessionRequest>({
+  const [sessionForm, setSessionForm] = useState<ExtendedCreateSessionRequest>({
+    mode: 'single',
+    schedule_id: 0,
     session_date: new Date().toISOString().split('T')[0],
     start_time: '09:00',
     end_time: '12:00',
@@ -136,7 +142,9 @@ export default function SchedulePage() {
     },
     is_makeup_session: false,
     notes: '',
-    appointment_notes: ''
+    appointment_notes: '',
+    session_count: 1,
+    repeat_frequency: 'weekly'
   });
 
   // Get current time for the current time line - updates every minute
@@ -363,6 +371,26 @@ export default function SchedulePage() {
     setIsCreateModalOpen(true);
   };
 
+  // Modal callback handlers
+  const handleSessionDetailEditSchedule = (scheduleDetail: ScheduleDetail) => {
+    handleEditSchedule(scheduleDetail);
+  };
+
+  const handleSessionDetailCreateSession = (session: Session) => {
+    setSessionForm(prev => ({
+      ...prev,
+      schedule_id: session.schedule_id,
+      session_date: session.session_date,
+      start_time: session.start_time.slice(0, 5),
+      end_time: session.end_time.slice(0, 5)
+    }));
+    setIsCreateSessionModalOpen(true);
+  };
+
+  const handleSessionDetailRetryLoading = (session: Session) => {
+    handleSessionClick(session);
+  };
+
   // Handle schedule creation
   const handleCreateSchedule = async () => {
     try {
@@ -393,7 +421,6 @@ export default function SchedulePage() {
 
   // Handle schedule editing
   const handleEditSchedule = (scheduleDetail: ScheduleDetail) => {
-    setEditingSchedule(scheduleDetail);
     setScheduleForm({
       schedule_name: scheduleDetail.schedule.schedule_name,
       course_id: 0, // Will need to be looked up from course_name
@@ -837,798 +864,43 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      {/* Session Detail Modal */}
-      <Modal 
-        isOpen={isDetailModalOpen} 
-        onOpenChange={setIsDetailModalOpen}
-        size="2xl"
-        className="max-h-[90vh]"
-      >
-        <ModalContent className="bg-white border border-gray-300 rounded-lg shadow-xl">
-          {selectedSession && (
-            <>
-              <ModalHeader className="border-b border-gray-300 pb-4">
-                <div className="flex justify-between items-start w-full">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-black mb-2">
-                      {selectedSession.schedule_name}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      {selectedSession.course_name} {selectedSession.course_code && `(${selectedSession.course_code})`}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end space-y-2">
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        branchColors[selectedSession.branch_id] || 'bg-gray-200 text-gray-700'
-                      }`}
-                    >
-                      {language === 'th' ? selectedSession.branch_name_th : selectedSession.branch_name_en}
-                    </span>
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-medium ${
-                        selectedSession.status === 'scheduled' 
-                          ? 'bg-green-100 text-green-800' 
-                          : selectedSession.status === 'completed'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {language === 'th' 
-                        ? (selectedSession.status === 'scheduled' ? 'กำหนดเรียน' : 
-                           selectedSession.status === 'completed' ? 'เสร็จสิ้น' : 
-                           selectedSession.status === 'cancelled' ? 'ยกเลิก' : selectedSession.status)
-                        : selectedSession.status
-                      }
-                    </span>
-                  </div>
-                </div>
-              </ModalHeader>
+      {/* Modals */}
+      <SessionDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        selectedSession={selectedSession}
+        scheduleDetail={scheduleDetail}
+        detailLoading={detailLoading}
+        onEditSchedule={handleSessionDetailEditSchedule}
+        onCreateSession={handleSessionDetailCreateSession}
+        onRetryLoading={handleSessionDetailRetryLoading}
+      />
 
-              <ModalBody className="py-6 max-h-[60vh] overflow-y-auto">
-                {detailLoading ? (
-                  <div className="flex justify-center items-center h-32">
-                    <LoadingSpinner />
-                  </div>
-                ) : scheduleDetail ? (
-                  <div className="space-y-6">
-                    {/* Schedule Information */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="bg-blue-50 p-4 rounded-lg">
-                        <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
-                          <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                          {t.scheduleInformation}
-                        </h4>
-                        <div className="space-y-2 text-sm text-black">
-                          <div className="flex justify-between">
-                            <span className="font-medium text-gray-600">{t.time}:</span>
-                            <span className="font-semibold">
-                              {selectedSession.start_time.slice(0, 5)} - {selectedSession.end_time.slice(0, 5)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="font-medium text-gray-600">{t.classroom}:</span>
-                            <span>{selectedSession.room_name}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="font-medium text-gray-600">{t.students}:</span>
-                            <span className="font-bold text-rose-600">
-                              {selectedSession.current_students}/{selectedSession.max_students} {t.people}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="font-medium text-gray-600">{t.available}:</span>
-                            <span className="font-semibold text-green-600">
-                              {selectedSession.max_students - selectedSession.current_students} {t.people}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="bg-green-50 p-4 rounded-lg">
-                        <h4 className="font-semibold text-black mb-3 flex items-center">
-                          <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                          {t.courseInformation}
-                        </h4>
-                        <div className="space-y-2 text-sm text-black">
-                          <div className="flex justify-between">
-                            <span className="font-medium text-gray-600">{t.totalHours}:</span>
-                            <span>{scheduleDetail.schedule.total_hours} {language === 'th' ? 'ชม.' : 'hrs'}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="font-medium text-gray-600">{t.hoursPerSession}:</span>
-                            <span>{scheduleDetail.schedule.hours_per_session} {language === 'th' ? 'ชม.' : 'hrs'}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="font-medium text-gray-600">{t.startDate}:</span>
-                            <span>{new Date(scheduleDetail.schedule.start_date).toLocaleDateString(language === 'th' ? 'th-TH' : 'en-US')}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="font-medium text-gray-600">{t.type}:</span>
-                            <span className="capitalize">{scheduleDetail.schedule.schedule_type}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+      <CreateScheduleModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        scheduleForm={scheduleForm}
+        setScheduleForm={setScheduleForm}
+        courses={courses}
+        rooms={rooms}
+        teacherOptions={teacherOptions}
+        formLoading={formLoading}
+        formError={formError}
+        setFormError={setFormError}
+        onCreateSchedule={handleCreateSchedule}
+      />
 
-                    {/* Students List */}
-                    {scheduleDetail.students.length > 0 && (
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
-                          <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
-                          {t.studentList} ({scheduleDetail.students.length} {t.people})
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-40 overflow-y-auto">
-                          {scheduleDetail.students.map((student) => (
-                            <div key={student.id} className="bg-white p-3 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <p className="font-medium text-gray-900 text-sm">
-                                    {student.first_name} {student.last_name}
-                                  </p>
-                                  <p className="text-xs text-blue-600 mt-1">
-                                    {t.nickname}: {student.nickname} • {t.age}: {student.age} {t.years}
-                                  </p>
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    📞 {student.phone}
-                                  </p>
-                                  {student.email && (
-                                    <p className="text-xs text-gray-500">
-                                      ✉️ {student.email}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Schedule Summary */}
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-                      <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
-                        <span className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></span>
-                        {t.scheduleSummary}
-                      </h4>
-                      <div className="grid grid-cols-3 gap-4 text-sm">
-                        <div className="text-center bg-white p-3 rounded-lg">
-                          <p className="font-bold text-2xl text-blue-600">{scheduleDetail.summary.total_sessions}</p>
-                          <p className="text-gray-600 text-xs">{t.totalSessions}</p>
-                        </div>
-                        <div className="text-center bg-white p-3 rounded-lg">
-                          <p className="font-bold text-2xl text-green-600">{scheduleDetail.summary.scheduled}</p>
-                          <p className="text-gray-600 text-xs">{t.scheduledSessions}</p>
-                        </div>
-                        <div className="text-center bg-white p-3 rounded-lg">
-                          <p className="font-bold text-2xl text-gray-600">{scheduleDetail.summary.completed}</p>
-                          <p className="text-gray-600 text-xs">{t.completedSessions}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Notes */}
-                    {selectedSession.notes && (
-                      <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                        <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
-                          <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
-                          {t.notes}
-                        </h4>
-                        <p className="text-sm text-gray-700">
-                          {selectedSession.notes}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <div className="text-gray-400 mb-2">
-                      <svg className="w-12 h-12 mx-auto" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <p className="text-center text-gray-500">{t.failedToLoadDetails}</p>
-                    <Button
-                      onClick={() => handleSessionClick(selectedSession)}
-                      variant="monthView"
-                      className="mt-2 text-sm"
-                    >
-                      {t.retryLoading}
-                    </Button>
-                  </div>
-                )}
-              </ModalBody>
-
-              <ModalFooter className="border-t border-gray-300 pt-4">
-                <Button
-                  onClick={() => setIsDetailModalOpen(false)}
-                  variant="monthView"
-                  className="mr-2"
-                >
-                  {t.close}
-                </Button>
-                <Button
-                  onClick={() => {
-                    if (scheduleDetail) {
-                      handleEditSchedule(scheduleDetail);
-                      setIsDetailModalOpen(false);
-                    }
-                  }}
-                  variant="weekView"
-                  className="mr-2"
-                >
-                  {t.editSchedule}
-                </Button>
-                <Button
-                  onClick={() => {
-                    if (selectedSession) {
-                      // Pre-fill session form for current schedule
-                      setSessionForm(prev => ({
-                        ...prev,
-                        session_date: selectedSession.session_date,
-                        start_time: selectedSession.start_time.slice(0, 5),
-                        end_time: selectedSession.end_time.slice(0, 5)
-                      }));
-                      setIsCreateSessionModalOpen(true);
-                      setIsDetailModalOpen(false);
-                    }
-                  }}
-                  variant="monthViewClicked"
-                >
-                  {t.createSession}
-                </Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
-
-      {/* Create Schedule Modal */}
-      <Modal 
-        isOpen={isCreateModalOpen} 
-        onOpenChange={setIsCreateModalOpen}
-        size="3xl"
-        className="max-h-[90vh]"
-      >
-        <ModalContent className="bg-white border border-gray-300 rounded-lg shadow-xl">
-          <ModalHeader className="border-b border-gray-300">
-            <h3 className="text-lg font-bold text-black">{t.createNewSchedule}</h3>
-          </ModalHeader>
-
-          <ModalBody className="py-6 max-h-[70vh] overflow-y-auto">
-            <div className="space-y-6">
-              {/* Basic Information */}
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                  <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                  {t.preliminaryInfo}
-                </h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t.scheduleName} *
-                    </label>
-                    <input
-                      type="text"
-                      value={scheduleForm.schedule_name || ''}
-                      onChange={(e) => setScheduleForm(prev => ({...prev, schedule_name: e.target.value}))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder={language === 'th' ? 'ชื่อตารางเรียน' : 'Schedule name'}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t.selectCourse} *
-                    </label>
-                    <select
-                      value={scheduleForm.course_id || 0}
-                      onChange={(e) => setScheduleForm(prev => ({...prev, course_id: parseInt(e.target.value)}))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value={0}>{t.selectCourse}</option>
-                      {courses.map(course => (
-                        <option key={course.id} value={course.id}>
-                          {course.course_name} ({course.course_code})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t.selectTeacher}
-                    </label>
-                    <select
-                      value={scheduleForm.teacher_id || 0}
-                      onChange={(e) => setScheduleForm(prev => ({...prev, teacher_id: parseInt(e.target.value)}))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value={0}>{t.selectTeacher}</option>
-                      {teacherOptions.map(teacher => (
-                        <option key={teacher.id} value={teacher.id}>
-                          {teacher.teacher_nickname} - {teacher.teacher_name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t.selectRoom}
-                    </label>
-                    <select
-                      value={scheduleForm.room_id || 0}
-                      onChange={(e) => setScheduleForm(prev => ({...prev, room_id: parseInt(e.target.value)}))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value={0}>{t.selectRoom}</option>
-                      {rooms.map(room => (
-                        <option key={room.id} value={room.id}>
-                          {room.room_name} ({language === 'th' ? 'ความจุ' : 'Capacity'}: {room.capacity})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t.totalHours}
-                    </label>
-                    <input
-                      type="number"
-                      value={scheduleForm.total_hours || 30}
-                      onChange={(e) => setScheduleForm(prev => ({...prev, total_hours: parseInt(e.target.value)}))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      min={1}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t.hoursPerSession}
-                    </label>
-                    <input
-                      type="number"
-                      step="0.5"
-                      value={scheduleForm.hours_per_session || 3}
-                      onChange={(e) => setScheduleForm(prev => ({...prev, hours_per_session: parseFloat(e.target.value)}))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      min={0.5}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t.maxStudents}
-                    </label>
-                    <input
-                      type="number"
-                      value={scheduleForm.max_students || 6}
-                      onChange={(e) => setScheduleForm(prev => ({...prev, max_students: parseInt(e.target.value)}))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      min={1}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t.startDate} *
-                    </label>
-                    <input
-                      type="date"
-                      value={scheduleForm.start_date || ''}
-                      onChange={(e) => setScheduleForm(prev => ({...prev, start_date: e.target.value}))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={scheduleForm.auto_reschedule_holidays || false}
-                      onChange={(e) => setScheduleForm(prev => ({...prev, auto_reschedule_holidays: e.target.checked}))}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">{t.autoRescheduleHolidays}</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Time Slots */}
-              <TimeSlotSelector
-                value={scheduleForm.time_slots || []}
-                onChange={(slots) => setScheduleForm(prev => ({...prev, time_slots: slots as ScheduleTimeSlot[]}))}
-                title={t.timeSlots + ' *'}
-                description={language === 'th' ? 'เลือกวันและเวลาที่ต้องการจัดเรียน' : 'Select days and times for classes'}
-                format="schedule"
-                variant="compact"
-                language={language}
-                maxSlots={7}
-                showBulkSelection={true}
-              />
-
-              {/* Notes */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t.notes}
-                </label>
-                <textarea
-                  value={scheduleForm.notes || ''}
-                  onChange={(e) => setScheduleForm(prev => ({...prev, notes: e.target.value}))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  rows={3}
-                  placeholder={language === 'th' ? 'หมายเหตุเพิ่มเติม' : 'Additional notes'}
-                />
-              </div>
-
-              {/* Error Display */}
-              {formError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                  <p className="text-red-700 text-sm">{formError}</p>
-                </div>
-              )}
-            </div>
-          </ModalBody>
-
-          <ModalFooter className="border-t border-gray-300">
-            <Button
-              onClick={() => {
-                setIsCreateModalOpen(false);
-                setFormError(null);
-                setScheduleForm({
-                  schedule_name: '',
-                  course_id: 0,
-                  teacher_id: 0,
-                  room_id: 0,
-                  total_hours: 30,
-                  hours_per_session: 3,
-                  max_students: 6,
-                  start_date: new Date().toISOString().split('T')[0],
-                  time_slots: [],
-                  auto_reschedule_holidays: true,
-                  notes: ''
-                });
-              }}
-              variant="monthView"
-              className="mr-2"
-            >
-              {t.cancel}
-            </Button>
-            <Button
-              onClick={handleCreateSchedule}
-              variant="monthViewClicked"
-              disabled={formLoading}
-              className={`px-4 py-2 ${formLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {formLoading && <LoadingSpinner className="w-4 h-4 mr-2" />}
-              {formLoading ? t.processing : t.createNewSchedule}
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-
-      {/* Create Sessions Modal */}
-      <Modal 
-        isOpen={isCreateSessionModalOpen} 
-        onOpenChange={setIsCreateSessionModalOpen}
-        size="4xl"
-        className="max-h-[90vh]"
-      >
-        <ModalContent className="bg-white border border-gray-300 rounded-lg shadow-xl">
-          <ModalHeader className="border-b border-gray-300">
-            <h3 className="text-lg font-bold text-black">{t.createSessions}</h3>
-          </ModalHeader>
-
-          <ModalBody className="py-6 max-h-[75vh] overflow-y-auto">
-            <div className="space-y-6">
-              {/* Creation Mode Selection */}
-              <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                  <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
-                  {t.createSessionMode}
-                </h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      name="sessionMode"
-                      value="single"
-                      checked={sessionForm.mode === 'single'}
-                      onChange={(e) => setSessionForm(prev => ({...prev, mode: e.target.value as 'single' | 'multiple' | 'bulk'}))}
-                      className="h-4 w-4 text-purple-600"
-                    />
-                    <div className="ml-3">
-                      <div className="font-medium text-gray-900">{t.singleSession}</div>
-                      <div className="text-sm text-gray-600">{t.createOneSession}</div>
-                    </div>
-                  </label>
-                  
-                  <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      name="sessionMode"
-                      value="multiple"
-                      checked={sessionForm.mode === 'multiple'}
-                      onChange={(e) => setSessionForm(prev => ({...prev, mode: e.target.value as 'single' | 'multiple' | 'bulk'}))}
-                      className="h-4 w-4 text-purple-600"
-                    />
-                    <div className="ml-3">
-                      <div className="font-medium text-gray-900">{t.multipleSession}</div>
-                      <div className="text-sm text-gray-600">{t.createMultipleSessions}</div>
-                    </div>
-                  </label>
-                  
-                  <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      name="sessionMode"
-                      value="bulk"
-                      checked={sessionForm.mode === 'bulk'}
-                      onChange={(e) => setSessionForm(prev => ({...prev, mode: e.target.value as 'single' | 'multiple' | 'bulk'}))}
-                      className="h-4 w-4 text-purple-600"
-                    />
-                    <div className="ml-3">
-                      <div className="font-medium text-gray-900">{t.bulkCreate}</div>
-                      <div className="text-sm text-gray-600">{t.createBulkSessions}</div>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              {/* Single Session Mode */}
-              {sessionForm.mode === 'single' && (
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                    {t.singleSessionDetails}
-                  </h4>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t.selectSchedule} *
-                      </label>
-                      <select
-                        value={sessionForm.schedule_id || 0}
-                        onChange={(e) => setSessionForm(prev => ({...prev, schedule_id: parseInt(e.target.value)}))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value={0}>{t.selectSchedule}</option>
-                        {schedules.map(schedule => (
-                          <option key={schedule.schedule_id} value={schedule.schedule_id}>
-                            {schedule.schedule_name} - {schedule.course_name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t.sessionDate} *
-                      </label>
-                      <input
-                        type="date"
-                        value={sessionForm.session_date || ''}
-                        onChange={(e) => setSessionForm(prev => ({...prev, session_date: e.target.value}))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t.startTime} *
-                      </label>
-                      <input
-                        type="time"
-                        value={sessionForm.start_time || ''}
-                        onChange={(e) => setSessionForm(prev => ({...prev, start_time: e.target.value}))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t.endTime} *
-                      </label>
-                      <input
-                        type="time"
-                        value={sessionForm.end_time || ''}
-                        onChange={(e) => setSessionForm(prev => ({...prev, end_time: e.target.value}))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t.sessionNotes}
-                      </label>
-                      <textarea
-                        value={sessionForm.notes || ''}
-                        onChange={(e) => setSessionForm(prev => ({...prev, notes: e.target.value}))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        rows={3}
-                        placeholder={language === 'th' ? 'หมายเหตุสำหรับเซสชันนี้' : 'Notes for this session'}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Multiple Sessions Mode */}
-              {sessionForm.mode === 'multiple' && (
-                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                    {t.multipleSessionDetails}
-                  </h4>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t.selectSchedule} *
-                      </label>
-                      <select
-                        value={sessionForm.schedule_id || 0}
-                        onChange={(e) => setSessionForm(prev => ({...prev, schedule_id: parseInt(e.target.value)}))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value={0}>{t.selectSchedule}</option>
-                        {schedules.map(schedule => (
-                          <option key={schedule.schedule_id} value={schedule.schedule_id}>
-                            {schedule.schedule_name} - {schedule.course_name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t.numberOfSessions} *
-                      </label>
-                      <input
-                        type="number"
-                        value={sessionForm.session_count || 1}
-                        onChange={(e) => setSessionForm(prev => ({...prev, session_count: parseInt(e.target.value)}))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        min={1}
-                        max={50}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t.startDate} *
-                      </label>
-                      <input
-                        type="date"
-                        value={sessionForm.session_date || ''}
-                        onChange={(e) => setSessionForm(prev => ({...prev, session_date: e.target.value}))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t.repeatFrequency} *
-                      </label>
-                      <select
-                        value={sessionForm.repeat_frequency || 'weekly'}
-                        onChange={(e) => setSessionForm(prev => ({...prev, repeat_frequency: e.target.value as 'daily' | 'weekly' | 'monthly'}))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="daily">{t.daily}</option>
-                        <option value="weekly">{t.weekly}</option>
-                        <option value="monthly">{t.monthly}</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t.startTime} *
-                      </label>
-                      <input
-                        type="time"
-                        value={sessionForm.start_time || ''}
-                        onChange={(e) => setSessionForm(prev => ({...prev, start_time: e.target.value}))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t.endTime} *
-                      </label>
-                      <input
-                        type="time"
-                        value={sessionForm.end_time || ''}
-                        onChange={(e) => setSessionForm(prev => ({...prev, end_time: e.target.value}))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                    <div className="flex items-start">
-                      <div className="w-5 h-5 text-yellow-600 mr-2 mt-0.5">⚠️</div>
-                      <div className="text-sm text-yellow-800">
-                        <p className="font-medium mb-1">{t.multipleSessionWarning}</p>
-                        <ul className="list-disc list-inside space-y-1">
-                          <li>{t.willCreateSessions.replace('{count}', (sessionForm.session_count || 1).toString())}</li>
-                          <li>{t.repeatsEvery} {sessionForm.repeat_frequency === 'daily' ? t.daily.toLowerCase() : sessionForm.repeat_frequency === 'weekly' ? t.weekly.toLowerCase() : t.monthly.toLowerCase()}</li>
-                          <li>{t.checkForConflicts}</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Bulk Creation Mode */}
-              {sessionForm.mode === 'bulk' && (
-                <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                    <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
-                    {t.bulkCreateDetails}
-                  </h4>
-                  
-                  <div className="text-center py-8 text-gray-500">
-                    <div className="text-4xl mb-3">📅</div>
-                    <p className="text-lg mb-2 font-semibold">{t.bulkCreateComingSoon}</p>
-                    <p className="text-sm">{t.bulkCreateDescription}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Error Display */}
-              {formError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                  <p className="text-red-700 text-sm">{formError}</p>
-                </div>
-              )}
-            </div>
-          </ModalBody>
-
-          <ModalFooter className="border-t border-gray-300">
-            <Button
-              onClick={() => {
-                setIsCreateSessionModalOpen(false);
-                setFormError(null);
-                setSessionForm({
-                  mode: 'single',
-                  schedule_id: 0,
-                  session_date: new Date().toISOString().split('T')[0],
-                  start_time: '',
-                  end_time: '',
-                  notes: '',
-                  session_count: 1,
-                  repeat_frequency: 'weekly'
-                });
-              }}
-              variant="monthView"
-              className="mr-2"
-            >
-              {t.cancel}
-            </Button>
-            <Button
-              onClick={handleCreateSession}
-              variant="monthViewClicked"
-              disabled={formLoading || sessionForm.mode === 'bulk'}
-              className={`px-4 py-2 ${formLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {formLoading && <LoadingSpinner className="w-4 h-4 mr-2" />}
-              {formLoading ? t.processing : 
-               sessionForm.mode === 'single' ? t.createSession :
-               sessionForm.mode === 'multiple' ? `${t.createSessions} (${sessionForm.session_count || 1})` :
-               t.bulkCreateComingSoon}
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+      <CreateSessionsModal
+        isOpen={isCreateSessionModalOpen}
+        onClose={() => setIsCreateSessionModalOpen(false)}
+        sessionForm={sessionForm}
+        setSessionForm={setSessionForm}
+        schedules={schedules}
+        formLoading={formLoading}
+        formError={formError}
+        setFormError={setFormError}
+        onCreateSession={handleCreateSession}
+      />
 
       {/* Floating Action Buttons */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
@@ -1651,7 +923,7 @@ export default function SchedulePage() {
             setIsCreateModalOpen(true);
           }}
           variant="monthViewClicked"
-          className="shadow-lg hover:shadow-xl transition-shadow duration-200 px-4 py-3 text-sm font-medium rounded-full min-w-[160px]"
+          className="shadow-lg hover:shadow-xl transition-shadow duration-200 px-4 py-3 text-sm font-medium rounded-full min-w-[160px] cursor-pointer"
         >
           + {t.createNewSchedule}
         </Button>
@@ -1661,18 +933,29 @@ export default function SchedulePage() {
           onClick={() => {
             // Reset session form and open create session modal
             setSessionForm({
+              mode: 'single',
               schedule_id: 0,
               session_date: new Date().toISOString().split('T')[0],
               start_time: '09:00',
               end_time: '11:00',
-              mode: 'single',
-              session_count: 1
+              repeat: {
+                enabled: false,
+                frequency: 'weekly',
+                interval: 1,
+                end: { type: 'after', count: 10 },
+                days_of_week: []
+              },
+              is_makeup_session: false,
+              notes: '',
+              appointment_notes: '',
+              session_count: 1,
+              repeat_frequency: 'weekly'
             });
             setFormError(null);
             setIsCreateSessionModalOpen(true);
           }}
           variant="weekViewClicked"
-          className="shadow-lg hover:shadow-xl transition-shadow duration-200 px-4 py-3 text-sm font-medium rounded-full min-w-[160px]"
+          className="shadow-lg hover:shadow-xl transition-shadow duration-200 px-4 py-3 text-sm font-medium rounded-full min-w-[160px] cursor-pointer"
         >
           + {language === 'th' ? 'สร้างครั้งเรียนใหม่' : 'Create New Session'}
         </Button>
