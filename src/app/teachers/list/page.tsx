@@ -27,7 +27,6 @@ export default function TeacherListPage() {
   const [teacherTypeFilter, setTeacherTypeFilter] = useState('');
   const [branchFilter, setBranchFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [branches, setBranches] = useState<any[]>([]);
   
   // Delete modal states
   const [showDeleteModal, setShowDeleteModal] = useState(false);

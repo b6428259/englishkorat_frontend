@@ -11,4 +11,4 @@ export { FormSection } from './FormSection';
 export { default as AuthForm } from './AuthForm';
 export { default as StudentForm } from './StudentForm';
 export { TeacherTypeSelector } from './TeacherTypeSelector';
-export { TimeSlotSelector } from './TimeSlotSelector';
+// TimeSlotSelector moved to common components - use TimeSlotManager or import from common

@@ -13,9 +13,9 @@ import {
   Checkbox,
   FormActions,
   FormSection,
-  TeacherTypeSelector,
-  TimeSlotSelector
+  TeacherTypeSelector
 } from '../forms';
+import { TimeSlotManager } from '../common';
 
 export interface StudentFormData {
   firstName: string;
@@ -850,7 +850,7 @@ const StudentForm: React.FC<StudentFormProps> = ({
       <FormSection title={language === 'th' ? 'ความต้องการด้านตารางเรียน' : 'Schedule Preferences'}>
         <div className="space-y-6">
           {/* Preferred Time Slots */}
-          <TimeSlotSelector
+          <TimeSlotManager
             value={formData.preferredTimeSlots}
             onChange={handlePreferredTimeSlotsChange}
             title={language === 'th' ? 'วันเวลาที่ต้องการเรียน' : 'Preferred Learning Time'}
@@ -860,7 +860,7 @@ const StudentForm: React.FC<StudentFormProps> = ({
           />
 
           {/* Unavailable Time Slots */}
-          <TimeSlotSelector
+          <TimeSlotManager
             value={formData.unavailableTimeSlots}
             onChange={handleUnavailableTimeSlotsChange}
             title={language === 'th' ? 'วันเวลาที่ไม่ว่าง' : 'Unavailable Time'}

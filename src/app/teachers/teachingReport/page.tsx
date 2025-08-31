@@ -1,21 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import React from "react";
 import SidebarLayout from "@/components/common/SidebarLayout";
 import { useLanguage } from "@/contexts/LanguageContext";
-import Button from "@/components/common/Button";
-import { colors } from "@/styles/colors";
-import { ButtonGroup } from "@heroui/react";
 import {
   Table,
   TableHeader,
   TableBody,
   TableColumn,
-  TableRow,
-  TableCell,
 } from "@heroui/react";
 
-export const columns = [
+const columns = [
   {name: "Lesson plan", uid: "lessonPlan"},
   {name: "Date", uid: "date"},
   {name: "Hours", uid: "hours"},
@@ -56,7 +51,7 @@ export default function TeachingReport()  {
                     </TableHeader>
 
                     <TableBody className="divide-y divide-gray-200">
-
+                      {[]}
                     </TableBody>
                 </Table>
               </div>

@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { useRouter } from 'next/navigation';
 import SidebarLayout from '../../../components/common/SidebarLayout';
-import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import Avatar from '../../../components/common/Avatar';
 import Button from '../../../components/common/Button';
 import Modal from '../../../components/common/Modal';

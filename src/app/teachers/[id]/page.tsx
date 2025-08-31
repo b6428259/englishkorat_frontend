@@ -182,7 +182,7 @@ export default function TeacherDetailPage() {
                 </h1>
                 {teacher.nickname && (
                   <p className="text-lg text-indigo-600 mb-4 font-medium">
-                    "{teacher.nickname}"
+                    &quot;{teacher.nickname}&quot;
                   </p>
                 )}
                 <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${getTeacherTypeColor(teacher.teacher_type)} shadow-sm`}>

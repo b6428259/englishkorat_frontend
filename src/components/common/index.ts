@@ -9,3 +9,5 @@ export { default as Modal } from './Modal';
 export { default as SuccessModal } from './SuccessModal';
 export { default as ErrorModal } from './ErrorModal';
 export { default as LogoutButton } from './LogoutButton';
+export { TimeSlotManager, TimeSlotSelector } from './TimeSlotManager';
+export type { LegacyTimeSlot, ScheduleTimeSlot } from './TimeSlotManager';

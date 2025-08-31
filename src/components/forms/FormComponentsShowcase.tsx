@@ -1,7 +1,8 @@
 "use client"
 
 import React from 'react';
-import { Select, TeacherTypeSelector, TimeSlotSelector } from '../forms';
+import { Select, TeacherTypeSelector } from '../forms';
+import { TimeSlotManager } from '../common';
 
 interface TimeSlot {
   id: string;
@@ -88,7 +89,7 @@ export const FormComponentsShowcase: React.FC = () => {
           </ul>
         </div>
         
-        <TimeSlotSelector
+        <TimeSlotManager
           value={preferredSlots}
           onChange={setPreferredSlots}
           title="วันเวลาที่ต้องการเรียน"
@@ -97,7 +98,7 @@ export const FormComponentsShowcase: React.FC = () => {
           maxSlots={7}
         />
 
-        <TimeSlotSelector
+        <TimeSlotManager
           value={unavailableSlots}
           onChange={setUnavailableSlots}
           title="วันเวลาที่ไม่ว่าง"

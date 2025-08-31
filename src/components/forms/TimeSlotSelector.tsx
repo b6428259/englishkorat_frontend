@@ -1,15 +1,26 @@
 "use client"
 
-import React, { useState } from 'react';
+import { useState } from "react";
 import { HiCalendarDays, HiClock, HiPlus, HiXMark, HiCheck } from 'react-icons/hi2';
 import { Select } from '../forms';
 
-interface TimeSlot {
+// Legacy interface for backward compatibility
+interface LegacyTimeSlot {
   id: string;
   day: string;
   timeFrom: string;
   timeTo: string;
 }
+
+// New interface for schedule management
+interface ScheduleTimeSlot {
+  day_of_week: string;
+  start_time: string;
+  end_time: string;
+}
+
+// Union type to support both formats
+type TimeSlot = LegacyTimeSlot | ScheduleTimeSlot;
 
 interface BulkTimeSlot {
   days: string[];
@@ -17,6 +28,7 @@ interface BulkTimeSlot {
   timeTo: string;
 }
 
+// Enhanced props to support both formats
 interface TimeSlotSelectorProps {
   value: TimeSlot[];
   onChange: (slots: TimeSlot[]) => void;
@@ -26,6 +38,12 @@ interface TimeSlotSelectorProps {
   disabled?: boolean;
   language?: 'th' | 'en';
   maxSlots?: number;
+  
+  // New props for enhanced functionality
+  format?: 'legacy' | 'schedule'; // Determines which format to use
+  variant?: 'default' | 'compact' | 'inline'; // Different UI variants
+  showBulkSelection?: boolean; // Whether to show bulk selection mode
+  allowEmpty?: boolean; // Whether to allow empty slots
 }
 
 export const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
@@ -36,11 +54,93 @@ export const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
   error = false,
   disabled = false,
   language = 'th',
-  maxSlots = 14
+  maxSlots = 14,
+  format = 'legacy', // Default to legacy for backward compatibility
+  variant = 'default',
+  showBulkSelection = true
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkSlot, setBulkSlot] = useState<BulkTimeSlot>({ days: [], timeFrom: '', timeTo: '' });
+
+  // Type guards to check slot format
+  const isLegacySlot = (slot: TimeSlot): slot is LegacyTimeSlot => {
+    return 'id' in slot && 'day' in slot && 'timeFrom' in slot && 'timeTo' in slot;
+  };
+
+  // Helper functions for format conversion
+  const getSlotId = (slot: TimeSlot, index: number): string => {
+    if (isLegacySlot(slot)) return slot.id;
+    return `schedule_slot_${index}`;
+  };
+
+  const getSlotDay = (slot: TimeSlot): string => {
+    if (isLegacySlot(slot)) return slot.day;
+    return slot.day_of_week;
+  };
+
+  const getSlotStartTime = (slot: TimeSlot): string => {
+    if (isLegacySlot(slot)) return slot.timeFrom;
+    return slot.start_time;
+  };
+
+  const getSlotEndTime = (slot: TimeSlot): string => {
+    if (isLegacySlot(slot)) return slot.timeTo;
+    return slot.end_time;
+  };
+
+  // Create new slot based on format
+  const createNewSlot = (): TimeSlot => {
+    if (format === 'schedule') {
+      return {
+        day_of_week: '',
+        start_time: '',
+        end_time: ''
+      } as ScheduleTimeSlot;
+    } else {
+      return {
+        id: Date.now().toString(),
+        day: '',
+        timeFrom: '',
+        timeTo: ''
+      } as LegacyTimeSlot;
+    }
+  };
+
+  // Update slot field based on format
+  const updateSlotField = (slot: TimeSlot, field: string, value: string): TimeSlot => {
+    if (format === 'schedule') {
+      const scheduleSlot = slot as ScheduleTimeSlot;
+      switch (field) {
+        case 'day':
+        case 'day_of_week':
+          return { ...scheduleSlot, day_of_week: value };
+        case 'timeFrom':
+        case 'start_time':
+          return { ...scheduleSlot, start_time: value };
+        case 'timeTo':
+        case 'end_time':
+          return { ...scheduleSlot, end_time: value };
+        default:
+          return scheduleSlot;
+      }
+    } else {
+      const legacySlot = slot as LegacyTimeSlot;
+      switch (field) {
+        case 'day':
+        case 'day_of_week':
+          return { ...legacySlot, day: value };
+        case 'timeFrom':
+        case 'start_time':
+          return { ...legacySlot, timeFrom: value };
+        case 'timeTo':
+        case 'end_time':
+          return { ...legacySlot, timeTo: value };
+        default:
+          return legacySlot;
+      }
+    }
+  };
 
   const daysOfWeek = language === 'th' ? [
     { value: 'monday', label: 'จันทร์', shortLabel: 'จ' },
@@ -69,23 +169,17 @@ export const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
 
   const addTimeSlot = () => {
     if (value.length >= maxSlots) return;
-    
-    const newSlot: TimeSlot = {
-      id: Date.now().toString(),
-      day: '',
-      timeFrom: '',
-      timeTo: ''
-    };
+    const newSlot = createNewSlot();
     onChange([...value, newSlot]);
   };
 
-  const removeTimeSlot = (id: string) => {
-    onChange(value.filter(slot => slot.id !== id));
+  const removeTimeSlot = (slotToRemove: TimeSlot, index: number) => {
+    onChange(value.filter((_, i) => i !== index));
   };
 
-  const updateTimeSlot = (id: string, field: keyof Omit<TimeSlot, 'id'>, newValue: string) => {
-    onChange(value.map(slot => 
-      slot.id === id ? { ...slot, [field]: newValue } : slot
+  const updateTimeSlot = (slotIndex: number, field: string, newValue: string) => {
+    onChange(value.map((slot, i) => 
+      i === slotIndex ? updateSlotField(slot, field, newValue) : slot
     ));
   };
 
@@ -106,12 +200,22 @@ export const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
     if (!bulkSlot.days.length || !bulkSlot.timeFrom || !bulkSlot.timeTo) return;
     if (bulkSlot.timeFrom >= bulkSlot.timeTo) return;
 
-    const newSlots = bulkSlot.days.map(day => ({
-      id: `${Date.now()}_${day}`,
-      day,
-      timeFrom: bulkSlot.timeFrom,
-      timeTo: bulkSlot.timeTo
-    }));
+    const newSlots = bulkSlot.days.map(day => {
+      if (format === 'schedule') {
+        return {
+          day_of_week: day,
+          start_time: bulkSlot.timeFrom,
+          end_time: bulkSlot.timeTo
+        } as ScheduleTimeSlot;
+      } else {
+        return {
+          id: `${Date.now()}_${day}`,
+          day,
+          timeFrom: bulkSlot.timeFrom,
+          timeTo: bulkSlot.timeTo
+        } as LegacyTimeSlot;
+      }
+    });
 
     // Filter out slots that would exceed maxSlots
     const slotsToAdd = newSlots.slice(0, Math.max(0, maxSlots - value.length));
@@ -148,6 +252,105 @@ export const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
     }));
   };
 
+  // Compact variant for inline usage
+  if (variant === 'compact') {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <label className="block text-sm font-medium text-gray-700">{title}</label>
+          {value.length < maxSlots && (
+            <button
+              type="button"
+              onClick={addTimeSlot}
+              className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+            >
+              <HiPlus className="w-4 h-4" />
+              {language === 'th' ? 'เพิ่ม' : 'Add'}
+            </button>
+          )}
+        </div>
+        
+        <div className="space-y-2">
+          {value.map((slot, index) => (
+            <div key={getSlotId(slot, index)} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+              <select
+                value={getSlotDay(slot)}
+                onChange={(e) => updateTimeSlot(index, 'day', e.target.value)}
+                className="px-2 py-1 text-sm border border-gray-300 rounded"
+              >
+                <option value="">{language === 'th' ? 'เลือกวัน' : 'Day'}</option>
+                {daysOfWeek.map(day => (
+                  <option key={day.value} value={day.value}>{day.shortLabel}</option>
+                ))}
+              </select>
+              
+              <input
+                type="time"
+                value={getSlotStartTime(slot)}
+                onChange={(e) => updateTimeSlot(index, 'timeFrom', e.target.value)}
+                className="px-2 py-1 text-sm border border-gray-300 rounded"
+              />
+              
+              <span className="text-gray-400">-</span>
+              
+              <input
+                type="time"
+                value={getSlotEndTime(slot)}
+                onChange={(e) => updateTimeSlot(index, 'timeTo', e.target.value)}
+                className="px-2 py-1 text-sm border border-gray-300 rounded"
+              />
+              
+              <button
+                type="button"
+                onClick={() => removeTimeSlot(slot, index)}
+                className="p-1 text-red-500 hover:text-red-700"
+              >
+                <HiXMark className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Inline variant for very compact usage (like in modals)
+  if (variant === 'inline') {
+    return (
+      <div className="space-y-2">
+        {value.map((slot, index) => (
+          <div key={getSlotId(slot, index)} className="grid grid-cols-3 gap-2">
+            <select
+              value={getSlotDay(slot)}
+              onChange={(e) => updateTimeSlot(index, 'day', e.target.value)}
+              className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+            >
+              <option value="">{language === 'th' ? 'วัน' : 'Day'}</option>
+              {daysOfWeek.map(day => (
+                <option key={day.value} value={day.value}>{day.shortLabel}</option>
+              ))}
+            </select>
+            
+            <input
+              type="time"
+              value={getSlotStartTime(slot)}
+              onChange={(e) => updateTimeSlot(index, 'timeFrom', e.target.value)}
+              className="px-2 py-1 text-sm border border-gray-300 rounded"
+            />
+            
+            <input
+              type="time"
+              value={getSlotEndTime(slot)}
+              onChange={(e) => updateTimeSlot(index, 'timeTo', e.target.value)}
+              className="px-2 py-1 text-sm border border-gray-300 rounded"
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Default variant (full featured)
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -176,15 +379,22 @@ export const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
               )}
               {value.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
-                  {value.slice(0, 3).map((slot) => (
-                    <span key={slot.id} className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
-                      <HiClock className="w-3 h-3 mr-1" />
-                      {slot.day && slot.timeFrom && slot.timeTo ? 
-                        `${getDayLabel(slot.day)} ${slot.timeFrom}-${slot.timeTo}` :
-                        (language === 'th' ? 'ยังไม่ครบ' : 'Incomplete')
-                      }
-                    </span>
-                  ))}
+                  {value.slice(0, 3).map((slot, index) => {
+                    const day = getSlotDay(slot);
+                    const timeFrom = getSlotStartTime(slot);
+                    const timeTo = getSlotEndTime(slot);
+                    const slotId = getSlotId(slot, index);
+                    
+                    return (
+                      <span key={slotId} className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                        <HiClock className="w-3 h-3 mr-1" />
+                        {day && timeFrom && timeTo ? 
+                          `${getDayLabel(day)} ${timeFrom}-${timeTo}` :
+                          (language === 'th' ? 'ยังไม่ครบ' : 'Incomplete')
+                        }
+                      </span>
+                    );
+                  })}
                   {value.length > 3 && (
                     <span className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
                       +{value.length - 3} {language === 'th' ? 'เพิ่มเติม' : 'more'}
@@ -211,22 +421,24 @@ export const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
           
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg">
-            <button
-              type="button"
-              onClick={() => setBulkMode(!bulkMode)}
-              className={`
-                px-4 py-2 rounded-lg font-medium transition-all duration-200
-                ${bulkMode 
-                  ? 'bg-blue-500 text-white shadow-md' 
-                  : 'bg-white text-blue-600 border border-blue-200 hover:bg-blue-50'
+            {showBulkSelection && (
+              <button
+                type="button"
+                onClick={() => setBulkMode(!bulkMode)}
+                className={`
+                  px-4 py-2 rounded-lg font-medium transition-all duration-200
+                  ${bulkMode 
+                    ? 'bg-blue-500 text-white shadow-md' 
+                    : 'bg-white text-blue-600 border border-blue-200 hover:bg-blue-50'
+                  }
+                `}
+              >
+                {bulkMode ? 
+                  (language === 'th' ? '✓ โหมดเลือกหลายวัน' : '✓ Bulk Selection') :
+                  (language === 'th' ? 'เลือกหลายวันพร้อมกัน' : 'Bulk Selection')
                 }
-              `}
-            >
-              {bulkMode ? 
-                (language === 'th' ? '✓ โหมดเลือกหลายวัน' : '✓ Bulk Selection') :
-                (language === 'th' ? 'เลือกหลายวันพร้อมกัน' : 'Bulk Selection')
-              }
-            </button>
+              </button>
+            )}
             
             {!bulkMode && value.length < maxSlots && (
               <button
@@ -241,7 +453,7 @@ export const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
           </div>
 
           {/* Bulk Selection Mode */}
-          {bulkMode && (
+          {bulkMode && showBulkSelection && (
             <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
               <h4 className="font-medium text-gray-800 mb-4">
                 {language === 'th' ? 'เลือกหลายวันพร้อมกัน' : 'Bulk Day Selection'}
@@ -369,63 +581,70 @@ export const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
           )}
 
           {/* Existing Time Slots */}
-          {value.map((slot, index) => (
-            <div key={slot.id} className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-medium text-gray-800">
-                  {language === 'th' ? `ช่วงเวลาที่ ${index + 1}` : `Time Slot ${index + 1}`}
-                </h4>
-                <button
-                  type="button"
-                  onClick={() => removeTimeSlot(slot.id)}
-                  className="p-1 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-full transition-colors duration-200"
-                >
-                  <HiXMark className="w-4 h-4" />
-                </button>
+          {value.map((slot, index) => {
+            const slotId = getSlotId(slot, index);
+            const day = getSlotDay(slot);
+            const timeFrom = getSlotStartTime(slot);
+            const timeTo = getSlotEndTime(slot);
+            
+            return (
+              <div key={slotId} className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-medium text-gray-800">
+                    {language === 'th' ? `ช่วงเวลาที่ ${index + 1}` : `Time Slot ${index + 1}`}
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => removeTimeSlot(slot, index)}
+                    className="p-1 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-full transition-colors duration-200"
+                  >
+                    <HiXMark className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Day Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {language === 'th' ? 'วัน' : 'Day'}
+                    </label>
+                    <Select
+                      options={[{ value: '', label: language === 'th' ? 'เลือกวัน' : 'Select Day', disabled: true }, ...daysOfWeek.map(day => ({ value: day.value, label: day.label }))]}
+                      value={day}
+                      onChange={(e) => updateTimeSlot(index, 'day', e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Time From */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {language === 'th' ? 'เวลาเริ่ม' : 'From'}
+                    </label>
+                    <Select
+                      options={[{ value: '', label: language === 'th' ? 'เลือกเวลาเริ่ม' : 'Select Start Time', disabled: true }, ...timeOptions]}
+                      value={timeFrom}
+                      onChange={(e) => updateTimeSlot(index, 'timeFrom', e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Time To */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {language === 'th' ? 'เวลาสิ้นสุด' : 'To'}
+                    </label>
+                    <Select
+                      options={[{ value: '', label: language === 'th' ? 'เลือกเวลาสิ้นสุด' : 'Select End Time', disabled: true }, ...timeOptions.filter(time => !timeFrom || time.value > timeFrom)]}
+                      value={timeTo}
+                      onChange={(e) => updateTimeSlot(index, 'timeTo', e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Day Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {language === 'th' ? 'วัน' : 'Day'}
-                  </label>
-                  <Select
-                    options={[{ value: '', label: language === 'th' ? 'เลือกวัน' : 'Select Day', disabled: true }, ...daysOfWeek.map(day => ({ value: day.value, label: day.label }))]}
-                    value={slot.day}
-                    onChange={(e) => updateTimeSlot(slot.id, 'day', e.target.value)}
-                    className="w-full"
-                  />
-                </div>
-
-                {/* Time From */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {language === 'th' ? 'เวลาเริ่ม' : 'From'}
-                  </label>
-                  <Select
-                    options={[{ value: '', label: language === 'th' ? 'เลือกเวลาเริ่ม' : 'Select Start Time', disabled: true }, ...timeOptions]}
-                    value={slot.timeFrom}
-                    onChange={(e) => updateTimeSlot(slot.id, 'timeFrom', e.target.value)}
-                    className="w-full"
-                  />
-                </div>
-
-                {/* Time To */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {language === 'th' ? 'เวลาสิ้นสุด' : 'To'}
-                  </label>
-                  <Select
-                    options={[{ value: '', label: language === 'th' ? 'เลือกเวลาสิ้นสุด' : 'Select End Time', disabled: true }, ...timeOptions.filter(time => !slot.timeFrom || time.value > slot.timeFrom)]}
-                    value={slot.timeTo}
-                    onChange={(e) => updateTimeSlot(slot.id, 'timeTo', e.target.value)}
-                    className="w-full"
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
 
           {value.length >= maxSlots && (
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">

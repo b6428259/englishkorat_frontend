@@ -202,6 +202,124 @@ export interface Translations {
 
   //Schedule
   SelectTeachers: string;
+  scheduleManagement: string;
+  viewMode: string;
+  dayView: string;
+  weekView: string;
+  monthView: string;
+  currentTime: string;
+  selectAllTeachers: string;
+  clearSelection: string;
+  noScheduleData: string;
+  scheduleDetails: string;
+  scheduleInformation: string;
+  courseInformation: string;
+  time: string;
+  classroom: string;
+  totalHours: string;
+  hoursPerSession: string;
+  startDate: string;
+  type: string;
+  people: string;
+  scheduleSummary: string;
+  totalSessions: string;
+  scheduledSessions: string;
+  completedSessions: string;
+  createNewSchedule: string;
+  preliminaryInfo: string;
+  teacher: string;
+  date: string;
+  underDevelopment: string;
+  featureComingSoon: string;
+  createScheduleMock: string;
+  scheduled: string;
+  completed: string;
+  cancelled: string;
+  active: string;
+  inactive: string;
+  failedToLoadDetails: string;
+  retryLoading: string;
+  sessionDetails: string;
+  age: string;
+  years: string;
+  nickname: string;
+  branch: string;
+  room: string;
+  course: string;
+  capacity: string;
+  available: string;
+  enrolled: string;
+  students: string;
+  notes: string;
+  status: string;
+  editSchedule: string;
+  createSession: string;
+  scheduleForm: string;
+  courseName: string;
+  selectCourse: string;
+  selectTeacher: string;
+  selectRoom: string;
+  scheduleName: string;
+  timeSlots: string;
+  addTimeSlot: string;
+  removeTimeSlot: string;
+  dayOfWeek: string;
+  startTime: string;
+  endTime: string;
+  monday: string;
+  tuesday: string;
+  wednesday: string;
+  thursday: string;
+  friday: string;
+  saturday: string;
+  sunday: string;
+  autoRescheduleHolidays: string;
+  maxStudents: string;
+  sessionForm: string;
+  sessionDate: string;
+  repeatSession: string;
+  repeatFrequency: string;
+  repeatInterval: string;
+  repeatEnd: string;
+  repeatCount: string;
+  repeatUntilDate: string;
+  daily: string;
+  weekly: string;
+  monthly: string;
+  never: string;
+  after: string;
+  on: string;
+  makeupSession: string;
+  appointmentNotes: string;
+  createScheduleSuccess: string;
+  updateScheduleSuccess: string;
+  createSessionSuccess: string;
+  fillRequiredFields: string;
+  errorCreatingSchedule: string;
+  errorUpdatingSchedule: string;
+  errorCreatingSession: string;
+
+  // New session creation functionality
+  createSessionMode: string;
+  singleSession: string;
+  createOneSession: string;
+  multipleSession: string;
+  createMultipleSessions: string;
+  bulkCreate: string;
+  createBulkSessions: string;
+  singleSessionDetails: string;
+  multipleSessionDetails: string;
+  bulkCreateDetails: string;
+  numberOfSessions: string;
+  multipleSessionWarning: string;
+  willCreateSessions: string;
+  repeatsEvery: string;
+  checkForConflicts: string;
+  bulkCreateComingSoon: string;
+  bulkCreateDescription: string;
+  selectSchedule: string;
+  sessionNotes: string;
+  createSessions: string;
 
   // Profile
   personalInfo: string;
@@ -551,6 +669,124 @@ export const translations: Record<Language, Translations> = {
 
     //Schedule
     SelectTeachers: 'เลือกคุณครู',
+    scheduleManagement: 'จัดการตารางเรียน',
+    viewMode: 'โหมดดู',
+    dayView: 'วัน',
+    weekView: 'สัปดาห์',
+    monthView: 'เดือน',
+    currentTime: 'เวลาปัจจุบัน',
+    selectAllTeachers: 'ทั้งหมด',
+    clearSelection: 'ยกเลิก',
+    noScheduleData: 'ไม่มีข้อมูลตารางเรียน',
+    scheduleDetails: 'รายละเอียดตารางเรียน',
+    scheduleInformation: 'ข้อมูลตารางเรียน',
+    courseInformation: 'ข้อมูลคอร์ส',
+    time: 'เวลา',
+    classroom: 'ห้องเรียน',
+    totalHours: 'จำนวนชั่วโมงรวม',
+    hoursPerSession: 'ชั่วโมง/ครั้ง',
+    startDate: 'วันที่เริ่ม',
+    type: 'ประเภท',
+    people: 'คน',
+    scheduleSummary: 'สรุปตารางเรียน',
+    totalSessions: 'ครั้งทั้งหมด',
+    scheduledSessions: 'กำหนดแล้ว',
+    completedSessions: 'เรียนแล้ว',
+    createNewSchedule: 'สร้างตารางเรียนใหม่',
+    preliminaryInfo: 'ข้อมูลเบื้องต้น',
+    teacher: 'ครูผู้สอน',
+    date: 'วันที่',
+    underDevelopment: 'อยู่ระหว่างการพัฒนา',
+    featureComingSoon: 'ฟีเจอร์สร้างตารางเรียนจะเปิดใช้งานเร็วๆ นี้',
+    createScheduleMock: 'สร้างตารางเรียน (Mock)',
+    scheduled: 'กำหนดเรียน',
+    completed: 'เสร็จสิ้น',
+    cancelled: 'ยกเลิก',
+    active: 'ใช้งาน',
+    inactive: 'ไม่ใช้งาน',
+    failedToLoadDetails: 'ไม่สามารถโหลดข้อมูลรายละเอียดได้',
+    retryLoading: 'ลองใหม่',
+    sessionDetails: 'รายละเอียดครั้งเรียน',
+    age: 'อายุ',
+    years: 'ปี',
+    nickname: 'ชื่อเล่น',
+    branch: 'สาขา',
+    room: 'ห้อง',
+    course: 'คอร์ส',
+    capacity: 'จำนวนที่รับได้',
+    available: 'ว่าง',
+    enrolled: 'ลงทะเบียนแล้ว',
+    students: 'นักเรียน',
+    notes: 'หมายเหตุ',
+    status: 'สถานะ',
+    editSchedule: 'แก้ไขตารางเรียน',
+    createSession: 'สร้างครั้งเรียน',
+    scheduleForm: 'ฟอร์มตารางเรียน',
+    courseName: 'ชื่อคอร์ส',
+    selectCourse: 'เลือกคอร์ส',
+    selectTeacher: 'เลือกครู',
+    selectRoom: 'เลือกห้อง',
+    scheduleName: 'ชื่อตารางเรียน',
+    timeSlots: 'ช่วงเวลา',
+    addTimeSlot: 'เพิ่มช่วงเวลา',
+    removeTimeSlot: 'ลบช่วงเวลา',
+    dayOfWeek: 'วันในสัปดาห์',
+    startTime: 'เวลาเริ่ม',
+    endTime: 'เวลาจบ',
+    monday: 'จันทร์',
+    tuesday: 'อังคาร',
+    wednesday: 'พุธ',
+    thursday: 'พฤหัส',
+    friday: 'ศุกร์',
+    saturday: 'เสาร์',
+    sunday: 'อาทิตย์',
+    autoRescheduleHolidays: 'เลื่อนวันหยุดอัตโนมัติ',
+    maxStudents: 'จำนวนนักเรียนสูงสุด',
+    sessionForm: 'ฟอร์มครั้งเรียน',
+    sessionDate: 'วันที่เรียน',
+    repeatSession: 'ทำซ้ำ',
+    repeatFrequency: 'ความถี่',
+    repeatInterval: 'ช่วงการทำซ้ำ',
+    repeatEnd: 'สิ้นสุดการทำซ้ำ',
+    repeatCount: 'จำนวนครั้ง',
+    repeatUntilDate: 'ทำซ้ำจนถึงวันที่',
+    daily: 'รายวัน',
+    weekly: 'รายสัปดาห์',
+    monthly: 'รายเดือน',
+    never: 'ไม่สิ้นสุด',
+    after: 'หลังจาก',
+    on: 'ณ วันที่',
+    makeupSession: 'ครั้งเรียนชดเชย',
+    appointmentNotes: 'หมายเหตุนัดหมาย',
+    createScheduleSuccess: 'สร้างตารางเรียนสำเร็จ',
+    updateScheduleSuccess: 'แก้ไขตารางเรียนสำเร็จ',
+    createSessionSuccess: 'สร้างครั้งเรียนสำเร็จ',
+    fillRequiredFields: 'กรุณากรอกข้อมูลให้ครบถ้วน',
+    errorCreatingSchedule: 'เกิดข้อผิดพลาดในการสร้างตารางเรียน',
+    errorUpdatingSchedule: 'เกิดข้อผิดพลาดในการแก้ไขตารางเรียน',
+    errorCreatingSession: 'เกิดข้อผิดพลาดในการสร้างครั้งเรียน',
+
+    // New session creation functionality
+    createSessionMode: 'โหมดการสร้างเซสชัน',
+    singleSession: 'เซสชันเดียว',
+    createOneSession: 'สร้างเซสชันเดียว',
+    multipleSession: 'หลายเซสชัน',
+    createMultipleSessions: 'สร้างหลายเซสชัน',
+    bulkCreate: 'สร้างจำนวนมาก',
+    createBulkSessions: 'สร้างเซสชันจำนวนมาก',
+    singleSessionDetails: 'รายละเอียดเซสชันเดียว',
+    multipleSessionDetails: 'รายละเอียดหลายเซสชัน',
+    bulkCreateDetails: 'รายละเอียดการสร้างจำนวนมาก',
+    numberOfSessions: 'จำนวนเซสชัน',
+    multipleSessionWarning: 'คำเตือนการสร้างหลายเซสชัน',
+    willCreateSessions: 'จะสร้างเซสชันทั้งหมด {count} เซสชัน',
+    repeatsEvery: 'ทำซ้ำทุก',
+    checkForConflicts: 'กรุณาตรวจสอบตารางที่ขัดแย้งกัน',
+    bulkCreateComingSoon: 'การสร้างจำนวนมากจะมาเร็วๆ นี้',
+    bulkCreateDescription: 'ฟีเจอร์นี้จะช่วยให้คุณสร้างตารางเรียนจำนวนมากได้อย่างง่ayดาย',
+    selectSchedule: 'เลือกตาราง',
+    sessionNotes: 'หมายเหตุเซสชัน',
+    createSessions: 'สร้างเซสชัน',
 
     // Profile
     personalInfo: 'ข้อมูลส่วนตัว',
@@ -902,6 +1138,124 @@ export const translations: Record<Language, Translations> = {
 
     //Schedule
     SelectTeachers: 'Select Teachers',
+    scheduleManagement: 'Schedule Management',
+    viewMode: 'View Mode',
+    dayView: 'Day',
+    weekView: 'Week',
+    monthView: 'Month',
+    currentTime: 'Current Time',
+    selectAllTeachers: 'Select All',
+    clearSelection: 'Clear',
+    noScheduleData: 'No schedule data available',
+    scheduleDetails: 'Schedule Details',
+    scheduleInformation: 'Schedule Information',
+    courseInformation: 'Course Information',
+    time: 'Time',
+    classroom: 'Classroom',
+    totalHours: 'Total Hours',
+    hoursPerSession: 'Hours/Session',
+    startDate: 'Start Date',
+    type: 'Type',
+    people: 'People',
+    scheduleSummary: 'Schedule Summary',
+    totalSessions: 'Total Sessions',
+    scheduledSessions: 'Scheduled',
+    completedSessions: 'Completed',
+    createNewSchedule: 'Create New Schedule',
+    preliminaryInfo: 'Preliminary Information',
+    teacher: 'Teacher',
+    date: 'Date',
+    underDevelopment: 'Under Development',
+    featureComingSoon: 'Schedule creation feature coming soon',
+    createScheduleMock: 'Create Schedule (Mock)',
+    scheduled: 'Scheduled',
+    completed: 'Completed',
+    cancelled: 'Cancelled',
+    active: 'Active',
+    inactive: 'Inactive',
+    failedToLoadDetails: 'Failed to load details',
+    retryLoading: 'Retry',
+    sessionDetails: 'Session Details',
+    age: 'Age',
+    years: 'Years',
+    nickname: 'Nickname',
+    branch: 'Branch',
+    room: 'Room',
+    course: 'Course',
+    capacity: 'Capacity',
+    available: 'Available',
+    enrolled: 'Enrolled',
+    students: 'Students',
+    notes: 'Notes',
+    status: 'Status',
+    editSchedule: 'Edit Schedule',
+    createSession: 'Create Session',
+    scheduleForm: 'Schedule Form',
+    courseName: 'Course Name',
+    selectCourse: 'Select Course',
+    selectTeacher: 'Select Teacher',
+    selectRoom: 'Select Room',
+    scheduleName: 'Schedule Name',
+    timeSlots: 'Time Slots',
+    addTimeSlot: 'Add Time Slot',
+    removeTimeSlot: 'Remove Time Slot',
+    dayOfWeek: 'Day of Week',
+    startTime: 'Start Time',
+    endTime: 'End Time',
+    monday: 'Monday',
+    tuesday: 'Tuesday',
+    wednesday: 'Wednesday',
+    thursday: 'Thursday',
+    friday: 'Friday',
+    saturday: 'Saturday',
+    sunday: 'Sunday',
+    autoRescheduleHolidays: 'Auto Reschedule Holidays',
+    maxStudents: 'Max Students',
+    sessionForm: 'Session Form',
+    sessionDate: 'Session Date',
+    repeatSession: 'Repeat Session',
+    repeatFrequency: 'Repeat Frequency',
+    repeatInterval: 'Repeat Interval',
+    repeatEnd: 'Repeat End',
+    repeatCount: 'Repeat Count',
+    repeatUntilDate: 'Repeat Until Date',
+    daily: 'Daily',
+    weekly: 'Weekly',
+    monthly: 'Monthly',
+    never: 'Never',
+    after: 'After',
+    on: 'On',
+    makeupSession: 'Makeup Session',
+    appointmentNotes: 'Appointment Notes',
+    createScheduleSuccess: 'Schedule created successfully',
+    updateScheduleSuccess: 'Schedule updated successfully',
+    createSessionSuccess: 'Session created successfully',
+    fillRequiredFields: 'Please fill in all required fields',
+    errorCreatingSchedule: 'Error creating schedule',
+    errorUpdatingSchedule: 'Error updating schedule',
+    errorCreatingSession: 'Error creating session',
+    
+    // New session creation functionality
+    createSessionMode: 'Session Creation Mode',
+    singleSession: 'Single Session',
+    createOneSession: 'Create one session',
+    multipleSession: 'Multiple Sessions',
+    createMultipleSessions: 'Create multiple sessions',
+    bulkCreate: 'Bulk Create',
+    createBulkSessions: 'Create sessions in bulk',
+    singleSessionDetails: 'Single Session Details',
+    multipleSessionDetails: 'Multiple Sessions Details',
+    bulkCreateDetails: 'Bulk Creation Details',
+    numberOfSessions: 'Number of Sessions',
+    multipleSessionWarning: 'Multiple Session Warning',
+    willCreateSessions: 'Will create {count} sessions',
+    repeatsEvery: 'Repeats every',
+    checkForConflicts: 'Please check for schedule conflicts',
+    bulkCreateComingSoon: 'Bulk creation coming soon',
+    bulkCreateDescription: 'This feature will help you create multiple schedules easily',
+    selectSchedule: 'Select Schedule',
+    sessionNotes: 'Session Notes',
+    createSessions: 'Create Sessions',
 
     // Profile
     personalInfo: 'Personal Information',
