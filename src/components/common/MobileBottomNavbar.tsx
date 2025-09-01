@@ -151,9 +151,8 @@ const MobileBottomNavbar: React.FC<MobileBottomNavbarProps> = ({
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ 
-                type: 'spring', 
-                damping: 25, 
-                stiffness: 200,
+                type: 'tween', // Changed to tween for smoother performance
+                ease: [0.4, 0, 0.2, 1], // Custom cubic-bezier for smooth animation
                 duration: 0.3
               }}
               className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl max-h-[80vh] overflow-hidden"

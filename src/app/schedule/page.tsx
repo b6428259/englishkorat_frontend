@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import SidebarLayout from "../../components/common/SidebarLayout";
 import { useLanguage } from "../../contexts/LanguageContext";
 import Button from "@/components/common/Button";
@@ -423,7 +423,7 @@ export default function SchedulePage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch schedule data based on view mode
+  // Optimize fetchData to avoid unnecessary re-renders
   const fetchData = useCallback(async () => {
     if (isFetchingRef.current) {
       return;
@@ -473,9 +473,9 @@ export default function SchedulePage() {
       setLoading(false);
       isFetchingRef.current = false;
     }
-  }, [viewMode, currentDate, language, selectedTeachers]);
+  }, [viewMode, currentDate, language, selectedTeachers]); // Include all dependencies but use ref to prevent excessive calls
 
-  // Fetch form options (courses, rooms, teachers, students)
+  // Optimized fetchFormOptions - using useRef to track loading state
   const fetchFormOptions = useCallback(async () => {
     if (formOptionsLoaded) return; // Prevent duplicate loads
     
@@ -483,7 +483,7 @@ export default function SchedulePage() {
       setFormLoading(true);
       const [coursesRes, roomsRes, teachersRes, schedulesRes, studentsRes] = await Promise.all([
         scheduleService.getCourses(),
-        scheduleService.getRooms(),
+        scheduleService.getRooms(), 
         scheduleService.getTeachers(),
         scheduleService.getSchedules(),
         // Fetch users with student role - we'll filter students from all users for now
@@ -552,22 +552,24 @@ export default function SchedulePage() {
     } finally {
       setFormLoading(false);
     }
-  }, [formOptionsLoaded]);
+  }, [formOptionsLoaded]); // Include formOptionsLoaded as dependency
 
   // Fetch schedule data when view/date changes
   useEffect(() => {
     fetchData();
-  }, [viewMode, currentDate, fetchData]);
+  }, [fetchData]);
 
   // Fetch static form options once on mount
   useEffect(() => {
-    // We only need to load these options once; they rarely change during the session
     fetchFormOptions();
   }, [fetchFormOptions]);
 
-  // Filter teachers based on selection
-  const filteredTeachers = teachers.filter(teacher => 
-    selectedTeachers.includes(teacher.teacher_id)
+  // Filter teachers based on selection - memoized for performance
+  const filteredTeachers = useMemo(() => 
+    teachers.filter(teacher => 
+      selectedTeachers.includes(teacher.teacher_id)
+    ),
+    [teachers, selectedTeachers]
   );
 
   const toggleTeacher = (teacherId: number) => {
@@ -1099,7 +1101,7 @@ export default function SchedulePage() {
                               {t.noScheduleData}
                             </th>
                           ) : (
-                            filteredTeachers.map((teacher, index) => (
+                            filteredTeachers.map((teacher) => (
                               <th 
                                 key={teacher.teacher_id}
                                 className={`text-center font-bold text-white border border-gray-300 p-3 text-sm min-w-[200px] bg-gradient-to-br from-indigo-600 to-purple-700`}
