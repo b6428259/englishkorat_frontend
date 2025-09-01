@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import ActionModal from '@/components/common/ActionModal';
 import FormSection from '@/components/common/forms/FormSection';
 import FieldGroup from '@/components/common/forms/FieldGroup';
@@ -10,16 +10,21 @@ import ModernInput from '@/components/common/forms/ModernInput';
 import StatusMessage from '@/components/common/forms/StatusMessage';
 import { DateInput } from '@/components/forms/DateInput';
 import StudentSelect from '@/components/common/StudentSelect';
-import { TimeSlotSelector } from '@/components/forms/TimeSlotSelector';
+import { ModernTimeSlotSelector } from '@/components/forms/ModernTimeSlotSelector';
 import { 
   HiCalendarDays, 
   HiClock,
   HiUserGroup,
   HiAcademicCap,
   HiTag,
-  HiDocumentText
+  HiDocumentText,
+  HiSparkles,
+  HiCheckCircle,
+  HiInformationCircle
 } from 'react-icons/hi2';
+import { useLanguage } from '@/contexts/LanguageContext';
 
+// Enhanced interfaces
 interface ScheduleTimeSlot {
   day_of_week: string;
   start_time: string;
@@ -58,8 +63,6 @@ interface Student {
   email: string;
 }
 
-import { useLanguage } from '@/contexts/LanguageContext';
-
 interface ModernSessionsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -91,8 +94,8 @@ export function ModernSessionsModal({
   updateForm: externalUpdate
 }: ModernSessionsModalProps) {
   const { language } = useLanguage();
-
-  // Internal form state - use external if provided
+  
+  // Internal form state
   const [internalForm, setInternalForm] = useState<CreateSessionsForm>({
     schedule_id: selectedScheduleId || '',
     course_id: '',
@@ -107,6 +110,7 @@ export function ModernSessionsModal({
   });
 
   const sessionForm = externalForm || internalForm;
+  
   const updateForm = useCallback((updates: Partial<CreateSessionsForm>) => {
     if (externalUpdate) {
       externalUpdate(updates);
@@ -115,13 +119,57 @@ export function ModernSessionsModal({
     }
   }, [externalUpdate]);
 
-  // Memoized options
+  // Enhanced validation with real-time feedback
+  const validation = useMemo(() => {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    const suggestions: string[] = [];
+
+    // Basic validation
+    if (!sessionForm.course_id) errors.push(language === 'th' ? 'กรุณาเลือกคอร์ส' : 'Please select a course');
+    if (!sessionForm.teacher_id) errors.push(language === 'th' ? 'กรุณาเลือกครู' : 'Please select a teacher');
+    if (!sessionForm.start_date) errors.push(language === 'th' ? 'กรุณาเลือกวันที่เริ่ม' : 'Please select start date');
+    if (!sessionForm.end_date) errors.push(language === 'th' ? 'กรุณาเลือกวันที่สิ้นสุด' : 'Please select end date');
+    if (sessionForm.session_count < 1) errors.push(language === 'th' ? 'จำนวนเซสชันต้องมากกว่า 0' : 'Session count must be greater than 0');
+    if (sessionForm.time_slots.length === 0) errors.push(language === 'th' ? 'กรุณาเพิ่มช่วงเวลา' : 'Please add time slots');
+    
+    // Advanced validation
+    if (sessionForm.start_date && sessionForm.end_date && sessionForm.start_date > sessionForm.end_date) {
+      errors.push(language === 'th' ? 'วันที่เริ่มต้นต้องมาก่อนวันที่สิ้นสุด' : 'Start date must be before end date');
+    }
+
+    // Warnings
+    if (sessionForm.student_ids.length === 0) {
+      warnings.push(language === 'th' ? 'ยังไม่มีนักเรียน' : 'No students selected');
+    }
+    
+    if (sessionForm.time_slots.some(slot => !slot.day_of_week || !slot.start_time || !slot.end_time)) {
+      warnings.push(language === 'th' ? 'มีช่วงเวลาที่ไม่สมบูรณ์' : 'Some time slots are incomplete');
+    }
+
+    // Suggestions
+    if (sessionForm.session_count > 20) {
+      suggestions.push(language === 'th' ? 'คอร์สนี้มีหลายเซสชัน แนะนำให้แบ่งออกเป็นหลายคอร์ส' : 'Consider splitting into multiple courses for better management');
+    }
+
+    return {
+      errors,
+      warnings,
+      suggestions,
+      isValid: errors.length === 0,
+      hasWarnings: warnings.length > 0,
+      hasSuggestions: suggestions.length > 0
+    };
+  }, [sessionForm, language]);
+
+  // Memoized options with enhanced formatting
   const courseOptions = useMemo(() => 
     courses.map(course => ({
       value: course.id,
       label: course.name,
       description: `${course.level} • ${course.duration_hours}h`,
-      icon: <HiAcademicCap />
+      icon: <HiAcademicCap className="text-blue-500" />,
+      badge: course.level
     }))
   , [courses]);
 
@@ -130,63 +178,35 @@ export function ModernSessionsModal({
       value: teacher.id,
       label: teacher.name,
       description: teacher.email,
-      icon: <HiUserGroup />
+      icon: <HiUserGroup className="text-green-500" />
     }))
   , [teachers]);
 
   const levelOptions = useMemo(() => [
     { 
       value: 'beginner', 
-      label: 'Beginner',
-      description: 'Basic level',
-      icon: <HiTag />
+      label: language === 'th' ? 'เริ่มต้น' : 'Beginner',
+      description: language === 'th' ? 'สำหรับผู้เริ่มต้น' : 'For beginners',
+      icon: <HiTag className="text-green-500" />,
+      color: 'green'
     },
     { 
       value: 'intermediate', 
-      label: 'Intermediate',
-      description: 'Medium level',
-      icon: <HiTag />
+      label: language === 'th' ? 'ปานกลาง' : 'Intermediate',
+      description: language === 'th' ? 'สำหรับผู้มีพื้นฐาน' : 'For intermediate learners',
+      icon: <HiTag className="text-yellow-500" />,
+      color: 'yellow'
     },
     { 
       value: 'advanced', 
-      label: 'Advanced',
-      description: 'High level',
-      icon: <HiTag />
+      label: language === 'th' ? 'ขั้นสูง' : 'Advanced',
+      description: language === 'th' ? 'สำหรับผู้มีประสบการณ์' : 'For advanced learners',
+      icon: <HiTag className="text-purple-500" />,
+      color: 'purple'
     }
-  ], []);
-
-  // Validation
-  const validationErrors = useMemo(() => {
-    const errors: string[] = [];
-    
-    if (!sessionForm.course_id) errors.push('Course is required');
-    if (!sessionForm.teacher_id) errors.push('Teacher is required');
-    if (!sessionForm.start_date) errors.push('Start date is required');
-    if (!sessionForm.end_date) errors.push('End date is required');
-    if (sessionForm.time_slots.length === 0) errors.push('Time slots are required');
-    if (sessionForm.session_count < 1) errors.push('Session count must be at least 1');
-    if (sessionForm.student_ids.length === 0) errors.push('Students are required');
-    
-    // Date validation
-    if (sessionForm.start_date && sessionForm.end_date) {
-      const start = new Date(sessionForm.start_date);
-      const end = new Date(sessionForm.end_date);
-      if (start >= end) {
-        errors.push('End date must be after start date');
-      }
-    }
-    
-    return errors;
-  }, [sessionForm]);
-
-  const isFormValid = validationErrors.length === 0;
+  ], [language]);
 
   // Handlers
-  const handleConfirm = useCallback(async () => {
-    if (!isFormValid) return;
-    await onConfirm(sessionForm);
-  }, [isFormValid, onConfirm, sessionForm]);
-
   const handleClose = useCallback(() => {
     if (!externalForm) {
       setInternalForm({
@@ -205,128 +225,264 @@ export function ModernSessionsModal({
     onClose();
   }, [externalForm, selectedScheduleId, onClose]);
 
+  const handleConfirm = useCallback(async () => {
+    if (!validation.isValid) return;
+    
+    try {
+      await onConfirm(sessionForm);
+    } catch (err) {
+      console.error('Error creating sessions:', err);
+    }
+  }, [validation.isValid, onConfirm, sessionForm]);
+
   return (
     <ActionModal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Create Sessions"
-      size="xl"
+      title={language === 'th' ? 'สร้างเซสชันใหม่' : 'Create New Sessions'}
+      subtitle={language === 'th' ? 'กำหนดรายละเอียดเซสชันการเรียน' : 'Configure your learning sessions'}
+      size="2xl"
+      primaryAction={{
+        label: isLoading 
+          ? (language === 'th' ? 'กำลังสร้าง...' : 'Creating...') 
+          : (language === 'th' ? 'สร้างเซสชัน' : 'Create Sessions'),
+        onClick: handleConfirm,
+        loading: isLoading,
+        disabled: !validation.isValid,
+        variant: 'primary',
+        icon: <HiCheckCircle />
+      }}
+      secondaryAction={{
+        label: language === 'th' ? 'ยกเลิก' : 'Cancel',
+        onClick: handleClose,
+        variant: 'ghost'
+      }}
+      error={error}
     >
-      <div className="space-y-6">
-        {/* Schedule Info */}
+      <div className="space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+        {/* Modern Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-2xl border border-indigo-200 dark:border-indigo-700"
+        >
+          <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl">
+            <HiSparkles className="w-8 h-8 text-white" />
+          </div>
+          <div className="flex-grow">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              {language === 'th' ? '✨ สร้างเซสชันการเรียน' : '✨ Create Learning Sessions'}
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {language === 'th' ? 'จัดการเซสชันการเรียนอย่างมืออาชีพ' : 'Manage professional learning sessions'}
+            </p>
+          </div>
+        </motion.div>
+        {/* Schedule Info Banner */}
         {scheduleName && (
-          <FormSection
-            title="Schedule Information"
-            icon={<HiCalendarDays />}
-            color="blue"
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 p-1"
           >
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                {scheduleName}
-              </p>
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <HiCalendarDays className="w-8 h-8 text-blue-500" />
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {language === 'th' ? 'สร้างเซสชันสำหรับ' : 'Creating sessions for'}
+                  </p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                    {scheduleName}
+                  </p>
+                </div>
+              </div>
             </div>
-          </FormSection>
+          </motion.div>
         )}
+
+        {/* Validation Status */}
+        <AnimatePresence>
+          {(validation.errors.length > 0 || validation.warnings.length > 0 || validation.suggestions.length > 0) && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="space-y-3"
+            >
+              {validation.errors.length > 0 && (
+                <StatusMessage
+                  type="error"
+                  message={language === 'th' ? 'กรุณาแก้ไขข้อมูลต่อไปนี้:' : 'Please fix the following:'}
+                  details={validation.errors}
+                />
+              )}
+              
+              {validation.warnings.length > 0 && (
+                <StatusMessage
+                  type="warning"
+                  message={language === 'th' ? 'คำเตือน:' : 'Warnings:'}
+                  details={validation.warnings}
+                />
+              )}
+              
+              {validation.suggestions.length > 0 && (
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-700">
+                  <div className="flex items-start gap-3">
+                    <HiInformationCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
+                        {language === 'th' ? 'คำแนะนำ:' : 'Suggestions:'}
+                      </h4>
+                      <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                        {validation.suggestions.map((suggestion, index) => (
+                          <li key={index}>• {suggestion}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Course & Teacher Selection */}
         <FormSection
-          title="Course and Teacher"
+          title={language === 'th' ? 'คอร์สและครู' : 'Course and Teacher'}
           icon={<HiAcademicCap />}
           color="green"
         >
           <FieldGroup columns={2}>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Course *
+                {language === 'th' ? 'คอร์ส *' : 'Course *'}
               </label>
               <EnhancedSelect
                 options={courseOptions}
                 value={sessionForm.course_id}
                 onChange={(value) => updateForm({ course_id: value as string })}
-                placeholder="Select Course"
+                placeholder={language === 'th' ? 'เลือกคอร์ส' : 'Select Course'}
                 searchable
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Teacher *
+                {language === 'th' ? 'ครู *' : 'Teacher *'}
               </label>
               <EnhancedSelect
                 options={teacherOptions}
                 value={sessionForm.teacher_id}
                 onChange={(value) => updateForm({ teacher_id: value as string })}
-                placeholder="Select Teacher"
+                placeholder={language === 'th' ? 'เลือกครู' : 'Select Teacher'}
                 searchable
               />
             </div>
           </FieldGroup>
         </FormSection>
 
-        {/* Students & Level */}
+        {/* Level Selection */}
         <FormSection
-          title="Students and Level"
-          icon={<HiUserGroup />}
+          title={language === 'th' ? 'ระดับการเรียน' : 'Learning Level'}
+          icon={<HiTag />}
           color="purple"
         >
-          <FieldGroup columns={2}>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Students *
-              </label>
-              <StudentSelect
-                students={students}
-                selectedIds={sessionForm.student_ids}
-                onChange={(ids) => updateForm({ student_ids: ids })}
-                placeholder="Select Students"
-                maxHeight="200px"
-              />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              {language === 'th' ? 'เลือกระดับ *' : 'Select Level *'}
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {levelOptions.map((option) => (
+                <motion.button
+                  key={option.value}
+                  type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => updateForm({ level: option.value as 'beginner' | 'intermediate' | 'advanced' })}
+                  className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left ${
+                    sessionForm.level === option.value
+                      ? `border-${option.color}-500 bg-${option.color}-50 dark:bg-${option.color}-900/20`
+                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    {option.icon}
+                    <div>
+                      <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+                        {option.label}
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {option.description}
+                      </p>
+                    </div>
+                    {sessionForm.level === option.value && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute top-2 right-2"
+                      >
+                        <HiCheckCircle className={`w-6 h-6 text-${option.color}-500`} />
+                      </motion.div>
+                    )}
+                  </div>
+                </motion.button>
+              ))}
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Level *
-              </label>
-              <EnhancedSelect
-                options={levelOptions}
-                value={sessionForm.level}
-                onChange={(value) => updateForm({ level: value as 'beginner' | 'intermediate' | 'advanced' })}
-                placeholder="Select Level"
-              />
-            </div>
-          </FieldGroup>
+          </div>
         </FormSection>
 
-        {/* Dates & Sessions */}
+        {/* Students */}
         <FormSection
-          title="Dates and Sessions"
+          title={language === 'th' ? 'นักเรียน' : 'Students'}
+          icon={<HiUserGroup />}
+          color="blue"
+        >
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {language === 'th' ? 'เลือกนักเรียน' : 'Select Students'}
+            </label>
+            <StudentSelect
+              students={students}
+              selectedIds={sessionForm.student_ids}
+              onChange={(selectedIds) => updateForm({ student_ids: selectedIds })}
+              className="w-full"
+            />
+          </div>
+        </FormSection>
+
+        {/* Date & Session Configuration */}
+        <FormSection
+          title={language === 'th' ? 'วันที่และจำนวนเซสชัน' : 'Dates and Session Count'}
           icon={<HiCalendarDays />}
-          color="orange"
+          color="blue"
         >
           <FieldGroup columns={3}>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Start Date *
+                {language === 'th' ? 'วันที่เริ่ม *' : 'Start Date *'}
               </label>
               <DateInput
                 value={sessionForm.start_date}
                 onChange={(e) => updateForm({ start_date: e.target.value })}
+                min={new Date().toISOString().split('T')[0]}
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                End Date *
+                {language === 'th' ? 'วันที่สิ้นสุด *' : 'End Date *'}
               </label>
               <DateInput
                 value={sessionForm.end_date}
                 onChange={(e) => updateForm({ end_date: e.target.value })}
+                min={sessionForm.start_date || new Date().toISOString().split('T')[0]}
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Session Count *
+                {language === 'th' ? 'จำนวนเซสชัน *' : 'Session Count *'}
               </label>
               <ModernInput
                 type="number"
@@ -340,27 +496,28 @@ export function ModernSessionsModal({
           </FieldGroup>
         </FormSection>
 
-        {/* Time Slots */}
+        {/* Time Slots - Using new modern component */}
         <FormSection
-          title="Time Slots"
+          title={language === 'th' ? 'ช่วงเวลา' : 'Time Slots'}
           icon={<HiClock />}
           color="red"
         >
-          <TimeSlotSelector
+          <ModernTimeSlotSelector
             value={sessionForm.time_slots}
             onChange={(slots) => updateForm({ time_slots: slots as ScheduleTimeSlot[] })}
             title=""
             format="schedule"
-            variant="compact"
+            variant="mobile" // Use the new mobile-optimized variant
             language={language}
             maxSlots={sessionForm.session_count}
             showBulkSelection={true}
+            className="w-full"
           />
         </FormSection>
 
         {/* Notes */}
         <FormSection
-          title="Notes"
+          title={language === 'th' ? 'หมายเหตุ' : 'Notes'}
           icon={<HiDocumentText />}
           color="gray"
         >
@@ -368,53 +525,37 @@ export function ModernSessionsModal({
             type="textarea"
             value={sessionForm.notes}
             onChange={(e) => updateForm({ notes: e.target.value })}
-            placeholder="Add any additional notes..."
+            placeholder={language === 'th' ? 'เพิ่มหมายเหตุเพิ่มเติม...' : 'Add any additional notes...'}
             leftIcon={<HiDocumentText />}
           />
         </FormSection>
 
-        {/* Status Messages */}
-        {error && (
-          <StatusMessage
-            type="error"
-            message={error}
-          />
-        )}
-
-        {validationErrors.length > 0 && (
-          <StatusMessage
-            type="warning"
-            message="Please fix the following errors:"
-            details={validationErrors}
-          />
-        )}
-
-        {isFormValid && (
-          <StatusMessage
-            type="success"
-            message="Form is ready to submit"
-          />
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex justify-end space-x-3 pt-4">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        {/* Success State */}
+        {validation.isValid && !validation.hasWarnings && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-700"
           >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={!isFormValid || isLoading}
-            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? 'Creating...' : 'Create Sessions'}
-          </button>
-        </div>
+            <div className="flex items-center gap-3">
+              <HiCheckCircle className="w-6 h-6 text-green-500" />
+              <div>
+                <h4 className="text-sm font-semibold text-green-900 dark:text-green-100">
+                  {language === 'th' ? 'พร้อมสร้างเซสชัน!' : 'Ready to Create Sessions!'}
+                </h4>
+                <p className="text-sm text-green-700 dark:text-green-300">
+                  {language === 'th' 
+                    ? `จะสร้าง ${sessionForm.session_count} เซสชันสำหรับ ${sessionForm.time_slots.length} ช่วงเวลา`
+                    : `Will create ${sessionForm.session_count} sessions across ${sessionForm.time_slots.length} time slots`
+                  }
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
       </div>
     </ActionModal>
   );
 }
+
+export default ModernSessionsModal;
