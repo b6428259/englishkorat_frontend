@@ -36,11 +36,12 @@ export default function Modal({
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
       
-      // Faster animation start
-      const timer = setTimeout(() => setIsAnimating(true), 1);
+      // Use requestAnimationFrame for smoother animation start
+      requestAnimationFrame(() => {
+        setIsAnimating(true);
+      });
       
       return () => {
-        clearTimeout(timer);
         // Restore scroll when modal closes
         document.body.style.overflow = originalStyle;
         document.documentElement.style.overflow = '';
@@ -50,8 +51,8 @@ export default function Modal({
       // Allow scroll to restore
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
-      // Faster animation end
-      const timer = setTimeout(() => setShouldRender(false), 150);
+      // Use shorter timeout for faster exit animation
+      const timer = setTimeout(() => setShouldRender(false), 200);
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
@@ -87,9 +88,9 @@ export default function Modal({
 
   return (
     <div className={`fixed inset-0 z-50 overflow-y-auto ${className}`}>
-      {/* Backdrop with faster blur */}
+      {/* Backdrop with optimized blur for better performance */}
       <div 
-        className={`fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-all duration-150 ${
+        className={`fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-all duration-200 ease-out ${
           isAnimating ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={onClose}
@@ -98,10 +99,10 @@ export default function Modal({
       {/* Modal Container */}
       <div className="flex min-h-full items-center justify-center p-4 md:p-6">
         <div 
-          className={`relative w-full ${sizeClasses[size]} transform transition-all duration-150 ${
+          className={`relative w-full ${sizeClasses[size]} transform transition-all duration-200 ease-out ${
             isAnimating 
               ? 'scale-100 opacity-100 translate-y-0' 
-              : 'scale-95 opacity-0 translate-y-2'
+              : 'scale-96 opacity-0 translate-y-4'
           }`}
           onClick={(e) => e.stopPropagation()}
         >

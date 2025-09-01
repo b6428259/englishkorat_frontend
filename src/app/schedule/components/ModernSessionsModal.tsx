@@ -260,13 +260,18 @@ export function ModernSessionsModal({
       error={error}
     >
       <div className="space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
-        {/* Modern Header */}
+        {/* Modern Header - Optimized animation */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-2xl border border-indigo-200 dark:border-indigo-700"
+          transition={{ 
+            duration: 0.3, 
+            ease: [0.4, 0, 0.2, 1], // Custom bezier for smoother animation
+            type: "tween" 
+          }}
+          className="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-2xl border border-purple-200/60 dark:border-purple-700/60"
         >
-          <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl">
+          <div className="p-3 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl shadow-lg">
             <HiSparkles className="w-8 h-8 text-white" />
           </div>
           <div className="flex-grow">
@@ -278,11 +283,17 @@ export function ModernSessionsModal({
             </p>
           </div>
         </motion.div>
-        {/* Schedule Info Banner */}
+        {/* Schedule Info Banner - Optimized */}
         {scheduleName && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ 
+              duration: 0.3, 
+              delay: 0.1,
+              ease: "easeOut",
+              type: "tween"
+            }}
             className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 p-1"
           >
             <div className="bg-white dark:bg-gray-900 rounded-xl p-4">
@@ -301,13 +312,18 @@ export function ModernSessionsModal({
           </motion.div>
         )}
 
-        {/* Validation Status */}
+        {/* Validation Status - Optimized animations */}
         <AnimatePresence>
           {(validation.errors.length > 0 || validation.warnings.length > 0 || validation.suggestions.length > 0) && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
+              transition={{ 
+                duration: 0.25, 
+                ease: "easeOut",
+                layout: { duration: 0.2 }
+              }}
               className="space-y-3"
             >
               {validation.errors.length > 0 && (
@@ -397,13 +413,18 @@ export function ModernSessionsModal({
                 <motion.button
                   key={option.value}
                   type="button"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  transition={{ 
+                    type: "tween",
+                    duration: 0.15,
+                    ease: "easeOut"
+                  }}
                   onClick={() => updateForm({ level: option.value as 'beginner' | 'intermediate' | 'advanced' })}
-                  className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left ${
+                  className={`relative p-4 rounded-xl border-2 transition-all duration-200 ease-out text-left ${
                     sessionForm.level === option.value
                       ? `border-${option.color}-500 bg-${option.color}-50 dark:bg-${option.color}-900/20`
-                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300'
+                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750'
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -530,12 +551,17 @@ export function ModernSessionsModal({
           />
         </FormSection>
 
-        {/* Success State */}
+        {/* Success State - Optimized animation */}
         {validation.isValid && !validation.hasWarnings && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-700"
+            transition={{ 
+              duration: 0.3, 
+              ease: "easeOut",
+              type: "tween"
+            }}
+            className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200/60 dark:border-emerald-700/60 shadow-sm"
           >
             <div className="flex items-center gap-3">
               <HiCheckCircle className="w-6 h-6 text-green-500" />

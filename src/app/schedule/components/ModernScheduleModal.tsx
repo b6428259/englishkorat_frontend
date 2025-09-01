@@ -234,13 +234,18 @@ export default function ModernScheduleModalV2({
       error={error}
     >
       <div className="space-y-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
-        {/* Modern Header */}
+        {/* Modern Header - Optimized animation */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl border border-blue-200 dark:border-blue-700"
+          transition={{ 
+            duration: 0.3, 
+            ease: [0.4, 0, 0.2, 1], // Custom bezier for smoother animation
+            type: "tween" 
+          }}
+          className="flex items-center gap-4 p-4 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-2xl border border-indigo-200/60 dark:border-indigo-700/60"
         >
-          <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl">
+          <div className="p-3 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-xl shadow-lg">
             <HiSparkles className="w-8 h-8 text-white" />
           </div>
           <div className="flex-grow">
@@ -252,13 +257,18 @@ export default function ModernScheduleModalV2({
             </p>
           </div>
         </motion.div>
-        {/* Validation Messages */}
+        {/* Validation Messages - Optimized animations */}
         <AnimatePresence>
           {(validation.errors.length > 0 || validation.warnings.length > 0 || validation.suggestions.length > 0) && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
+              transition={{ 
+                duration: 0.25, 
+                ease: "easeOut",
+                layout: { duration: 0.2 }
+              }}
               className="space-y-3"
             >
               {validation.errors.length > 0 && (
@@ -508,12 +518,17 @@ export default function ModernScheduleModalV2({
           </div>
         </FormSection>
 
-        {/* Success State */}
+        {/* Success State - Optimized animation */}
         {validation.isValid && !validation.hasWarnings && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl border border-green-200 dark:border-green-700"
+            transition={{ 
+              duration: 0.3, 
+              ease: "easeOut",
+              type: "tween"
+            }}
+            className="p-6 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-2xl border border-emerald-200/60 dark:border-emerald-700/60 shadow-sm"
           >
             <div className="flex items-center gap-4">
               <div className="flex-shrink-0">
