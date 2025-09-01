@@ -19,21 +19,23 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
     value,
     placeholder,
     disabled
-  }) => {
+  }, ref) => {
     const handleDateChange = (dateStr: string) => {
       onChange?.({ target: { value: dateStr } });
     };
 
     return (
-      <Calendar
-        value={value as string}
-        onChange={handleDateChange}
-        error={error}
-        disabled={disabled}
-        language={language}
-        placeholder={placeholder || (language === 'th' ? 'เลือกวันที่' : 'Select Date')}
-        className={className}
-      />
+      <div ref={ref}>
+        <Calendar
+          value={value as string}
+          onChange={handleDateChange}
+          error={error}
+          disabled={disabled}
+          language={language}
+          placeholder={placeholder || (language === 'th' ? 'เลือกวันที่' : 'Select Date')}
+          className={className}
+        />
+      </div>
     );
   }
 );

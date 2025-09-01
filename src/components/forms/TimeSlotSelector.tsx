@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react";
-import { HiCalendarDays, HiClock, HiPlus, HiXMark, HiCheck } from 'react-icons/hi2';
+import { HiCalendarDays, HiClock, HiPlus, HiXMark, HiCheck, HiExclamationTriangle } from 'react-icons/hi2';
 import { Select } from '../forms';
 
 // Legacy interface for backward compatibility
@@ -160,8 +160,9 @@ export const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
     { value: 'sunday', label: 'Sunday', shortLabel: 'Sun' }
   ];
 
-  const timeOptions = Array.from({ length: 24 * 2 }, (_, i) => {
-    const hour = Math.floor(i / 2);
+  // Generate time options from 8:00 to 22:00 (8 AM to 10 PM)
+  const timeOptions = Array.from({ length: (22 - 8) * 2 + 1 }, (_, i) => {
+    const hour = 8 + Math.floor(i / 2);
     const minute = (i % 2) * 30;
     const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
     return { value: time, label: time };
@@ -454,17 +455,18 @@ export const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
 
           {/* Bulk Selection Mode */}
           {bulkMode && showBulkSelection && (
-            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
-              <h4 className="font-medium text-gray-800 mb-4">
+            <div className="p-6 bg-gradient-to-br from-indigo-50 via-purple-50 to-indigo-50 border border-indigo-200 rounded-2xl shadow-lg backdrop-blur-sm">
+              <h4 className="font-semibold text-gray-800 mb-6 flex items-center">
+                <HiCalendarDays className="w-5 h-5 mr-2 text-indigo-600" />
                 {language === 'th' ? 'เลือกหลายวันพร้อมกัน' : 'Bulk Day Selection'}
               </h4>
 
               {/* Quick Select Buttons */}
-              <div className="flex flex-wrap gap-2 mb-4">
+              <div className="flex flex-wrap gap-3 mb-6">
                 <button
                   type="button"
                   onClick={selectAllDays}
-                  className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors duration-200"
+                  className="px-4 py-2 text-sm bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 rounded-xl hover:from-indigo-200 hover:to-purple-200 transition-all duration-300 shadow-sm hover:shadow-md transform hover:scale-105"
                 >
                   {bulkSlot.days.length === daysOfWeek.length ? 
                     (language === 'th' ? 'ยกเลิกทั้งหมด' : 'Deselect All') :
@@ -474,188 +476,218 @@ export const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
                 <button
                   type="button"
                   onClick={selectWeekdays}
-                  className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors duration-200"
+                  className="px-4 py-2 text-sm bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-700 rounded-xl hover:from-emerald-200 hover:to-teal-200 transition-all duration-300 shadow-sm hover:shadow-md transform hover:scale-105"
                 >
                   {language === 'th' ? 'วันจันทร์-ศุกร์' : 'Weekdays'}
                 </button>
                 <button
                   type="button"
                   onClick={selectWeekends}
-                  className="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors duration-200"
+                  className="px-4 py-2 text-sm bg-gradient-to-r from-rose-100 to-pink-100 text-rose-700 rounded-xl hover:from-rose-200 hover:to-pink-200 transition-all duration-300 shadow-sm hover:shadow-md transform hover:scale-105"
                 >
                   {language === 'th' ? 'วันเสาร์-อาทิตย์' : 'Weekends'}
                 </button>
               </div>
 
               {/* Day Selection Grid */}
-              <div className="grid grid-cols-7 gap-2 mb-4">
+              <div className="grid grid-cols-7 gap-3 mb-6">
                 {daysOfWeek.map((day) => (
                   <button
                     key={day.value}
                     type="button"
                     onClick={() => toggleBulkDay(day.value)}
                     className={`
-                      p-3 rounded-lg font-medium transition-all duration-200 text-sm
+                      p-4 rounded-2xl font-medium transition-all duration-300 text-sm shadow-sm hover:shadow-lg
                       ${bulkSlot.days.includes(day.value)
-                        ? 'bg-blue-500 text-white shadow-md transform scale-105'
-                        : 'bg-white border border-gray-200 text-gray-600 hover:border-blue-300 hover:bg-blue-50'
+                        ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg transform scale-105 border-2 border-indigo-300'
+                        : 'bg-white border-2 border-gray-200 text-gray-600 hover:border-indigo-300 hover:bg-gradient-to-br hover:from-indigo-50 hover:to-purple-50 hover:scale-105'
                       }
                     `}
                   >
-                    <div className="text-xs mb-1">{day.shortLabel}</div>
-                    <div className="text-xs opacity-80">{day.label}</div>
+                    <div className="text-xs mb-2 font-semibold tracking-wide">{day.shortLabel}</div>
+                    <div className="text-xs opacity-90 leading-tight">{day.label}</div>
                     {bulkSlot.days.includes(day.value) && (
-                      <HiCheck className="w-4 h-4 mx-auto mt-1" />
+                      <HiCheck className="w-4 h-4 mx-auto mt-2 animate-pulse" />
                     )}
                   </button>
                 ))}
               </div>
 
               {/* Time Selection */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                    <HiClock className="w-4 h-4 mr-2 text-indigo-600" />
                     {language === 'th' ? 'เวลาเริ่ม' : 'Start Time'}
                   </label>
                   <Select
                     options={[{ value: '', label: language === 'th' ? 'เลือกเวลาเริ่ม' : 'Select Start Time', disabled: true }, ...timeOptions]}
                     value={bulkSlot.timeFrom}
                     onChange={(e) => setBulkSlot(prev => ({ ...prev, timeFrom: e.target.value }))}
-                    className="w-full"
+                    className="w-full rounded-xl border-2 border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all duration-300"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                    <HiClock className="w-4 h-4 mr-2 text-indigo-600" />
                     {language === 'th' ? 'เวลาสิ้นสุด' : 'End Time'}
                   </label>
                   <Select
                     options={[{ value: '', label: language === 'th' ? 'เลือกเวลาสิ้นสุด' : 'Select End Time', disabled: true }, ...timeOptions.filter(time => !bulkSlot.timeFrom || time.value > bulkSlot.timeFrom)]}
                     value={bulkSlot.timeTo}
                     onChange={(e) => setBulkSlot(prev => ({ ...prev, timeTo: e.target.value }))}
-                    className="w-full"
+                    className="w-full rounded-xl border-2 border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all duration-300"
                   />
                 </div>
               </div>
 
               {/* Apply Bulk Selection */}
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center bg-white/50 backdrop-blur-sm rounded-xl p-4 border border-indigo-200">
                 <div className="text-sm text-gray-600">
                   {bulkSlot.days.length > 0 && bulkSlot.timeFrom && bulkSlot.timeTo ? (
-                    <span className="text-green-600">
+                    <span className="text-emerald-600 font-medium flex items-center">
+                      <HiCheck className="w-4 h-4 mr-1" />
                       {language === 'th' 
                         ? `จะเพิ่ม ${bulkSlot.days.length} ช่วงเวลา`
                         : `Will add ${bulkSlot.days.length} time slots`
                       }
                     </span>
-                  ) : (
-                    <span className="text-amber-600">
-                      {language === 'th' ? 'กรุณาเลือกวันและเวลา' : 'Please select days and times'}
-                    </span>
-                  )}
-                </div>
-                
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBulkMode(false);
-                      setBulkSlot({ days: [], timeFrom: '', timeTo: '' });
-                    }}
-                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                  >
-                    {language === 'th' ? 'ยกเลิก' : 'Cancel'}
-                  </button>
+                    ) : (
+                      <span className="text-amber-600 font-medium flex items-center">
+                        <HiExclamationTriangle className="w-4 h-4 mr-1" />
+                        {language === 'th' ? 'กรุณาเลือกวันและเวลา' : 'Please select days and times'}
+                      </span>
+                    )}
+                  </div>
                   
-                  <button
-                    type="button"
-                    onClick={addBulkTimeSlots}
-                    disabled={!bulkSlot.days.length || !bulkSlot.timeFrom || !bulkSlot.timeTo}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                  >
-                    {language === 'th' ? 'เพิ่มช่วงเวลาทั้งหมด' : 'Add All Slots'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Existing Time Slots */}
-          {value.map((slot, index) => {
-            const slotId = getSlotId(slot, index);
-            const day = getSlotDay(slot);
-            const timeFrom = getSlotStartTime(slot);
-            const timeTo = getSlotEndTime(slot);
-            
-            return (
-              <div key={slotId} className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-medium text-gray-800">
-                    {language === 'th' ? `ช่วงเวลาที่ ${index + 1}` : `Time Slot ${index + 1}`}
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={() => removeTimeSlot(slot, index)}
-                    className="p-1 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-full transition-colors duration-200"
-                  >
-                    <HiXMark className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Day Selection */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {language === 'th' ? 'วัน' : 'Day'}
-                    </label>
-                    <Select
-                      options={[{ value: '', label: language === 'th' ? 'เลือกวัน' : 'Select Day', disabled: true }, ...daysOfWeek.map(day => ({ value: day.value, label: day.label }))]}
-                      value={day}
-                      onChange={(e) => updateTimeSlot(index, 'day', e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
-
-                  {/* Time From */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {language === 'th' ? 'เวลาเริ่ม' : 'From'}
-                    </label>
-                    <Select
-                      options={[{ value: '', label: language === 'th' ? 'เลือกเวลาเริ่ม' : 'Select Start Time', disabled: true }, ...timeOptions]}
-                      value={timeFrom}
-                      onChange={(e) => updateTimeSlot(index, 'timeFrom', e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
-
-                  {/* Time To */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {language === 'th' ? 'เวลาสิ้นสุด' : 'To'}
-                    </label>
-                    <Select
-                      options={[{ value: '', label: language === 'th' ? 'เลือกเวลาสิ้นสุด' : 'Select End Time', disabled: true }, ...timeOptions.filter(time => !timeFrom || time.value > timeFrom)]}
-                      value={timeTo}
-                      onChange={(e) => updateTimeSlot(index, 'timeTo', e.target.value)}
-                      className="w-full"
-                    />
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBulkMode(false);
+                        setBulkSlot({ days: [], timeFrom: '', timeTo: '' });
+                      }}
+                      className="px-4 py-2 text-gray-600 bg-white border-2 border-gray-200 hover:bg-gray-50 hover:border-gray-300 rounded-xl transition-all duration-300 font-medium"
+                    >
+                      {language === 'th' ? 'ยกเลิก' : 'Cancel'}
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={addBulkTimeSlots}
+                      disabled={!bulkSlot.days.length || !bulkSlot.timeFrom || !bulkSlot.timeTo}
+                      className={`
+                        px-6 py-2 rounded-xl font-semibold transition-all duration-300 shadow-md hover:shadow-lg
+                        ${!bulkSlot.days.length || !bulkSlot.timeFrom || !bulkSlot.timeTo
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 transform hover:scale-105'
+                        }
+                      `}
+                    >
+                      <HiCheck className="w-4 h-4 mr-2 inline-block" />
+                      {language === 'th' ? 'เพิ่มช่วงเวลาทั้งหมด' : 'Add All Slots'}
+                    </button>
                   </div>
                 </div>
               </div>
-            );
-          })}
+            )}
 
-          {value.length >= maxSlots && (
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-sm text-amber-700">
-                {language === 'th' 
-                  ? `สามารถเพิ่มได้สูงสุด ${maxSlots} ช่วงเวลา`
-                  : `Maximum ${maxSlots} time slots allowed`
-                }
-              </p>
+            {/* Existing Time Slots */}
+            <div className="space-y-4 max-h-80 overflow-y-auto custom-scrollbar">
+              {value.map((slot, index) => {
+                const slotId = getSlotId(slot, index);
+                const day = getSlotDay(slot);
+                const timeFrom = getSlotStartTime(slot);
+                const timeTo = getSlotEndTime(slot);
+                
+                return (
+                  <div key={slotId} className="group bg-gradient-to-r from-white via-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-2xl p-5 hover:shadow-lg hover:border-indigo-300 transition-all duration-300 backdrop-blur-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-semibold text-gray-800 flex items-center">
+                        <HiClock className="w-5 h-5 mr-2 text-indigo-600" />
+                        {language === 'th' ? `ช่วงเวลาที่ ${index + 1}` : `Time Slot ${index + 1}`}
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => removeTimeSlot(slot, index)}
+                        className="p-2 bg-gradient-to-r from-red-100 to-rose-100 text-red-600 hover:from-red-200 hover:to-rose-200 hover:text-red-700 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md group-hover:scale-105"
+                      >
+                        <HiXMark className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Day Selection */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                          <HiCalendarDays className="w-4 h-4 mr-2 text-indigo-600" />
+                          {language === 'th' ? 'วัน' : 'Day'}
+                        </label>
+                        <Select
+                          options={[{ value: '', label: language === 'th' ? 'เลือกวัน' : 'Select Day', disabled: true }, ...daysOfWeek.map(day => ({ value: day.value, label: day.label }))]}
+                          value={day}
+                          onChange={(e) => updateTimeSlot(index, 'day', e.target.value)}
+                          className="w-full rounded-xl border-2 border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all duration-300"
+                        />
+                      </div>
+
+                      {/* Time From */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                          <HiClock className="w-4 h-4 mr-2 text-indigo-600" />
+                          {language === 'th' ? 'เวลาเริ่ม' : 'From'}
+                        </label>
+                        <Select
+                          options={[{ value: '', label: language === 'th' ? 'เลือกเวลาเริ่ม' : 'Select Start Time', disabled: true }, ...timeOptions]}
+                          value={timeFrom}
+                          onChange={(e) => updateTimeSlot(index, 'timeFrom', e.target.value)}
+                          className="w-full rounded-xl border-2 border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all duration-300"
+                        />
+                      </div>
+
+                      {/* Time To */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                          <HiClock className="w-4 h-4 mr-2 text-indigo-600" />
+                          {language === 'th' ? 'เวลาสิ้นสุด' : 'To'}
+                        </label>
+                        <Select
+                          options={[{ value: '', label: language === 'th' ? 'เลือกเวลาสิ้นสุด' : 'Select End Time', disabled: true }, ...timeOptions.filter(time => !timeFrom || time.value > timeFrom)]}
+                          value={timeTo}
+                          onChange={(e) => updateTimeSlot(index, 'timeTo', e.target.value)}
+                          className="w-full rounded-xl border-2 border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all duration-300"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Add Time Slot Button */}
+              {value.length < maxSlots && (
+                <button
+                  type="button"
+                  onClick={addTimeSlot}
+                  className="w-full p-4 border-2 border-dashed border-indigo-300 rounded-2xl text-indigo-600 hover:bg-gradient-to-br hover:from-indigo-50 hover:to-purple-50 hover:border-indigo-400 transition-all duration-300 flex items-center justify-center font-semibold shadow-sm hover:shadow-md"
+                >
+                  <HiPlus className="w-5 h-5 mr-2" />
+                  {language === 'th' ? 'เพิ่มช่วงเวลา' : 'Add Time Slot'}
+                </button>
+              )}
+
+              {value.length >= maxSlots && (
+                <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl shadow-sm">
+                  <p className="text-sm text-amber-700 font-medium flex items-center">
+                    <HiExclamationTriangle className="w-4 h-4 mr-2" />
+                    {language === 'th' 
+                      ? `สามารถเพิ่มได้สูงสุด ${maxSlots} ช่วงเวลา`
+                      : `Maximum ${maxSlots} time slots allowed`
+                    }
+                  </p>
+                </div>
+              )}
             </div>
-          )}
         </div>
       )}
 

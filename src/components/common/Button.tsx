@@ -36,11 +36,12 @@ const Button = React.forwardRef<HTMLAnchorElement | HTMLButtonElement, ButtonPro
       secondary: "bg-[#EFE957] text-[#334293] hover:bg-[#EFD157]",
       outline: "border-2 border-[#334293] text-[#334293] hover:bg-white hover:text-[#334293]",
       link: "text-[#EFE957] hover:text-[#EFD157]",
-      monthViewClicked: "rounded-lg bg-[#334293] text-white",
+      // Selected states: black text for clearer contrast as requested
+      monthViewClicked: "rounded-lg bg-white text-black border-2 border-[#334293]",
       monthView: "rounded-lg bg-white text-[#334293]",
-      weekViewClicked: "rounded-lg bg-[#334293] text-white",
+      weekViewClicked: "rounded-lg bg-white text-black border-2 border-[#334293]",
       weekView: "rounded-lg bg-white text-[#334293]",
-      dayViewClicked: "rounded-lg bg-[#334293] text-white",
+      dayViewClicked: "rounded-lg bg-white text-black border-2 border-[#334293]",
       dayView: "rounded-lg bg-white text-[#334293]"
     };
 

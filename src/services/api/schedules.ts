@@ -159,12 +159,73 @@ export interface CreateScheduleRequest {
   notes?: string;
 }
 
+// Raw course response from API
+interface RawCourseResponse {
+  id: number;
+  name: string;
+  code: string;
+  course_type: string;
+  branch_id: number;
+  description: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  category_id: number;
+  duration_id: number | null;
+  level: string;
+  branch_name_en: string;
+  branch_name_th: string;
+  branch_code: string;
+}
+
+// Raw teacher response from API
+interface RawTeacherResponse {
+  id: number;
+  first_name: string;
+  last_name: string | null;
+  nickname: string | null;
+  email: string | null;
+  phone: string | null;
+}
+
+// Raw course response from API
+interface RawCourseResponse {
+  id: number;
+  name: string;
+  code: string;
+  course_type: string;
+  branch_id: number;
+  description: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  category_id: number;
+  duration_id: number | null;
+  level: string;
+  branch_name_en: string;
+  branch_name_th: string;
+  branch_code: string;
+}
+
 // Course interface for dropdowns
 export interface Course {
   id: number;
-  course_name: string;
-  course_code: string;
-  description?: string;
+  name: string;
+  code: string;
+  course_name: string; // Mapped from name for frontend compatibility
+  course_code: string; // Mapped from code for frontend compatibility
+  course_type: string;
+  branch_id: number;
+  description: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  category_id: number;
+  duration_id: number | null;
+  level: string;
+  branch_name_en: string;
+  branch_name_th: string;
+  branch_code: string;
 }
 
 // Room interface for dropdowns  
@@ -266,20 +327,41 @@ export interface CalendarViewResponse {
 export const scheduleService = {
   // Get list of courses for dropdown
   getCourses: async (): Promise<{ success: boolean; data: Course[] }> => {
-    const response = await api.get('/api/v1/courses');
-    return response.data;
+    const response = await api.get('/courses');
+    return {
+      success: response.data.success,
+      data: response.data.data.courses.map((course: RawCourseResponse) => ({
+        ...course,
+        course_name: course.name,
+        course_code: course.code
+      }))
+    };
   },
 
   // Get list of rooms for dropdown
   getRooms: async (): Promise<{ success: boolean; data: Room[] }> => {
-    const response = await api.get('/api/v1/rooms');
-    return response.data;
+    const response = await api.get('/rooms');
+    return {
+      success: response.data.success,
+      data: response.data.data.rooms
+    };
   },
 
   // Get list of teachers for dropdown
   getTeachers: async (): Promise<{ success: boolean; data: TeacherOption[] }> => {
-    const response = await api.get('/api/v1/teachers');
-    return response.data;
+    const response = await api.get('/teachers');
+    const raw: RawTeacherResponse[] = response?.data?.data?.teachers ?? [];
+    const mapped: TeacherOption[] = raw.map(t => ({
+      id: t.id,
+      teacher_name: `${t.first_name}${t.last_name ? ' ' + t.last_name : ''}`.trim(),
+      teacher_nickname: t.nickname ?? t.first_name,
+      teacher_email: t.email ?? undefined,
+      teacher_phone: t.phone ?? undefined,
+    }));
+    return {
+      success: response.data.success,
+      data: mapped,
+    };
   },
 
   // Get list of schedules with filters
@@ -301,7 +383,10 @@ export const scheduleService = {
       });
     }
     const response = await api.get(`${API_ENDPOINTS.SCHEDULES.LIST}?${queryParams}`);
-    return response.data;
+    return {
+      success: response.data.success,
+      data: response.data.data
+    };
   },
 
   // Get teachers with their schedules for a specific date filter
@@ -324,7 +409,10 @@ export const scheduleService = {
       });
     }
     const response = await api.get(`${API_ENDPOINTS.SCHEDULES.TEACHERS(dateFilter)}&${queryParams}`);
-    return response.data;
+    return {
+      success: response.data.success,
+      data: response.data.data
+    };
   },
 
   // Get calendar view of schedules
@@ -350,14 +438,20 @@ export const scheduleService = {
       });
     }
     const response = await api.get(`${API_ENDPOINTS.SCHEDULES.CALENDAR}?${queryParams}`);
-    return response.data;
+    return {
+      success: response.data.success,
+      data: response.data.data
+    };
   },
 
   // Get detailed information about a specific schedule
   getScheduleDetails: async (scheduleId: string): Promise<ScheduleDetailResponse> => {
     // Use the sessions endpoint which returns schedule + students + sessions + summary
     const response = await api.get(API_ENDPOINTS.SCHEDULES.SESSIONS(scheduleId));
-    return response.data;
+    return {
+      success: response.data.success,
+      data: response.data.data
+    };
   },
 
   // Get schedule sessions with filters
@@ -383,7 +477,10 @@ export const scheduleService = {
       });
     }
     const response = await api.get(`${API_ENDPOINTS.SCHEDULES.SESSIONS(scheduleId)}?${queryParams}`);
-    return response.data;
+    return {
+      success: response.data.success,
+      data: response.data.data
+    };
   },
 
   // Create a new schedule
@@ -501,8 +598,20 @@ export const scheduleService = {
     schedule_name: string;
     course_name: string;
   }> }> => {
-    const response = await api.get('/api/v1/schedules');
-    return response.data;
+    const response = await api.get('/schedules');
+    const raw = (response?.data?.data?.schedules ?? []) as Array<{
+      id: number;
+      schedule_name: string;
+      course_name: string;
+    }>;
+    return {
+      success: response.data.success,
+      data: raw.map(s => ({
+        schedule_id: s.id,
+        schedule_name: s.schedule_name,
+        course_name: s.course_name,
+      })),
+    };
   },
 
   // Create multiple sessions at once
@@ -515,7 +624,7 @@ export const scheduleService = {
     repeat_frequency: 'daily' | 'weekly' | 'monthly';
     notes?: string;
   }) => {
-    const response = await api.post(`/api/v1/schedules/${sessionData.schedule_id}/sessions/bulk-create`, sessionData);
+    const response = await api.post(`/schedules/${sessionData.schedule_id}/sessions/bulk-create`, sessionData);
     return response.data;
   }
 };

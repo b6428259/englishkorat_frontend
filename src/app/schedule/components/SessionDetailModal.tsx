@@ -97,6 +97,17 @@ export default function SessionDetailModal({
               <p className="text-sm text-gray-600">
                 {selectedSession.course_name} {selectedSession.course_code && `(${selectedSession.course_code})`}
               </p>
+              {scheduleDetail && (() => {
+                const currentSession = scheduleDetail.sessions.find(s => s.id === selectedSession.session_id);
+                if (currentSession) {
+                  return (
+                    <p className="text-sm text-indigo-600 font-medium mt-1">
+                      👨‍🏫 {language === 'th' ? 'ครู' : 'Teacher'}: {currentSession.teacher_first_name} {currentSession.teacher_last_name}
+                    </p>
+                  );
+                }
+                return null;
+              })()}
             </div>
             <div className="flex flex-col items-end space-y-2">
               <span
@@ -153,6 +164,12 @@ export default function SessionDetailModal({
                       <span>{selectedSession.room_name}</span>
                     </div>
                     <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">{language === 'th' ? 'ครูผู้สอน' : 'Teacher'}:</span>
+                      <span className="font-semibold text-indigo-600">
+                        {scheduleDetail.sessions.find(s => s.id === selectedSession.session_id)?.teacher_first_name} {scheduleDetail.sessions.find(s => s.id === selectedSession.session_id)?.teacher_last_name}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
                       <span className="font-medium text-gray-600">{t.students}:</span>
                       <span className="font-bold text-rose-600">
                         {selectedSession.current_students}/{selectedSession.max_students} {t.people}
@@ -170,24 +187,32 @@ export default function SessionDetailModal({
                 <div className="bg-green-50 p-4 rounded-lg">
                   <h4 className="font-semibold text-black mb-3 flex items-center">
                     <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                    {t.courseInformation}
+                    {language === 'th' ? 'ข้อมูลคาบเรียน' : 'Session Information'}
                   </h4>
                   <div className="space-y-2 text-sm text-black">
                     <div className="flex justify-between">
-                      <span className="font-medium text-gray-600">{t.totalHours}:</span>
-                      <span>{scheduleDetail.schedule.total_hours} {language === 'th' ? 'ชม.' : 'hrs'}</span>
+                      <span className="font-medium text-gray-600">{language === 'th' ? 'วันที่' : 'Date'}:</span>
+                      <span>{new Date(selectedSession.session_date).toLocaleDateString(language === 'th' ? 'th-TH' : 'en-US')}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="font-medium text-gray-600">{t.hoursPerSession}:</span>
-                      <span>{scheduleDetail.schedule.hours_per_session} {language === 'th' ? 'ชม.' : 'hrs'}</span>
+                      <span className="font-medium text-gray-600">{language === 'th' ? 'เวลา' : 'Time'}:</span>
+                      <span className="font-semibold">
+                        {selectedSession.start_time.slice(0, 5)} - {selectedSession.end_time.slice(0, 5)}
+                      </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="font-medium text-gray-600">{t.startDate}:</span>
-                      <span>{new Date(scheduleDetail.schedule.start_date).toLocaleDateString(language === 'th' ? 'th-TH' : 'en-US')}</span>
+                      <span className="font-medium text-gray-600">{language === 'th' ? 'ครูผู้สอน' : 'Teacher'}:</span>
+                      <span className="font-semibold text-indigo-600">
+                        {scheduleDetail.sessions.find(s => s.id === selectedSession.session_id)?.teacher_first_name} {scheduleDetail.sessions.find(s => s.id === selectedSession.session_id)?.teacher_last_name}
+                      </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="font-medium text-gray-600">{t.type}:</span>
-                      <span className="capitalize">{scheduleDetail.schedule.schedule_type}</span>
+                      <span className="font-medium text-gray-600">{language === 'th' ? 'ห้องเรียน' : 'Room'}:</span>
+                      <span>{selectedSession.room_name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">{language === 'th' ? 'คาบที่' : 'Session'}:</span>
+                      <span>{selectedSession.session_number}</span>
                     </div>
                   </div>
                 </div>
@@ -200,6 +225,14 @@ export default function SessionDetailModal({
                     <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
                     {t.studentList} ({scheduleDetail.students.length} {t.people})
                   </h4>
+                  <div className="mb-3 p-3 bg-white rounded-lg border border-gray-200">
+                    <p className="text-sm text-gray-700">
+                      <span className="font-medium text-gray-600">{language === 'th' ? 'ครูผู้สอน:' : 'Teacher:'}</span>
+                      <span className="font-semibold text-indigo-600 ml-2">
+                        {scheduleDetail.sessions.find(s => s.id === selectedSession.session_id)?.teacher_first_name} {scheduleDetail.sessions.find(s => s.id === selectedSession.session_id)?.teacher_last_name}
+                      </span>
+                    </p>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-40 overflow-y-auto">
                     {scheduleDetail.students.map((student) => (
                       <div key={student.id} className="bg-white p-3 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors">
@@ -227,7 +260,33 @@ export default function SessionDetailModal({
                 </div>
               )}
 
-              {/* Schedule Summary */}
+              {/* Teacher Information */}
+              {(() => {
+                const currentSession = scheduleDetail.sessions.find(s => s.id === selectedSession.session_id);
+                if (currentSession) {
+                  return (
+                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg border border-indigo-200">
+                      <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                        <span className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></span>
+                        {language === 'th' ? 'ข้อมูลครูผู้สอน' : 'Teacher Information'}
+                      </h4>
+                      <div className="space-y-2 text-sm text-black">
+                        <div className="flex justify-between">
+                          <span className="font-medium text-gray-600">{language === 'th' ? 'ชื่อครู' : 'Teacher Name'}:</span>
+                          <span className="font-semibold text-indigo-700">
+                            {currentSession.teacher_first_name} {currentSession.teacher_last_name}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium text-gray-600">{language === 'th' ? 'รหัสครู' : 'Teacher ID'}:</span>
+                          <span>{currentSession.teacher_id}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
                 <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
                   <span className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></span>
