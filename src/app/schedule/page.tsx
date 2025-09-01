@@ -1099,7 +1099,7 @@ export default function SchedulePage() {
                               {t.noScheduleData}
                             </th>
                           ) : (
-                            filteredTeachers.map((teacher, index) => (
+                            filteredTeachers.map((teacher) => (
                               <th 
                                 key={teacher.teacher_id}
                                 className={`text-center font-bold text-white border border-gray-300 p-3 text-sm min-w-[200px] bg-gradient-to-br from-indigo-600 to-purple-700`}
