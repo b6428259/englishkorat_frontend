@@ -12,6 +12,7 @@ export function middleware(request: NextRequest) {
     '/auth',
     '/login',
     '/register',
+    '/notification-demo', // Added for testing the notification system
   ];
   
   // ทุก path ที่ขึ้นต้นด้วย /public ไม่ต้อง auth
