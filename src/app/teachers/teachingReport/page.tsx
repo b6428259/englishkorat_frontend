@@ -165,7 +165,7 @@ const handleSave = () => {
             <div className="space-y-2 text-right">
               <h2 className="font-bold text-gray-700">
                 Total Hours Used:{" "}
-                <span className="font-light text-gray-700">{totalHoursUsed} / {targetHours} </span>
+                <span className="font-light text-gray-700">{totalHoursUsed} / {totalHours} </span>
               </h2>
               <p className="text-xs text-gray-500 italic">
                   Target Hours: {targetHours} | Special Hours: {specialHours} | Total Hours: {totalHours}
