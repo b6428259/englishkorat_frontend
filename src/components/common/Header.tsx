@@ -21,11 +21,10 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
   const { t } = useLanguage();
   const router = useRouter();
   
-  // Always call useAuth hook, but handle the case when context is not available
+  // Always call useAuth hook unconditionally
   const authContext = useAuth();
-  
   // Use authContext if available, otherwise use mock data for demo
-  const { user, logout, isAuthenticated } = authContext || {
+  const { user, logout, isAuthenticated } = authContext ?? {
     user: {
       id: 1,
       username: 'Demo User',
@@ -53,7 +52,6 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
   }, 'icon'> & { iconConfig: NotificationDisplayConfig })[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -68,12 +66,10 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
   const loadNotifications = async () => {
     try {
       setLoading(true);
-      setError(null);
       const result = await NotificationService.getNotifications(1, 10); // Load first 10 notifications
       setNotifications(result.notifications);
     } catch (err) {
       console.error('Error loading notifications:', err);
-      setError('ไม่สามารถโหลดการแจ้งเตือนได้');
     } finally {
       setLoading(false);
     }
@@ -235,21 +231,8 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
                       </div>
                     )}
 
-                    {/* Error State */}
-                    {error && !loading && (
-                      <div className="p-6 text-center text-red-500">
-                        <p className="text-sm">{error}</p>
-                        <button 
-                          onClick={loadNotifications}
-                          className="mt-2 text-xs text-[#334293] hover:text-[#2a3875] font-medium transition-colors"
-                        >
-                          ลองอีกครั้ง
-                        </button>
-                      </div>
-                    )}
-
                     {/* Notification List */}
-                    {!loading && !error && (
+                    {!loading && (
                       <div className="max-h-80 overflow-y-auto">
                         {notifications.length === 0 ? (
                           <div className="p-6 text-center text-gray-500">
@@ -293,7 +276,7 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
                     )}
 
                     {/* Footer */}
-                    {notifications.length > 0 && !loading && !error && (
+                    {notifications.length > 0 && !loading && (
                       <div className="p-3 border-t border-gray-100">
                         <button 
                           className="w-full text-center text-sm text-[#334293] hover:text-[#2a3875] font-medium transition-colors"
@@ -399,4 +382,4 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
   );
 };
 
-export default Header; 
+export default Header;
