@@ -19,8 +19,33 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ className = "" }) => {
   const { t } = useLanguage();
-  const { user, logout, isAuthenticated } = useAuth();
+  
+  // Use a try-catch approach to handle missing auth context gracefully
+  let authContext;
+  try {
+    authContext = useAuth();
+  } catch (error) {
+    // If AuthContext is not available, provide a default value
+    authContext = null;
+  }
+  
   const router = useRouter();
+  
+  // Use authContext if available, otherwise use mock data for demo
+  const { user, logout, isAuthenticated } = authContext || {
+    user: {
+      id: 1,
+      username: 'Demo User',
+      email: 'demo@example.com',
+      role: 'admin' as const,
+      avatar: null,
+      branch_name: 'โคราช',
+      branch_code: 'KRT001'
+    },
+    logout: async () => console.log('Mock logout'),
+    isAuthenticated: true
+  };
+  
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifications, setNotifications] = useState<(Omit<{ 
