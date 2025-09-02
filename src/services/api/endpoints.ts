@@ -58,6 +58,19 @@ export const API_ENDPOINTS = {
     GET: '/settings',
     UPDATE: '/settings',
     SYSTEM: '/settings/system'
+  },
+  
+  // Notification endpoints (based on Enhanced Notification System Documentation)
+  NOTIFICATIONS: {
+    LIST: '/api/v1/notifications',
+    MARK_READ: (id: string) => `/api/v1/notifications/${id}/read`,
+    MARK_ALL_READ: '/api/v1/notifications/mark-all-read',
+    SEND: '/api/v1/notifications/send',
+    LOGS: '/api/v1/notifications/logs',
+    LOGS_SUMMARY: '/api/v1/notifications/logs/summary',
+    CLEANUP_STATUS: '/api/v1/notifications/cleanup/status',
+    CLEANUP_TRIGGER: '/api/v1/notifications/cleanup/trigger',
+    LOGS_ARCHIVE: '/api/v1/notifications/logs/archive'
   }
 } as const;
 
