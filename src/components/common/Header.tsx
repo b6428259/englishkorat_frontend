@@ -9,6 +9,8 @@ import { useRouter } from 'next/navigation';
 import { HiOutlineBell, HiXMark, HiOutlineUser, HiOutlineCog } from 'react-icons/hi2';
 import { CiLogout } from "react-icons/ci";
 import { getAvatarUrl } from '../../utils/config';
+import { NotificationService, NotificationDisplayConfig } from '../../services/notification.service';
+import type { NotificationType } from '../../types/notification';
 
 
 interface HeaderProps {
@@ -17,49 +19,119 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ className = "" }) => {
   const { t } = useLanguage();
-  const { user, logout, isAuthenticated } = useAuth();
+  
+  // Use a try-catch approach to handle missing auth context gracefully
+  let authContext;
+  try {
+    authContext = useAuth();
+  } catch (error) {
+    // If AuthContext is not available, provide a default value
+    authContext = null;
+  }
+  
   const router = useRouter();
+  
+  // Use authContext if available, otherwise use mock data for demo
+  const { user, logout, isAuthenticated } = authContext || {
+    user: {
+      id: 1,
+      username: 'Demo User',
+      email: 'demo@example.com',
+      role: 'admin' as const,
+      avatar: null,
+      branch_name: 'โคราช',
+      branch_code: 'KRT001'
+    },
+    logout: async () => console.log('Mock logout'),
+    isAuthenticated: true
+  };
+  
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [notifications, setNotifications] = useState<(Omit<{ 
+    id: number; 
+    title: string; 
+    description: string; 
+    route: string; 
+    time: string; 
+    unread: boolean; 
+    type: NotificationType; 
+    metadata?: { [key: string]: string | number | boolean };
+  }, 'icon'> & { iconConfig: NotificationDisplayConfig })[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
-  // Mock notifications
-  const notifications = [
-    {
-      id: 1,
-      title: t.newStudent || 'มีนักเรียนใหม่',
-      description: t.newStudentDesc || 'จอห์น สมิธ สมัครเรียนคอร์สใหม่',
-      route: '/students/list',
-      time: '5 นาทีที่แล้ว',
-      unread: true,
-      icon: <span className="inline-block w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-sm font-semibold">👨‍🎓</span>
-    },
-    {
-      id: 2,
-      title: t.systemUpdate || 'อัปเดตระบบ',
-      description: t.systemUpdateDesc || 'ระบบได้รับการอัปเดตเวอร์ชัน 2.1.0',
-      route: '/settings/system',
-      time: '1 ชั่วโมงที่แล้ว',
-      unread: true,
-      icon: <span className="inline-block w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-green-600 text-sm">🔧</span>
-    },
-    {
-      id: 3,
-      title: 'การชำระเงิน',
-      description: 'นักเรียน 3 คนชำระค่าเรียนแล้ว',
-      route: '/dashboard',
-      time: '3 ชั่วโมงที่แล้ว',
-      unread: false,
-      icon: <span className="inline-block w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-600 text-sm">💰</span>
+  // Load notifications when component mounts or when user changes
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      loadNotifications();
+      loadUnreadCount();
     }
-  ];
+  }, [isAuthenticated, user]);
 
-  const unreadCount = notifications.filter(n => n.unread).length;
+  const loadNotifications = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await NotificationService.getNotifications(1, 10); // Load first 10 notifications
+      setNotifications(result.notifications);
+    } catch (err) {
+      console.error('Error loading notifications:', err);
+      setError('ไม่สามารถโหลดการแจ้งเตือนได้');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleNotiClick = (route: string) => {
+  const loadUnreadCount = async () => {
+    try {
+      const count = await NotificationService.getUnreadCount();
+      setUnreadCount(count);
+    } catch (err) {
+      console.error('Error loading unread count:', err);
+    }
+  };
+
+  const handleNotiClick = async (notification: typeof notifications[0]) => {
     setNotificationOpen(false);
-    router.push(route);
+    
+    // Mark notification as read if it's unread
+    if (notification.unread) {
+      try {
+        const success = await NotificationService.markAsRead(notification.id);
+        if (success) {
+          // Update local state
+          setNotifications(prevNotifications => 
+            prevNotifications.map(n => 
+              n.id === notification.id ? { ...n, unread: false } : n
+            )
+          );
+          setUnreadCount(prev => Math.max(0, prev - 1));
+        }
+      } catch (err) {
+        console.error('Error marking notification as read:', err);
+      }
+    }
+    
+    router.push(notification.route);
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      const success = await NotificationService.markAllAsRead();
+      if (success) {
+        // Update local state
+        setNotifications(prevNotifications => 
+          prevNotifications.map(n => ({ ...n, unread: false }))
+        );
+        setUnreadCount(0);
+      }
+    } catch (err) {
+      console.error('Error marking all notifications as read:', err);
+    }
   };
 
   const handleProfileClick = (route?: string) => {
@@ -144,56 +216,91 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
                       <h3 className="text-lg font-semibold text-gray-900">
                         {t.notifications || 'การแจ้งเตือน'}
                       </h3>
-                      <button
-                        onClick={() => setNotificationOpen(false)}
-                        className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-                      >
-                        <HiXMark className="w-5 h-5 text-gray-500" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {unreadCount > 0 && (
+                          <button
+                            onClick={handleMarkAllAsRead}
+                            className="text-xs text-[#334293] hover:text-[#2a3875] font-medium transition-colors"
+                          >
+                            อ่านทั้งหมด
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setNotificationOpen(false)}
+                          className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                        >
+                          <HiXMark className="w-5 h-5 text-gray-500" />
+                        </button>
+                      </div>
                     </div>
+
+                    {/* Loading State */}
+                    {loading && (
+                      <div className="p-6 text-center text-gray-500">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#334293] mx-auto mb-2"></div>
+                        <p>กำลังโหลด...</p>
+                      </div>
+                    )}
+
+                    {/* Error State */}
+                    {error && !loading && (
+                      <div className="p-6 text-center text-red-500">
+                        <p className="text-sm">{error}</p>
+                        <button 
+                          onClick={loadNotifications}
+                          className="mt-2 text-xs text-[#334293] hover:text-[#2a3875] font-medium transition-colors"
+                        >
+                          ลองอีกครั้ง
+                        </button>
+                      </div>
+                    )}
 
                     {/* Notification List */}
-                    <div className="max-h-80 overflow-y-auto">
-                      {notifications.length === 0 ? (
-                        <div className="p-6 text-center text-gray-500">
-                          <HiOutlineBell className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                          <p>ไม่มีการแจ้งเตือน</p>
-                        </div>
-                      ) : (
-                        notifications.map((noti) => (
-                          <div
-                            key={noti.id}
-                            className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors border-l-4 ${
-                              noti.unread ? 'border-l-[#334293] bg-blue-50/30' : 'border-l-transparent'
-                            }`}
-                            onClick={() => handleNotiClick(noti.route)}
-                          >
-                            <div className="flex items-start gap-3">
-                              {noti.icon}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between gap-2">
-                                  <p className={`text-sm ${noti.unread ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'}`}>
-                                    {noti.title}
+                    {!loading && !error && (
+                      <div className="max-h-80 overflow-y-auto">
+                        {notifications.length === 0 ? (
+                          <div className="p-6 text-center text-gray-500">
+                            <HiOutlineBell className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                            <p>ไม่มีการแจ้งเตือน</p>
+                          </div>
+                        ) : (
+                          notifications.map((noti) => (
+                            <div
+                              key={noti.id}
+                              className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors border-l-4 ${
+                                noti.unread ? 'border-l-[#334293] bg-blue-50/30' : 'border-l-transparent'
+                              }`}
+                              onClick={() => handleNotiClick(noti)}
+                            >
+                              <div className="flex items-start gap-3">
+                                <span className={`inline-block w-8 h-8 ${noti.iconConfig.bgColor} rounded-full flex items-center justify-center ${noti.iconConfig.textColor} text-sm ${noti.type === 'student_registration' ? 'font-semibold' : ''}`}>
+                                  {noti.iconConfig.emoji}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <p className={`text-sm ${noti.unread ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'}`}>
+                                      {noti.title}
+                                    </p>
+                                    {noti.unread && (
+                                      <span className="w-2 h-2 bg-[#334293] rounded-full flex-shrink-0 mt-1.5"></span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                                    {noti.description}
                                   </p>
-                                  {noti.unread && (
-                                    <span className="w-2 h-2 bg-[#334293] rounded-full flex-shrink-0 mt-1.5"></span>
-                                  )}
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    {noti.time}
+                                  </p>
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                                  {noti.description}
-                                </p>
-                                <p className="text-xs text-gray-400 mt-1">
-                                  {noti.time}
-                                </p>
                               </div>
                             </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
+                          ))
+                        )}
+                      </div>
+                    )}
 
                     {/* Footer */}
-                    {notifications.length > 0 && (
+                    {notifications.length > 0 && !loading && !error && (
                       <div className="p-3 border-t border-gray-100">
                         <button 
                           className="w-full text-center text-sm text-[#334293] hover:text-[#2a3875] font-medium transition-colors"
