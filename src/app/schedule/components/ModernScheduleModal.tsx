@@ -1,23 +1,29 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { HiCalendarDays, HiAcademicCap, HiUserGroup, HiClock, HiDocumentText, HiSparkles, HiCheckCircle, HiBuildingOffice2, HiGlobeAlt } from 'react-icons/hi2';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { HiCalendarDays, HiAcademicCap, HiUserGroup, HiClock, HiDocumentText } from 'react-icons/hi2';
 import ActionModal from '@/components/common/ActionModal';
 import FormSection from '@/components/common/forms/FormSection';
 import FieldGroup from '@/components/common/forms/FieldGroup';
 import EnhancedSelect from '@/components/common/forms/EnhancedSelect';
 import ModernInput from '@/components/common/forms/ModernInput';
-import StatusMessage from '@/components/common/forms/StatusMessage';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Checkbox } from '@/components/forms';
-import { ModernTimeSlotSelector } from '@/components/forms/ModernTimeSlotSelector';
+import { TimeSlotSelector } from '@/components/forms/TimeSlotSelector';
 import { 
   CreateScheduleRequest, 
   Course, 
   Room, 
   TeacherOption 
 } from '@/services/api/schedules';
+
+// Legacy interface for backward compatibility
+interface LegacyTimeSlot {
+  id: string;
+  day: string;
+  timeFrom: string;
+  timeTo: string;
+}
 
 interface ScheduleTimeSlot {
   day_of_week: string;
@@ -38,7 +44,7 @@ interface ModernScheduleModalProps {
   error?: string | null;
 }
 
-export default function ModernScheduleModalV2({
+export default function ModernScheduleModal({
   isOpen,
   onClose,
   onConfirm,
@@ -52,8 +58,8 @@ export default function ModernScheduleModalV2({
 }: ModernScheduleModalProps) {
   const { language } = useLanguage();
 
-  // Default form state with enhanced structure
-  const defaultForm: CreateScheduleRequest = useMemo(() => ({
+  // Internal form state with proper persistence
+  const [internalForm, setInternalForm] = useState<Partial<CreateScheduleRequest>>({
     schedule_name: '',
     course_id: 0,
     teacher_id: 0,
@@ -65,99 +71,36 @@ export default function ModernScheduleModalV2({
     time_slots: [],
     auto_reschedule_holidays: true,
     notes: ''
-  }), []);
+  });
 
-  // Internal form state
-  const [internalForm, setInternalForm] = useState<CreateScheduleRequest>(defaultForm);
-
+  // Use external form if provided, otherwise use internal state
   const scheduleForm = externalForm || internalForm;
 
+  // Enhanced updateForm function with better state management
   const updateForm = useCallback((updates: Partial<CreateScheduleRequest>) => {
     if (externalUpdate) {
+      // Use external update function if provided
       externalUpdate(updates);
     } else {
+      // Update internal state and preserve existing data
       setInternalForm(prev => ({ ...prev, ...updates }));
     }
   }, [externalUpdate]);
 
-  // Enhanced validation with smart suggestions
-  const validation = useMemo(() => {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-    const suggestions: string[] = [];
+  // Effect to sync external form changes to internal state
+  useEffect(() => {
+    if (externalForm && !externalUpdate) {
+      setInternalForm(externalForm);
+    }
+  }, [externalForm, externalUpdate]);
 
-    // Required field validation
-    if (!scheduleForm.schedule_name?.trim()) {
-      errors.push(language === 'th' ? 'กรุณากรอกชื่อตารางเรียน' : 'Please enter schedule name');
-    }
-    
-    if (!scheduleForm.course_id || scheduleForm.course_id === 0) {
-      errors.push(language === 'th' ? 'กรุณาเลือกคอร์ส' : 'Please select a course');
-    }
-    
-    if (!scheduleForm.teacher_id || scheduleForm.teacher_id === 0) {
-      errors.push(language === 'th' ? 'กรุณาเลือกครู' : 'Please select a teacher');
-    }
-    
-    if (!scheduleForm.room_id || scheduleForm.room_id === 0) {
-      errors.push(language === 'th' ? 'กรุณาเลือกห้องเรียน' : 'Please select a room');
-    }
-
-    if (!scheduleForm.start_date) {
-      errors.push(language === 'th' ? 'กรุณาเลือกวันที่เริ่ม' : 'Please select start date');
-    }
-
-    if (!scheduleForm.time_slots || scheduleForm.time_slots.length === 0) {
-      errors.push(language === 'th' ? 'กรุณาเพิ่มช่วงเวลาเรียน' : 'Please add time slots');
-    }
-
-    // Advanced validation
-    if (scheduleForm.total_hours && scheduleForm.hours_per_session && 
-        scheduleForm.total_hours < scheduleForm.hours_per_session) {
-      errors.push(language === 'th' ? 'จำนวนชั่วโมงรวมต้องมากกว่าชั่วโมงต่อเซสชัน' : 'Total hours must be greater than hours per session');
-    }
-
-    if (scheduleForm.max_students && scheduleForm.max_students > 20) {
-      warnings.push(language === 'th' ? 'จำนวนนักเรียนสูงกว่าแนะนำ (20 คน)' : 'Student count is higher than recommended (20 students)');
-    }
-
-    if (scheduleForm.time_slots && scheduleForm.time_slots.some(slot => !slot.day_of_week || !slot.start_time || !slot.end_time)) {
-      warnings.push(language === 'th' ? 'มีช่วงเวลาที่ไม่สมบูรณ์' : 'Some time slots are incomplete');
-    }
-
-    // Smart suggestions
-    if (scheduleForm.total_hours && scheduleForm.hours_per_session) {
-      const estimatedSessions = Math.ceil(scheduleForm.total_hours / scheduleForm.hours_per_session);
-      if (estimatedSessions > 50) {
-        suggestions.push(language === 'th' ? 'คอร์สนี้อาจใช้เวลานาน แนะนำให้แบ่งออกเป็นหลายระดับ' : 'This course might be lengthy. Consider splitting into multiple levels');
-      }
-    }
-
-    if (scheduleForm.time_slots && scheduleForm.time_slots.length > 5) {
-      suggestions.push(language === 'th' ? 'มีช่วงเวลาหลายช่วง ควรตรวจสอบความพร้อมของครู' : 'Multiple time slots detected. Verify teacher availability');
-    }
-
-    return {
-      errors,
-      warnings,
-      suggestions,
-      isValid: errors.length === 0,
-      hasWarnings: warnings.length > 0,
-      hasSuggestions: suggestions.length > 0
-    };
-  }, [scheduleForm, language]);
-
-  // Enhanced memoized options with better UX
   const courseOptions = useMemo(() => [
     { value: '0', label: language === 'th' ? 'เลือกคอร์ส' : 'Select Course', disabled: true },
     ...courses.map(course => ({
       value: course.id.toString(),
       label: course.course_name,
       description: `${language === 'th' ? 'ระดับ' : 'Level'}: ${course.level}`,
-      icon: <HiAcademicCap className="text-blue-500" />,
-      badge: course.level,
-      color: course.level.toLowerCase() === 'beginner' ? 'green' : 
-             course.level.toLowerCase() === 'intermediate' ? 'yellow' : 'purple'
+      icon: <HiAcademicCap className="text-blue-500" />
     }))
   ], [courses, language]);
 
@@ -167,8 +110,7 @@ export default function ModernScheduleModalV2({
       value: teacher.id.toString(),
       label: teacher.teacher_name,
       description: teacher.teacher_email || '',
-      icon: <HiUserGroup className="text-green-500" />,
-      subtitle: language === 'th' ? 'ครูผู้สอน' : 'Instructor'
+      icon: <HiUserGroup className="text-green-500" />
     }))
   ], [teachers, language]);
 
@@ -178,144 +120,77 @@ export default function ModernScheduleModalV2({
       value: room.id.toString(),
       label: room.room_name,
       description: `${language === 'th' ? 'ความจุ' : 'Capacity'}: ${room.capacity} ${language === 'th' ? 'คน' : 'people'}`,
-      icon: <HiBuildingOffice2 className="text-orange-500" />,
-      badge: `${room.capacity}`
+      icon: <HiClock className="text-orange-500" />
     }))
   ], [rooms, language]);
 
-  // Smart defaults and calculations
-  const calculatedSessions = useMemo(() => {
-    if (scheduleForm.total_hours && scheduleForm.hours_per_session) {
-      return Math.ceil(scheduleForm.total_hours / scheduleForm.hours_per_session);
-    }
-    return 0;
-  }, [scheduleForm.total_hours, scheduleForm.hours_per_session]);
-
-  // Handlers
-  const handleClose = useCallback(() => {
-    if (!externalForm) {
-      setInternalForm(defaultForm);
-    }
-    onClose();
-  }, [externalForm, onClose, defaultForm]);
+  const isFormValid = scheduleForm.schedule_name &&
+                     scheduleForm.course_id &&
+                     scheduleForm.course_id !== 0 &&
+                     scheduleForm.teacher_id &&
+                     scheduleForm.teacher_id !== 0 &&
+                     scheduleForm.time_slots &&
+                     scheduleForm.time_slots.length > 0;
 
   const handleConfirm = useCallback(async () => {
-    if (!validation.isValid) return;
-    
-    try {
-      await onConfirm();
-    } catch (err) {
-      console.error('Error creating schedule:', err);
+    if (!isFormValid) return;
+    await onConfirm();
+  }, [isFormValid, onConfirm]);
+
+  const handleClose = useCallback(() => {
+    if (!externalForm) {
+      setInternalForm({
+        schedule_name: '',
+        course_id: 0,
+        teacher_id: 0,
+        room_id: 0,
+        total_hours: 30,
+        hours_per_session: 3,
+        max_students: 6,
+        start_date: new Date().toISOString().split('T')[0],
+        time_slots: [],
+        auto_reschedule_holidays: true,
+        notes: ''
+      });
     }
-  }, [validation.isValid, onConfirm]);
+    onClose();
+  }, [externalForm, onClose]);
+
+  // Enhanced time slots update handler to prevent data loss
+  const handleTimeSlotsChange = useCallback((slots: (LegacyTimeSlot | ScheduleTimeSlot)[]) => {
+    // Filter and convert to ScheduleTimeSlot format
+    const scheduleSlots: ScheduleTimeSlot[] = slots
+      .filter((slot): slot is ScheduleTimeSlot => 'day_of_week' in slot)
+      .map(slot => ({
+        day_of_week: slot.day_of_week,
+        start_time: slot.start_time,
+        end_time: slot.end_time
+      }));
+    updateForm({ time_slots: scheduleSlots });
+  }, [updateForm]);
+
+  // Enhanced notes update handler
+  const handleNotesChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    updateForm({ notes: newValue });
+  }, [updateForm]);
 
   return (
     <ActionModal
       isOpen={isOpen}
       onClose={handleClose}
       title={language === 'th' ? 'สร้างตารางเรียนใหม่' : 'Create New Schedule'}
-      subtitle={language === 'th' ? 'กำหนดรายละเอียดตารางเรียน' : 'Configure your class schedule'}
-      size="2xl"
-      primaryAction={{
-        label: isLoading 
-          ? (language === 'th' ? 'กำลังสร้าง...' : 'Creating...') 
-          : (language === 'th' ? 'สร้างตารางเรียน' : 'Create Schedule'),
-        onClick: handleConfirm,
-        loading: isLoading,
-        disabled: !validation.isValid,
-        variant: 'primary',
-        icon: <HiCheckCircle />
-      }}
-      secondaryAction={{
-        label: language === 'th' ? 'ยกเลิก' : 'Cancel',
-        onClick: handleClose,
-        variant: 'ghost'
-      }}
-      error={error}
+      size="xl"
     >
-      <div className="space-y-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
-        {/* Modern Header - Optimized animation */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ 
-            duration: 0.3, 
-            ease: [0.4, 0, 0.2, 1], // Custom bezier for smoother animation
-            type: "tween" 
-          }}
-          className="flex items-center gap-4 p-4 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-2xl border border-indigo-200/60 dark:border-indigo-700/60"
-        >
-          <div className="p-3 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-xl shadow-lg">
-            <HiSparkles className="w-8 h-8 text-white" />
-          </div>
-          <div className="flex-grow">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              {language === 'th' ? '🎯 สร้างตารางเรียนสมัยใหม่' : '🎯 Modern Schedule Creation'}
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {language === 'th' ? 'ออกแบบตารางเรียนที่ทันสมัยและใช้งานง่าย' : 'Design modern and user-friendly class schedules'}
-            </p>
-          </div>
-        </motion.div>
-        {/* Validation Messages - Optimized animations */}
-        <AnimatePresence>
-          {(validation.errors.length > 0 || validation.warnings.length > 0 || validation.suggestions.length > 0) && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ 
-                duration: 0.25, 
-                ease: "easeOut",
-                layout: { duration: 0.2 }
-              }}
-              className="space-y-3"
-            >
-              {validation.errors.length > 0 && (
-                <StatusMessage
-                  type="error"
-                  message={language === 'th' ? 'กรุณาแก้ไขข้อมูลต่อไปนี้:' : 'Please fix the following:'}
-                  details={validation.errors}
-                />
-              )}
-              
-              {validation.warnings.length > 0 && (
-                <StatusMessage
-                  type="warning"
-                  message={language === 'th' ? 'คำเตือน:' : 'Warnings:'}
-                  details={validation.warnings}
-                />
-              )}
-              
-              {validation.suggestions.length > 0 && (
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-700">
-                  <div className="flex items-start gap-3">
-                    <HiGlobeAlt className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
-                        {language === 'th' ? 'คำแนะนำ:' : 'Smart Suggestions:'}
-                      </h4>
-                      <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
-                        {validation.suggestions.map((suggestion, index) => (
-                          <li key={index}>💡 {suggestion}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
+      <div className="space-y-6 max-h-[75vh] overflow-y-auto">
         {/* Schedule Basic Info */}
         <FormSection
-          title={language === 'th' ? 'ข้อมูลพื้นฐาน' : 'Schedule Information'}
+          title={language === 'th' ? 'ข้อมูลตารางเรียน' : 'Schedule Information'}
           icon={<HiCalendarDays />}
           color="blue"
         >
           <FieldGroup columns={2}>
-            <div className="md:col-span-2">
+            <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 {language === 'th' ? 'ชื่อตารางเรียน *' : 'Schedule Name *'}
               </label>
@@ -325,7 +200,6 @@ export default function ModernScheduleModalV2({
                 onChange={(e) => updateForm({ schedule_name: e.target.value })}
                 placeholder={language === 'th' ? 'กรอกชื่อตารางเรียน' : 'Enter schedule name'}
                 leftIcon={<HiDocumentText />}
-                autoFocus
               />
             </div>
 
@@ -334,32 +208,19 @@ export default function ModernScheduleModalV2({
                 {language === 'th' ? 'คอร์ส *' : 'Course *'}
               </label>
               <EnhancedSelect
+                value={(scheduleForm.course_id || 0).toString()}
+                onChange={(value) => updateForm({ course_id: parseInt(Array.isArray(value) ? value[0] : value) })}
                 options={courseOptions}
-                value={scheduleForm.course_id?.toString() || '0'}
-                onChange={(value) => updateForm({ course_id: parseInt(value as string) || 0 })}
                 placeholder={language === 'th' ? 'เลือกคอร์ส' : 'Select Course'}
                 searchable
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {language === 'th' ? 'วันที่เริ่ม *' : 'Start Date *'}
-              </label>
-              <ModernInput
-                type="date"
-                value={scheduleForm.start_date || ''}
-                onChange={(e) => updateForm({ start_date: e.target.value })}
-                min={new Date().toISOString().split('T')[0]}
-                leftIcon={<HiCalendarDays />}
               />
             </div>
           </FieldGroup>
         </FormSection>
 
-        {/* Teacher & Room */}
+        {/* Teacher and Room */}
         <FormSection
-          title={language === 'th' ? 'ครูและห้องเรียน' : 'Teacher & Room'}
+          title={language === 'th' ? 'ครูและห้องเรียน' : 'Teacher and Room'}
           icon={<HiUserGroup />}
           color="green"
         >
@@ -369,9 +230,9 @@ export default function ModernScheduleModalV2({
                 {language === 'th' ? 'ครูผู้สอน *' : 'Teacher *'}
               </label>
               <EnhancedSelect
+                value={(scheduleForm.teacher_id || 0).toString()}
+                onChange={(value) => updateForm({ teacher_id: parseInt(Array.isArray(value) ? value[0] : value) })}
                 options={teacherOptions_enhanced}
-                value={scheduleForm.teacher_id?.toString() || '0'}
-                onChange={(value) => updateForm({ teacher_id: parseInt(value as string) || 0 })}
                 placeholder={language === 'th' ? 'เลือกครู' : 'Select Teacher'}
                 searchable
               />
@@ -379,12 +240,12 @@ export default function ModernScheduleModalV2({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {language === 'th' ? 'ห้องเรียน *' : 'Room *'}
+                {language === 'th' ? 'ห้องเรียน' : 'Room'}
               </label>
               <EnhancedSelect
+                value={(scheduleForm.room_id || 0).toString()}
+                onChange={(value) => updateForm({ room_id: parseInt(Array.isArray(value) ? value[0] : value) })}
                 options={roomOptions}
-                value={scheduleForm.room_id?.toString() || '0'}
-                onChange={(value) => updateForm({ room_id: parseInt(value as string) || 0 })}
                 placeholder={language === 'th' ? 'เลือกห้องเรียน' : 'Select Room'}
                 searchable
               />
@@ -392,9 +253,9 @@ export default function ModernScheduleModalV2({
           </FieldGroup>
         </FormSection>
 
-        {/* Session Configuration */}
+        {/* Schedule Settings */}
         <FormSection
-          title={language === 'th' ? 'การกำหนดเซสชัน' : 'Session Configuration'}
+          title={language === 'th' ? 'การตั้งค่าตารางเรียน' : 'Schedule Settings'}
           icon={<HiClock />}
           color="purple"
         >
@@ -421,9 +282,8 @@ export default function ModernScheduleModalV2({
                 type="number"
                 value={(scheduleForm.hours_per_session || 3).toString()}
                 onChange={(e) => updateForm({ hours_per_session: parseInt(e.target.value) || 3 })}
-                min="0.5"
+                min="1"
                 max="8"
-                step="0.5"
                 leftIcon={<HiClock />}
               />
             </div>
@@ -442,27 +302,6 @@ export default function ModernScheduleModalV2({
               />
             </div>
           </FieldGroup>
-
-          {/* Session Preview */}
-          {calculatedSessions > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-4 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-200 dark:border-indigo-700"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <HiCheckCircle className="w-5 h-5 text-indigo-500" />
-                  <span className="text-sm font-medium text-indigo-900 dark:text-indigo-100">
-                    {language === 'th' ? 'จำนวนเซสชันโดยประมาณ:' : 'Estimated Sessions:'}
-                  </span>
-                </div>
-                <span className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
-                  {calculatedSessions}
-                </span>
-              </div>
-            </motion.div>
-          )}
         </FormSection>
 
         {/* Time Slots */}
@@ -471,16 +310,15 @@ export default function ModernScheduleModalV2({
           icon={<HiClock />}
           color="orange"
         >
-          <ModernTimeSlotSelector
+          <TimeSlotSelector
             value={scheduleForm.time_slots || []}
-            onChange={(slots) => updateForm({ time_slots: slots as ScheduleTimeSlot[] })}
+            onChange={handleTimeSlotsChange}
             title=""
             format="schedule"
-            variant="mobile" // Use mobile-optimized variant
+            variant="compact"
             language={language}
             maxSlots={7}
             showBulkSelection={true}
-            className="w-full"
           />
         </FormSection>
 
@@ -491,17 +329,13 @@ export default function ModernScheduleModalV2({
           color="gray"
         >
           <div className="space-y-4">
-            <motion.div
-              whileHover={{ scale: 1.01 }}
-              className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700"
-            >
+            <div>
               <Checkbox
+                label={language === 'th' ? 'เลื่อนตารางเรียนอัตโนมัติในวันหยุด' : 'Auto reschedule for holidays'}
                 checked={scheduleForm.auto_reschedule_holidays || false}
                 onChange={(e) => updateForm({ auto_reschedule_holidays: e.target.checked })}
-                label={language === 'th' ? 'เลื่อนตารางเรียนอัตโนมัติในวันหยุด' : 'Auto-reschedule on holidays'}
-                description={language === 'th' ? 'ระบบจะเลื่อนตารางเรียนอัตโนมัติเมื่อตรงกับวันหยุดนักขัตฤกษ์' : 'System will automatically reschedule classes that fall on holidays'}
               />
-            </motion.div>
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -510,79 +344,54 @@ export default function ModernScheduleModalV2({
               <ModernInput
                 type="textarea"
                 value={scheduleForm.notes || ''}
-                onChange={(e) => updateForm({ notes: e.target.value })}
-                placeholder={language === 'th' ? 'เพิ่มหมายเหตุเพิ่มเติม...' : 'Add additional notes...'}
+                onChange={handleNotesChange}
+                placeholder={language === 'th' ? 'เพิ่มหมายเหตุเพิ่มเติม...' : 'Add any additional notes...'}
                 leftIcon={<HiDocumentText />}
               />
             </div>
           </div>
         </FormSection>
 
-        {/* Success State - Optimized animation */}
-        {validation.isValid && !validation.hasWarnings && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ 
-              duration: 0.3, 
-              ease: "easeOut",
-              type: "tween"
-            }}
-            className="p-6 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-2xl border border-emerald-200/60 dark:border-emerald-700/60 shadow-sm"
+        {/* Action Buttons */}
+        <div className="flex justify-end space-x-3 pt-4 bg-gray-50 -mx-6 -mb-6 px-6 py-4 rounded-b-lg">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200"
           >
-            <div className="flex items-center gap-4">
-              <div className="flex-shrink-0">
-                <HiCheckCircle className="w-8 h-8 text-green-500" />
-              </div>
-              <div className="flex-grow">
-                <h4 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-1">
-                  {language === 'th' ? '🎉 พร้อมสร้างตารางเรียน!' : '🎉 Ready to Create Schedule!'}
-                </h4>
-                <p className="text-sm text-green-700 dark:text-green-300">
-                  {language === 'th' 
-                    ? `จะสร้างตารางเรียน "${scheduleForm.schedule_name}" พร้อม ${scheduleForm.time_slots?.length || 0} ช่วงเวลา`
-                    : `Will create "${scheduleForm.schedule_name}" with ${scheduleForm.time_slots?.length || 0} time slots`
-                  }
-                </p>
-                {calculatedSessions > 0 && (
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                    {language === 'th' 
-                      ? `ประมาณ ${calculatedSessions} เซสชัน (${scheduleForm.total_hours} ชั่วโมง)`
-                      : `Approximately ${calculatedSessions} sessions (${scheduleForm.total_hours} hours)`
-                    }
-                  </p>
-                )}
-              </div>
-            </div>
-          </motion.div>
+            {language === 'th' ? 'ยกเลิก' : 'Cancel'}
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={!isFormValid || isLoading}
+            className="px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 border border-transparent rounded-lg hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg"
+          >
+            {isLoading ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                {language === 'th' ? 'กำลังสร้าง...' : 'Creating...'}
+              </>
+            ) : (
+              language === 'th' ? 'สร้างตารางเรียน' : 'Create Schedule'
+            )}
+          </button>
+        </div>
+
+        {error && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-600 text-sm flex items-center">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {error}
+            </p>
+          </div>
         )}
       </div>
     </ActionModal>
   );
-}
-
-// Add custom scrollbar styles
-const styles = `
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #d1d5db;
-  border-radius: 3px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: #9ca3af;
-}
-`;
-
-if (typeof document !== 'undefined') {
-  const styleElement = document.createElement('style');
-  styleElement.textContent = styles;
-  document.head.appendChild(styleElement);
 }

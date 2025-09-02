@@ -22,6 +22,20 @@ import Button from "@/components/common/Button";
 import { GrEdit } from "react-icons/gr";
 import { RiDeleteBin6Line } from "react-icons/ri";
 
+interface TeachingReportData {
+  lessonPlan: string;
+  date: string;
+  hours: string;
+  warmUp: string;
+  topic: string;
+  lastPage: string;
+  teacherName: string;
+  comment: string;
+  targetHours: number;
+  specialHours: number;
+  index?: number;
+}
+
 const columns = [
   { name: "Lesson plan", uid: "lessonPlan" },
   { name: "Date", uid: "date" },
@@ -55,22 +69,8 @@ export default function TeachingReport() {
 
   // state modal
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedRow, setSelectedRow] = useState<any | null>(null);
+  const [selectedRow, setSelectedRow] = useState<Partial<TeachingReportData> | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  
-
-  // Validation ก่อนบันทึก
-  const validateReport = (report: any) => {
-    if (!report.lessonPlan.trim()) return "Lesson plan is required";
-    if (!report.date.trim()) return "Date is required";
-    if (!report.hours || isNaN(Number(report.hours)) || Number(report.hours) <= 0)
-      return "Hours must be greater than 0";
-    if (!report.warmUp.trim()) return "Warm-Up is required";
-    if (!report.topic.trim()) return "Topic is required";
-    if (!report.lastPage.trim()) return "Last Page is required";
-    if (!report.teacherName.trim()) return "Teacher's Name is required";
-    return null;
-  };
 
 // คำนวณชั่วโมงรวม
 const totalHoursUsed = rows.reduce(
@@ -96,6 +96,8 @@ const totalHours = targetHours + specialHours;
     lastPage: "",
     teacherName: "",
     comment: "",
+    targetHours: 0,
+    specialHours: 0,
   });
   setEditingIndex(null); // ✅ add mode
   setIsModalOpen(true);
@@ -122,14 +124,27 @@ const handleSave = () => {
     return;
   }
 
+  const completeRow: TeachingReportData = {
+    lessonPlan: selectedRow.lessonPlan || "",
+    date: selectedRow.date || "",
+    hours: selectedRow.hours || "",
+    warmUp: selectedRow.warmUp || "",
+    topic: selectedRow.topic || "",
+    lastPage: selectedRow.lastPage || "",
+    teacherName: selectedRow.teacherName || "",
+    comment: selectedRow.comment || "",
+    targetHours: selectedRow.targetHours || 0,
+    specialHours: selectedRow.specialHours || 0,
+  };
+
   if (editingIndex !== null) {
     // Edit
     const updated = [...rows];
-    updated[editingIndex] = selectedRow;
+    updated[editingIndex] = completeRow;
     setRows(updated);
   } else {
     // Add
-    setRows([...rows, selectedRow]);
+    setRows([...rows, completeRow]);
   }
 
   setIsModalOpen(false);

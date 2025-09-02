@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ActionModal from '@/components/common/ActionModal';
 import FormSection from '@/components/common/forms/FormSection';
@@ -111,13 +111,27 @@ export function ModernSessionsModal({
 
   const sessionForm = externalForm || internalForm;
   
+  // Effect to prevent form data loss during re-renders
+  useEffect(() => {
+    if (externalForm && !externalUpdate) {
+      setInternalForm(externalForm);
+    }
+  }, [externalForm, externalUpdate]);
+  
   const updateForm = useCallback((updates: Partial<CreateSessionsForm>) => {
+    console.log('ModernSessionsModal: updateForm called with:', updates);
+    console.log('Current form state:', sessionForm);
+    
     if (externalUpdate) {
       externalUpdate(updates);
     } else {
-      setInternalForm(prev => ({ ...prev, ...updates }));
+      setInternalForm(prev => {
+        const newForm = { ...prev, ...updates };
+        console.log('ModernSessionsModal: New internal form state:', newForm);
+        return newForm;
+      });
     }
-  }, [externalUpdate]);
+  }, [externalUpdate, sessionForm]);
 
   // Enhanced validation with real-time feedback
   const validation = useMemo(() => {
@@ -208,7 +222,8 @@ export function ModernSessionsModal({
 
   // Handlers
   const handleClose = useCallback(() => {
-    if (!externalForm) {
+    // Only reset if we're using internal form state
+    if (!externalForm && !externalUpdate) {
       setInternalForm({
         schedule_id: selectedScheduleId || '',
         course_id: '',
@@ -223,7 +238,7 @@ export function ModernSessionsModal({
       });
     }
     onClose();
-  }, [externalForm, selectedScheduleId, onClose]);
+  }, [externalForm, externalUpdate, selectedScheduleId, onClose]);
 
   const handleConfirm = useCallback(async () => {
     if (!validation.isValid) return;
@@ -377,9 +392,10 @@ export function ModernSessionsModal({
               <EnhancedSelect
                 options={courseOptions}
                 value={sessionForm.course_id}
-                onChange={(value) => updateForm({ course_id: value as string })}
+                onChange={(value) => updateForm({ course_id: Array.isArray(value) ? value[0] : value })}
                 placeholder={language === 'th' ? 'เลือกคอร์ส' : 'Select Course'}
                 searchable
+                key={`course-${sessionForm.course_id}`}
               />
             </div>
 
@@ -390,9 +406,10 @@ export function ModernSessionsModal({
               <EnhancedSelect
                 options={teacherOptions}
                 value={sessionForm.teacher_id}
-                onChange={(value) => updateForm({ teacher_id: value as string })}
+                onChange={(value) => updateForm({ teacher_id: Array.isArray(value) ? value[0] : value })}
                 placeholder={language === 'th' ? 'เลือกครู' : 'Select Teacher'}
                 searchable
+                key={`teacher-${sessionForm.teacher_id}`}
               />
             </div>
           </FieldGroup>
@@ -468,6 +485,7 @@ export function ModernSessionsModal({
               selectedIds={sessionForm.student_ids}
               onChange={(selectedIds) => updateForm({ student_ids: selectedIds })}
               className="w-full"
+              key={`students-${sessionForm.student_ids.length}`}
             />
           </div>
         </FormSection>
@@ -487,6 +505,7 @@ export function ModernSessionsModal({
                 value={sessionForm.start_date}
                 onChange={(e) => updateForm({ start_date: e.target.value })}
                 min={new Date().toISOString().split('T')[0]}
+                key={`start-date-${sessionForm.start_date}`}
               />
             </div>
 
@@ -498,6 +517,7 @@ export function ModernSessionsModal({
                 value={sessionForm.end_date}
                 onChange={(e) => updateForm({ end_date: e.target.value })}
                 min={sessionForm.start_date || new Date().toISOString().split('T')[0]}
+                key={`end-date-${sessionForm.end_date}`}
               />
             </div>
 
@@ -512,6 +532,7 @@ export function ModernSessionsModal({
                 min="1"
                 max="100"
                 leftIcon={<HiDocumentText />}
+                key={`session-count-${sessionForm.session_count}`}
               />
             </div>
           </FieldGroup>
@@ -533,6 +554,7 @@ export function ModernSessionsModal({
             maxSlots={sessionForm.session_count}
             showBulkSelection={true}
             className="w-full"
+            key={`time-slots-${sessionForm.time_slots.length}`}
           />
         </FormSection>
 
@@ -548,6 +570,7 @@ export function ModernSessionsModal({
             onChange={(e) => updateForm({ notes: e.target.value })}
             placeholder={language === 'th' ? 'เพิ่มหมายเหตุเพิ่มเติม...' : 'Add any additional notes...'}
             leftIcon={<HiDocumentText />}
+            key={`notes-${sessionForm.notes.length}`}
           />
         </FormSection>
 

@@ -19,17 +19,10 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ className = "" }) => {
   const { t } = useLanguage();
-  
-  // Use a try-catch approach to handle missing auth context gracefully
-  let authContext;
-  try {
-    authContext = useAuth();
-  } catch (error) {
-    // If AuthContext is not available, provide a default value
-    authContext = null;
-  }
-  
   const router = useRouter();
+  
+  // Always call useAuth hook, but handle the case when context is not available
+  const authContext = useAuth();
   
   // Use authContext if available, otherwise use mock data for demo
   const { user, logout, isAuthenticated } = authContext || {
@@ -325,7 +318,7 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
                   onClick={() => setProfileOpen(!profileOpen)}
                 >
                   <Avatar
-                    src={getAvatarUrl(user.avatar)}
+                    src={getAvatarUrl(user.avatar || undefined)}
                     alt={user.username}
                     size="sm"
                     fallbackInitials={getUserInitials(user.username)}
@@ -343,7 +336,7 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
                     <div className="p-5 bg-gradient-to-r from-[#334293] to-[#2a3875] text-white">
                       <div className="flex items-center gap-4">
                         <Avatar
-                          src={getAvatarUrl(user.avatar)}
+                          src={getAvatarUrl(user.avatar || undefined)}
                           alt={user.username}
                           size="lg"
                           fallbackInitials={getUserInitials(user.username)}

@@ -73,7 +73,7 @@ export default function NotificationTestPage() {
                       <li>Click the notification bell icon (🔔) in the header above</li>
                       <li>See mock notifications with different types and states</li>
                       <li>Click on any notification to navigate to its relevant page</li>
-                      <li>Click "อ่านทั้งหมด" to mark all notifications as read</li>
+                      <li>Click &quot;อ่านทั้งหมด&quot; to mark all notifications as read</li>
                       <li>The system gracefully falls back to mock data when API is not available</li>
                     </ol>
                   </div>
@@ -86,10 +86,10 @@ export default function NotificationTestPage() {
                       The notification system is fully integrated with the Enhanced Notification System API endpoints:
                     </p>
                     <ul className="list-disc list-inside text-purple-700 space-y-1 mt-2 text-sm">
-                      <li><code>/api/v1/notifications</code> - Get notifications with filtering</li>
-                      <li><code>/api/v1/notifications/:id/read</code> - Mark single notification as read</li>
-                      <li><code>/api/v1/notifications/mark-all-read</code> - Mark all as read</li>
-                      <li><code>/api/v1/notifications/send</code> - Send notifications (admin/owner)</li>
+                      <li><code>/notifications</code> - Get notifications with filtering</li>
+                      <li><code>/notifications/:id/read</code> - Mark single notification as read</li>
+                      <li><code>/notifications/mark-all-read</code> - Mark all as read</li>
+                      <li><code>/notifications/send</code> - Send notifications (admin/owner)</li>
                       <li>Plus all admin/owner endpoints for logs, cleanup, and archival</li>
                     </ul>
                   </div>
