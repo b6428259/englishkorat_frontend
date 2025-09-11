@@ -38,6 +38,13 @@ export interface AuthResponse {
   };
 }
 
+// New login response shape (login endpoint changed)
+export interface LoginResponse {
+  message: string;
+  token: string;
+  user: User;
+}
+
 export interface AuthError {
   success: false;
   message: string;

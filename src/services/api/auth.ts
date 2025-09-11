@@ -1,6 +1,6 @@
 import { api } from './base';
 import { API_ENDPOINTS } from './endpoints';
-import { LoginRequest, RegisterRequest, AuthResponse, ProfileResponse, UpdateProfileRequest, ChangePasswordRequest } from '../../types/auth.types';
+import { LoginRequest, RegisterRequest, AuthResponse, ProfileResponse, UpdateProfileRequest, ChangePasswordRequest, LoginResponse } from '../../types/auth.types';
 import { setSecureToken, getSecureToken, removeSecureToken, hasValidToken } from '../../utils/secureStorage';
 
 export const authApi = {
@@ -9,13 +9,24 @@ export const authApi = {
    */
   login: async (credentials: LoginRequest): Promise<AuthResponse> => {
     const response = await api.post(API_ENDPOINTS.AUTH.LOGIN, credentials);
-    
-    // Store encrypted token in secure cookies
-    if (response.data.success && response.data.data.token) {
-      setSecureToken(response.data.data.token, response.data.data.user.id.toString());
+    // Support both old and new response shapes
+    // Old: { success, message, data: { user, token }}
+    // New: { message, token, user }
+    const respData = response.data;
+    // If new shape (no success flag but has token and user at top level)
+    if (!respData.success && respData.token && respData.user) {
+      const lr = respData as LoginResponse;
+      setSecureToken(lr.token, lr.user.id.toString());
+      // normalize to old AuthResponse shape for callers
+      return { success: true, message: lr.message, data: { user: lr.user, token: lr.token } } as AuthResponse;
     }
-    
-    return response.data;
+
+    // Fallback to existing shape
+    if (respData.success && respData.data?.token) {
+      setSecureToken(respData.data.token, respData.data.user.id.toString());
+    }
+
+    return respData as AuthResponse;
   },
 
   /**
@@ -23,13 +34,18 @@ export const authApi = {
    */
   register: async (userData: RegisterRequest): Promise<AuthResponse> => {
     const response = await api.post(API_ENDPOINTS.AUTH.REGISTER, userData);
-    
-    // Store encrypted token in secure cookies after successful registration
-    if (response.data.success && response.data.data.token) {
-      setSecureToken(response.data.data.token, response.data.data.user.id.toString());
+    const respData = response.data;
+    if (!respData.success && respData.token && respData.user) {
+      const lr = respData as LoginResponse;
+      setSecureToken(lr.token, lr.user.id.toString());
+      return { success: true, message: lr.message, data: { user: lr.user, token: lr.token } } as AuthResponse;
     }
-    
-    return response.data;
+
+    if (respData.success && respData.data?.token) {
+      setSecureToken(respData.data.token, respData.data.user.id.toString());
+    }
+
+    return respData as AuthResponse;
   },
 
   /**
@@ -66,12 +82,18 @@ export const authApi = {
    */
   refreshToken: async (): Promise<AuthResponse> => {
     const response = await api.post(API_ENDPOINTS.AUTH.REFRESH);
-    
-    if (response.data.success && response.data.data.token) {
-      setSecureToken(response.data.data.token, response.data.data.user.id.toString());
+    const respData = response.data;
+    if (!respData.success && respData.token && respData.user) {
+      const lr = respData as LoginResponse;
+      setSecureToken(lr.token, lr.user.id.toString());
+      return { success: true, message: lr.message, data: { user: lr.user, token: lr.token } } as AuthResponse;
     }
-    
-    return response.data;
+
+    if (respData.success && respData.data?.token) {
+      setSecureToken(respData.data.token, respData.data.user.id.toString());
+    }
+
+    return respData as AuthResponse;
   },
 
   /**

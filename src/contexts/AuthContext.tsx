@@ -124,8 +124,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
     try {
       const response = await authApi.login(credentials);
-      if (response.success) {
-        setUser(response.data.user);
+      // response may be normalized AuthResponse or already normalized by service
+      if (response && (response as AuthResponse).data && (response as AuthResponse).data.user) {
+        setUser((response as AuthResponse).data.user);
         router.push('/dashboard');
       }
       return response;

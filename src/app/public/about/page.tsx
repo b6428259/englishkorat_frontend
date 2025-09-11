@@ -94,7 +94,7 @@ export default function AboutPage() {
 
               <div className="grid md:grid-cols-2 gap-12 items-center">
                 <div>
-                  <div className="space-y-6 text-gray-600">
+                  <div className="space-y-6 text-red-600">
                     <p className="text-lg leading-relaxed">
                       {language === 'th' 
                         ? 'English Korat เกิดขึ้นจากความตั้งใจที่จะสร้างสถานที่เรียนรู้ภาษาอังกฤษที่แตกต่าง ด้วยการสอนที่เน้นผู้เรียนเป็นศูนย์กลาง และการใช้เทคนิคการสอนที่หลากหลายเพื่อให้เหมาะสมกับรูปแบบการเรียนรู้ของแต่ละคน'
