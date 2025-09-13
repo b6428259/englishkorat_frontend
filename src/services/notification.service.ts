@@ -23,7 +23,28 @@ export class NotificationService {
    */
   private static getNotificationConfig(type: NotificationType): NotificationDisplayConfig {
     const configs: Record<NotificationType, NotificationDisplayConfig> = {
-      // Core Types
+      // Backend core types
+      info: {
+        emoji: 'ℹ️',
+        bgColor: 'bg-blue-100',
+        textColor: 'text-blue-600'
+      },
+      warning: {
+        emoji: '⚠️',
+        bgColor: 'bg-yellow-100',
+        textColor: 'text-yellow-600'
+      },
+      error: {
+        emoji: '❌',
+        bgColor: 'bg-red-100',
+        textColor: 'text-red-600'
+      },
+      success: {
+        emoji: '✅',
+        bgColor: 'bg-green-100',
+        textColor: 'text-green-600'
+      },
+      // Extended UI types
       class_confirmation: {
         emoji: '✅',
         bgColor: 'bg-blue-100',
@@ -191,14 +212,14 @@ export class NotificationService {
     try {
       const response = await notificationApi.getNotifications({ page, limit });
       
-      const uiNotifications = response.data.notifications.map(notification => 
+      const uiNotifications = response.notifications.map(notification => 
         this.transformToUINotification(notification)
       );
 
       return {
         notifications: uiNotifications,
-        hasMore: response.data.pagination.hasNext,
-        total: response.data.pagination.total
+        hasMore: response.pagination.page < Math.ceil(response.pagination.total / (response.pagination.limit || 20)),
+        total: response.pagination.total
       };
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -213,7 +234,7 @@ export class NotificationService {
   static async getUnreadCount(): Promise<number> {
     try {
       const response = await notificationApi.getNotifications({ limit: 1, read: false });
-      return response.data.pagination.total;
+      return response.pagination.total;
     } catch (error) {
       console.error('Error fetching unread count:', error);
       return 0;

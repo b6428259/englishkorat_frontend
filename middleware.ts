@@ -17,7 +17,8 @@ export function middleware(request: NextRequest) {
   
   // ทุก path ที่ขึ้นต้นด้วย /public ไม่ต้อง auth
   // ครอบคลุมทุก /public path (เช่น /public, /public/, /public/xxx)
-  const isPublicPath = pathname.startsWith('/public') || publicPaths.includes(pathname);
+  // Also include /demo paths for demonstration
+  const isPublicPath = pathname.startsWith('/public') || pathname.startsWith('/demo') || publicPaths.includes(pathname);
   
   // If it's a public path, allow access without authentication
   if (isPublicPath) {
