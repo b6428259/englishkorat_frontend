@@ -37,7 +37,9 @@ export const API_ENDPOINTS = {
     GET_BY_ID: (id: string) => `/students/${id}`,
     UPDATE: (id: string) => `/students/${id}`,
     DELETE: (id: string) => `/students/${id}`,
-    REGISTER: '/students/register'
+    REGISTER: '/students/new-register',
+    BY_STATUS: (status: string) => `/students/by-status/${status}`,
+    EXAM_SCORES: (id: string) => `/students/${id}/exam-scores`
   },
   
   // Schedule management endpoints

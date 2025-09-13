@@ -23,6 +23,8 @@ export interface StudentFormData {
   citizenId: string;
   firstNameEn?: string;
   lastNameEn?: string;
+  nicknameTh: string;
+  nicknameEn: string;
   dateOfBirth: string;
   gender: string;
   email: string;
@@ -39,6 +41,7 @@ export interface StudentFormData {
   emergencyContact?: string;
   emergencyPhone?: string;
   lineId: string;
+  // Legacy field - keeping for backward compatibility
   nickName: string;
   currentEducation: string;
   recentCEFR: string;
@@ -96,6 +99,8 @@ const StudentForm: React.FC<StudentFormProps> = ({
     citizenId: initialData.citizenId || '',
     firstNameEn: initialData.firstNameEn || '',
     lastNameEn: initialData.lastNameEn || '',
+    nicknameTh: initialData.nicknameTh || initialData.nickName || '',
+    nicknameEn: initialData.nicknameEn || '',
     dateOfBirth: initialData.dateOfBirth || '',
     gender: initialData.gender || '',
     email: initialData.email || '',
@@ -447,6 +452,12 @@ const StudentForm: React.FC<StudentFormProps> = ({
     if (!formData.lineId.trim()) {
       newErrors.lineId = language === 'th' ? 'กรุณากรอก LINE ID' : 'LINE ID is required';
     }
+    if (!formData.nicknameTh.trim()) {
+      newErrors.nicknameTh = language === 'th' ? 'กรุณากรอกชื่อเล่นภาษาไทย' : 'Thai nickname is required';
+    }
+    if (!formData.nicknameEn.trim()) {
+      newErrors.nicknameEn = language === 'th' ? 'กรุณากรอกชื่อเล่นภาษาอังกฤษ' : 'English nickname is required';
+    }
     if (!formData.nickName.trim()) {
       newErrors.nickName = language === 'th' ? 'กรุณากรอกชื่อเล่น' : 'Nickname is required';
     }
@@ -561,7 +572,35 @@ const StudentForm: React.FC<StudentFormProps> = ({
           </FormField>
 
           <FormField
-           label={language === 'th' ? 'ชื่อเล่น' : 'Nickname'}
+           label={language === 'th' ? 'ชื่อเล่น (ไทย)' : 'Nickname (Thai)'}
+           required
+           error={errors.nicknameTh}
+          >
+            <Input
+              name="nicknameTh"
+              value={formData.nicknameTh}
+              onChange={(e) => handleInputChange('nicknameTh', e.target.value)}
+              placeholder={language === 'th' ? 'ชื่อเล่นภาษาไทย' : 'Thai nickname'}
+              error={!!errors.nicknameTh}
+            />
+          </FormField>
+
+          <FormField
+           label={language === 'th' ? 'ชื่อเล่น (อังกฤษ)' : 'Nickname (English)'}
+           required
+           error={errors.nicknameEn}
+          >
+            <Input
+              name="nicknameEn"
+              value={formData.nicknameEn}
+              onChange={(e) => handleInputChange('nicknameEn', e.target.value)}
+              placeholder={language === 'th' ? 'ชื่อเล่นภาษาอังกฤษ' : 'English nickname'}
+              error={!!errors.nicknameEn}
+            />
+          </FormField>
+
+          <FormField
+           label={language === 'th' ? 'ชื่อเล่น (เก่า)' : 'Nickname (Legacy)'}
            required
            error={errors.nickName}
           >

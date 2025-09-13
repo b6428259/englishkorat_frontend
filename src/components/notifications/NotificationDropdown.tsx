@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaBell, FaEllipsisV, FaCheck, FaEye, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaBell, FaEllipsisV, FaCheck, FaEye } from 'react-icons/fa';
 import { useRouter } from 'next/navigation';
 import { useNotifications } from '../../contexts/NotificationContext';
 import type { Notification } from '../../types/notification';
