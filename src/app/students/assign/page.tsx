@@ -76,8 +76,8 @@ export default function StudentAssignPage() {
       // Redirect to edit student for completing information
       router.push(`/students/${student.id}/edit?mode=complete`);
     } else if (activeTab === 'schedule_exam') {
-      // Redirect to create exam schedule
-      router.push(`/schedule/exam/create?student_id=${student.id}`);
+      // Redirect to record exam scores
+      router.push(`/students/${student.id}/exam`);
     } else if (activeTab === 'waiting_for_group') {
       // Redirect to assign to group/course
       router.push(`/students/${student.id}/assign-group`);
@@ -92,7 +92,7 @@ export default function StudentAssignPage() {
       case 'pending_review':
         return language === 'th' ? 'ตรวจสอบและกรอกข้อมูล' : 'Review & Complete Info';
       case 'schedule_exam':
-        return language === 'th' ? 'จัดตารางสอบ' : 'Schedule Exam';
+        return language === 'th' ? 'บันทึกคะแนนสอบ' : 'Record Exam Scores';
       case 'waiting_for_group':
         return language === 'th' ? 'จัดเข้ากลุ่ม' : 'Assign to Group';
       case 'active':
