@@ -36,7 +36,7 @@ export interface Notification {
   title_th?: string; // optional Thai title
   message: string;
   message_th?: string; // optional Thai message
-  type: 'info' | 'warning' | 'error' | 'success'; // backend enum
+  type: NotificationType; // Use the full NotificationType enum
   read: boolean;
   read_at?: string; // ISO timestamp, optional
   user: User; // recipient user details

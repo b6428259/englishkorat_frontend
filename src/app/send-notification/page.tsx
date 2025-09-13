@@ -33,13 +33,13 @@ export default function SendNotificationPage() {
   // Form states
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
-  const [selectedRole, setSelectedRole] = useState<string>('');
+  const [selectedRole, setSelectedRole] = useState<'student' | 'teacher' | 'admin' | 'owner'>('student');
   const [selectedBranchId, setSelectedBranchId] = useState<number | null>(null);
   const [title, setTitle] = useState('');
   const [titleTh, setTitleTh] = useState('');
   const [message, setMessage] = useState('');
   const [messageTh, setMessageTh] = useState('');
-  const [notificationType, setNotificationType] = useState('info');
+  const [notificationType, setNotificationType] = useState<'info' | 'success' | 'warning' | 'error'>('info');
 
   // Check if user is admin or owner
   const isAuthorized = user?.role === 'admin' || user?.role === 'owner';
@@ -164,7 +164,7 @@ export default function SendNotificationPage() {
         setMessageTh('');
         setSelectedUserId(null);
         setSelectedUserIds([]);
-        setSelectedRole('');
+        setSelectedRole('student');
         setSelectedBranchId(null);
       } else {
         toast.error(response.message || 'เกิดข้อผิดพลาดในการส่งการแจ้งเตือน');
@@ -358,10 +358,9 @@ export default function SendNotificationPage() {
                       </label>
                       <select
                         value={selectedRole}
-                        onChange={(e) => setSelectedRole(e.target.value)}
+                        onChange={(e) => setSelectedRole(e.target.value as 'student' | 'teacher' | 'admin' | 'owner')}
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
-                        <option value="">เลือกบทบาท...</option>
                         <option value="student">นักเรียน</option>
                         <option value="teacher">อาจารย์</option>
                         <option value="admin">ผู้ดูแลระบบ</option>
@@ -468,7 +467,7 @@ export default function SendNotificationPage() {
                         name="notificationType"
                         value={type.value}
                         checked={notificationType === type.value}
-                        onChange={(e) => setNotificationType(e.target.value)}
+                        onChange={(e) => setNotificationType(e.target.value as 'error' | 'success' | 'warning' | 'info')}
                         className="border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                       <span className={`text-sm ${type.color}`}>
