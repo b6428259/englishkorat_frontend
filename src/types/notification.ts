@@ -1,19 +1,61 @@
-// Notification system types based on Enhanced Notification System Documentation
+// Notification system types based on Backend NotificationDTO
+// Updated to match Go backend specification
 
+export interface User {
+  id: number;
+  first_name_en: string;
+  first_name_th: string;
+  last_name_en: string;
+  last_name_th: string;
+}
+
+export interface Branch {
+  id: number;
+  name_en: string;
+  name_th: string;
+}
+
+export interface Sender {
+  type: 'system' | 'user';
+  id?: number;
+  name: string;
+}
+
+export interface Recipient {
+  type: 'user';
+  id: number;
+}
+
+// NotificationDTO - matches backend exactly
 export interface Notification {
   id: number;
-  type: NotificationType;
+  created_at: string; // ISO timestamp
+  updated_at: string; // ISO timestamp
+  user_id: number; // recipient user ID
   title: string;
+  title_th?: string; // optional Thai title
   message: string;
+  message_th?: string; // optional Thai message
+  type: 'info' | 'warning' | 'error' | 'success'; // backend enum
+  read: boolean;
+  read_at?: string; // ISO timestamp, optional
+  user: User; // recipient user details
+  branch: Branch; // branch information
+  sender: Sender; // who sent the notification
+  recipient: Recipient; // recipient details
+  
+  // Legacy fields for backward compatibility
+  isRead?: boolean; // maps to `read`
   metadata?: { [key: string]: string | number | boolean };
-  isRead: boolean;
-  created_at: string;
-  updated_at?: string;
-  user_id?: number;
 }
 
 export type NotificationType = 
-  // Core Types
+  // Backend core types
+  | 'info'
+  | 'warning' 
+  | 'error'
+  | 'success'
+  // Extended types for UI categorization
   | 'class_confirmation'
   | 'leave_approval'
   | 'class_cancellation'
@@ -22,7 +64,6 @@ export type NotificationType =
   | 'report_deadline'
   | 'room_conflict'
   | 'general'
-  // Enhanced Types
   | 'student_registration'
   | 'appointment_reminder'
   | 'class_reminder'
@@ -42,37 +83,38 @@ export interface NotificationConfig {
   roles: UserRole[];
 }
 
+// Backend API response format
 export interface NotificationApiResponse {
-  success: boolean;
-  data: {
-    notifications: Notification[];
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-      hasNext: boolean;
-      hasPrevious: boolean;
-    };
+  notifications: Notification[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
   };
 }
 
 export interface NotificationFilters {
   page?: number;
   limit?: number;
-  type?: NotificationType;
   read?: boolean;
+  type?: 'info' | 'warning' | 'error' | 'success';
 }
 
+// Backend notification creation request
 export interface SendNotificationRequest {
-  type: NotificationType;
-  userId?: number;
-  roleTargets?: UserRole[];
-  data: {
-    title: string;
-    [key: string]: string | number | boolean;
-  };
-  channels?: string[];
+  // Single user
+  user_id?: number;
+  // Multiple users
+  user_ids?: number[];
+  // Role-based
+  role?: UserRole;
+  branch_id?: number;
+  // Content
+  title: string;
+  title_th?: string;
+  message: string;
+  message_th?: string;
+  type: 'info' | 'warning' | 'error' | 'success';
 }
 
 export interface NotificationIconConfig {

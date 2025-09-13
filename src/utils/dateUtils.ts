@@ -1,5 +1,6 @@
 // Date formatting utilities
-export const formatDate = (dateString: string, locale: 'th-TH' | 'en-US' = 'th-TH'): string => {
+export const formatDate = (dateString: string | undefined, locale: 'th-TH' | 'en-US' = 'th-TH'): string => {
+  if (!dateString) return '';
   const date = new Date(dateString);
   
   const options: Intl.DateTimeFormatOptions = {
@@ -13,7 +14,8 @@ export const formatDate = (dateString: string, locale: 'th-TH' | 'en-US' = 'th-T
   return date.toLocaleDateString(locale, options);
 };
 
-export const formatDateShort = (dateString: string, locale: 'th-TH' | 'en-US' = 'th-TH'): string => {
+export const formatDateShort = (dateString: string | undefined, locale: 'th-TH' | 'en-US' = 'th-TH'): string => {
+  if (!dateString) return '';
   const date = new Date(dateString);
   
   const options: Intl.DateTimeFormatOptions = {
@@ -25,7 +27,8 @@ export const formatDateShort = (dateString: string, locale: 'th-TH' | 'en-US' = 
   return date.toLocaleDateString(locale, options);
 };
 
-export const formatTimeAgo = (dateString: string, locale: 'th' | 'en' = 'th'): string => {
+export const formatTimeAgo = (dateString: string | undefined, locale: 'th' | 'en' = 'th'): string => {
+  if (!dateString) return '';
   const date = new Date(dateString);
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);

@@ -3,6 +3,8 @@ import { Teacher } from '../../services/api/teachers';
 import Avatar from './Avatar';
 import Button from './Button';
 import { getAvatarUrl } from '../../utils/config';
+import { teachersApi } from '../../services/api/teachers';
+import { useEffect, useState } from 'react';
 
 interface TeachersTableProps {
   teachers: Teacher[];
@@ -40,6 +42,48 @@ const TeachersTable: React.FC<TeachersTableProps> = ({
   onDelete,
   onView
 }) => {
+  const [enriched, setEnriched] = useState<Record<number, Partial<Teacher>>>({});
+
+  useEffect(() => {
+    // Find teachers missing specializations/certifications and fetch details lazily
+    const idsToFetch = teachers
+      .filter(t => (t.specializations == null || t.certifications == null) && t.id)
+      .map(t => t.id);
+
+    if (idsToFetch.length === 0) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const promises = idsToFetch.map(id =>
+          teachersApi.getTeacherById(String(id)).then(res => ({ id, teacher: res.data.teacher })).catch(() => null)
+        );
+
+        const results = await Promise.all(promises);
+
+        if (cancelled) return;
+
+        const map: Record<number, Partial<Teacher>> = {};
+        for (const r of results) {
+          if (r && r.teacher) {
+            map[r.id] = {
+              specializations: r.teacher.specializations ?? null,
+              certifications: r.teacher.certifications ?? null,
+            };
+          }
+        }
+
+        setEnriched(prev => ({ ...prev, ...map }));
+      } catch (e) {
+        // ignore fetch errors, leave fields as-is
+        console.error('Error enriching teachers:', e);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [teachers]);
+
   if (loading) {
     return (
       <div className="w-full">
@@ -90,12 +134,12 @@ const TeachersTable: React.FC<TeachersTableProps> = ({
             <div className="space-y-2 text-sm">
               <div>
                 <span className="font-medium text-gray-700">ความเชี่ยวชาญ:</span>
-                <p className="text-gray-600 mt-1">{teacher.specializations || 'ไม่ระบุ'}</p>
+                <p className="text-gray-600 mt-1">{enriched[teacher.id]?.specializations ?? teacher.specializations ?? 'ไม่ระบุ'}</p>
               </div>
               
               <div>
                 <span className="font-medium text-gray-700">คุณสมบัติ:</span>
-                <p className="text-gray-600 mt-1 line-clamp-2">{teacher.certifications || 'ไม่ระบุ'}</p>
+                <p className="text-gray-600 mt-1 line-clamp-2">{enriched[teacher.id]?.certifications ?? teacher.certifications ?? 'ไม่ระบุ'}</p>
               </div>
               
               {(teacher.email || teacher.phone) && (
@@ -199,12 +243,12 @@ const TeachersTable: React.FC<TeachersTableProps> = ({
                 </td>
                 <td className="px-6 py-4 max-w-xs">
                   <div className="text-sm text-gray-900 truncate">
-                    {teacher.specializations || 'ไม่ระบุ'}
+                    {enriched[teacher.id]?.specializations ?? teacher.specializations ?? 'ไม่ระบุ'}
                   </div>
                 </td>
                 <td className="px-6 py-4 max-w-sm">
                   <div className="text-sm text-gray-900 line-clamp-2">
-                    {teacher.certifications || 'ไม่ระบุ'}
+                    {enriched[teacher.id]?.certifications ?? teacher.certifications ?? 'ไม่ระบุ'}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">

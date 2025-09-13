@@ -3,12 +3,14 @@ import { API_ENDPOINTS } from './endpoints';
 import type { 
   NotificationApiResponse, 
   NotificationFilters, 
-  SendNotificationRequest
+  SendNotificationRequest,
+  Notification
 } from '../../types/notification';
 
 export const notificationApi = {
   /**
    * Get user's notifications with filtering and pagination
+   * Backend: GET /api/notifications?page=1&limit=20&read=true|false&type=info
    */
   getNotifications: async (filters: NotificationFilters = {}): Promise<NotificationApiResponse> => {
     const params = new URLSearchParams();
@@ -26,7 +28,17 @@ export const notificationApi = {
   },
 
   /**
+   * Get single notification by ID
+   * Backend: GET /api/notifications/:id
+   */
+  getNotification: async (id: number): Promise<Notification> => {
+    const response = await api.get<Notification>(`${API_ENDPOINTS.NOTIFICATIONS.LIST}/${id}`);
+    return response.data;
+  },
+
+  /**
    * Mark a specific notification as read
+   * Backend: POST /api/notifications/:id/mark-read
    */
   markAsRead: async (notificationId: number): Promise<{ success: boolean }> => {
     const response = await api.post<{ success: boolean }>(
@@ -37,6 +49,7 @@ export const notificationApi = {
 
   /**
    * Mark all user's notifications as read
+   * Backend: POST /api/notifications/mark-all-read
    */
   markAllAsRead: async (): Promise<{ success: boolean }> => {
     const response = await api.post<{ success: boolean }>(
@@ -46,7 +59,18 @@ export const notificationApi = {
   },
 
   /**
-   * Send notification to specific user(s) or role(s) - Admin/Owner only
+   * Get unread notification count
+   * Backend: GET /api/notifications/unread-count
+   */
+  getUnreadCount: async (): Promise<{ unread_count: number }> => {
+    const response = await api.get<{ unread_count: number }>('/api/notifications/unread-count');
+    return response.data;
+  },
+
+  /**
+   * Send notification - Admin only
+   * Backend: POST /api/notifications
+   * Body: { user_id, user_ids[], role, branch_id, title, title_th, message, message_th, type }
    */
   sendNotification: async (request: SendNotificationRequest): Promise<{ success: boolean; message?: string }> => {
     const response = await api.post<{ success: boolean; message?: string }>(
@@ -57,62 +81,57 @@ export const notificationApi = {
   },
 
   /**
-   * Get notification logs - Owner only
+   * Send notification to single user - Admin only
    */
-  getLogs: async (filters: {
-    startDate?: string;
-    endDate?: string;
-    userId?: number;
-    type?: string;
-    page?: number;
-    limit?: number;
-  } = {}): Promise<{ success: boolean; data: { logs: unknown[]; pagination: unknown } }> => {
-    const params = new URLSearchParams();
-    
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined) {
-        params.append(key, value.toString());
-      }
-    });
-    
-    const queryString = params.toString();
-    const url = queryString ? `${API_ENDPOINTS.NOTIFICATIONS.LOGS}?${queryString}` : API_ENDPOINTS.NOTIFICATIONS.LOGS;
-    
-    const response = await api.get(url);
+  sendToUser: async (data: {
+    user_id: number;
+    title: string;
+    title_th?: string;
+    message: string;
+    message_th?: string;
+    type: 'info' | 'warning' | 'error' | 'success';
+  }): Promise<{ success: boolean; message?: string }> => {
+    const response = await api.post<{ success: boolean; message?: string }>(
+      API_ENDPOINTS.NOTIFICATIONS.SEND,
+      data
+    );
     return response.data;
   },
 
   /**
-   * Get cleanup status and database statistics - Owner only
+   * Send notification to multiple users - Admin only
    */
-  getCleanupStatus: async (): Promise<{ 
-    success: boolean; 
-    data: { 
-      isRunning: boolean; 
-      lastCleanup: string; 
-      totalNotifications: number;
-      notificationsByType: Record<string, number>;
-      ageDistribution: Record<string, number>;
-      config: Record<string, unknown>;
-    } 
-  }> => {
-    const response = await api.get(API_ENDPOINTS.NOTIFICATIONS.CLEANUP_STATUS);
+  sendToUsers: async (data: {
+    user_ids: number[];
+    title: string;
+    title_th?: string;
+    message: string;
+    message_th?: string;
+    type: 'info' | 'warning' | 'error' | 'success';
+  }): Promise<{ success: boolean; message?: string }> => {
+    const response = await api.post<{ success: boolean; message?: string }>(
+      API_ENDPOINTS.NOTIFICATIONS.SEND,
+      data
+    );
     return response.data;
   },
 
   /**
-   * Manually trigger notification cleanup - Owner only
+   * Send notification to users by role - Admin only
    */
-  triggerCleanup: async (params?: { type?: string; retentionDays?: number }): Promise<{ success: boolean; message?: string }> => {
-    const response = await api.post(API_ENDPOINTS.NOTIFICATIONS.CLEANUP_TRIGGER, params || {});
-    return response.data;
-  },
-
-  /**
-   * Manually trigger log archival to S3 - Owner only
-   */
-  archiveLogs: async (params?: { targetDate?: string }): Promise<{ success: boolean; message?: string }> => {
-    const response = await api.post(API_ENDPOINTS.NOTIFICATIONS.LOGS_ARCHIVE, params || {});
+  sendToRole: async (data: {
+    role: 'owner' | 'admin' | 'teacher' | 'student';
+    branch_id?: number;
+    title: string;
+    title_th?: string;
+    message: string;
+    message_th?: string;
+    type: 'info' | 'warning' | 'error' | 'success';
+  }): Promise<{ success: boolean; message?: string }> => {
+    const response = await api.post<{ success: boolean; message?: string }>(
+      API_ENDPOINTS.NOTIFICATIONS.SEND,
+      data
+    );
     return response.data;
   }
 };

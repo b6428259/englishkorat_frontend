@@ -7,8 +7,9 @@
 import { SidebarItem } from './types';
 import { Translations } from '@/locales/translations';
 import { HiOutlineDocumentReport } from "react-icons/hi";
-import { HiOutlineSquares2X2, HiOutlineChartBar, HiOutlineDocumentText, HiOutlineCog, HiOutlineIdentification, HiOutlineUser, HiOutlineKey } from 'react-icons/hi2';
+import { HiOutlineSquares2X2, HiOutlineChartBar, HiOutlineDocumentText, HiOutlineCog, HiOutlineIdentification, HiOutlineUser, HiOutlineKey, HiOutlineBell } from 'react-icons/hi2';
 import { GrSchedules } from "react-icons/gr";
+import { FaPaperPlane } from "react-icons/fa";
 
 // Icon props for easy future customization
 const iconProps = {
@@ -26,6 +27,16 @@ export const getSidebarItems = (t: Translations): SidebarItem[] => [
     label: t.dashboard,
     href: '/dashboard',
     icon: <HiOutlineSquares2X2 {...iconProps} />,
+  },
+  {
+    id: 'notifications',
+    label: 'การแจ้งเตือน',
+    icon: <HiOutlineBell {...iconProps} />,
+    children: [
+      { id: 'notifications-view', label: 'ดูการแจ้งเตือน', href: '/notifications', icon: <HiOutlineBell {...iconProps} /> },
+      { id: 'notifications-send', label: 'ส่งการแจ้งเตือน', href: '/send-notification', icon: <FaPaperPlane {...iconProps} /> },
+      { id: 'notifications-demo', label: 'ทดสอบระบบ', href: '/demo-notifications', icon: <HiOutlineCog {...iconProps} /> },
+    ],
   },
   {
     id: 'teacher-portal',
