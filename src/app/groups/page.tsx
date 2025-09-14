@@ -7,14 +7,14 @@ import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import ErrorMessage from "@/components/common/ErrorMessage";
 import { groupService } from "@/services/api/groups";
-import { Group, GroupMember, CreateGroupRequest } from "@/types/group.types";
+import { Group, CreateGroupRequest } from "@/types/group.types";
 import { GroupCard } from "./components/GroupCard";
 import { CreateGroupModal } from "./components/CreateGroupModal";
 import { GroupDetailsModal } from "./components/GroupDetailsModal";
 import { AddMemberModal } from "./components/AddMemberModal";
 
 export default function GroupsPage() {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   
   // State management
   const [groups, setGroups] = useState<Group[]>([]);
@@ -24,7 +24,7 @@ export default function GroupsPage() {
   // Filter state
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
-  const [courseFilter, setCourseFilter] = useState<number | null>(null);
+  // const [courseFilter, setCourseFilter] = useState<number | null>(null); // TODO: Implement course filtering
   
   // Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -42,10 +42,14 @@ export default function GroupsPage() {
       setLoading(true);
       setError(null);
       
-      const params: any = {};
+      const params: {
+        status?: string;
+        payment_status?: string;
+        // course_id?: number; // TODO: Implement course filtering
+      } = {};
       if (statusFilter !== 'all') params.status = statusFilter;
       if (paymentFilter !== 'all') params.payment_status = paymentFilter;
-      if (courseFilter) params.course_id = courseFilter;
+      // if (courseFilter) params.course_id = courseFilter;
       
       const response = await groupService.getGroups(params);
       setGroups(response.groups);
@@ -56,7 +60,7 @@ export default function GroupsPage() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, paymentFilter, courseFilter, language]);
+  }, [statusFilter, paymentFilter, language]); // Removed courseFilter since it's commented out
 
   // Load groups on mount and when filters change
   useEffect(() => {

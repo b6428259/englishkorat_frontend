@@ -1,19 +1,19 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import Button from "@/components/common/Button";
-import { Group } from "@/types/group.types";
+import { Group, CreateGroupRequest } from "@/types/group.types";
 
 interface GroupCardProps {
   group: Group;
   onViewDetails: (group: Group) => void;
   onAddMember: (group: Group) => void;
-  onUpdateGroup: (groupId: string, updates: any) => void;
+  onUpdateGroup: (groupId: string, updates: Partial<CreateGroupRequest>) => void;
 }
 
 export const GroupCard: React.FC<GroupCardProps> = ({
   group,
   onViewDetails,
-  onAddMember,
-  onUpdateGroup
+  onAddMember
+  // onUpdateGroup - not used in this component but kept for interface compatibility
 }) => {
   const { language } = useLanguage();
 

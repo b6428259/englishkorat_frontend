@@ -6,8 +6,7 @@ import {
   AddGroupMemberRequest,
   UpdatePaymentStatusRequest,
   GroupResponse,
-  GroupListResponse,
-  GroupError
+  GroupListResponse
 } from '@/types/group.types';
 
 // API endpoints for groups

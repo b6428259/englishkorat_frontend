@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
-import { Group, GroupMember } from "@/types/group.types";
+import { Group, GroupMember, CreateGroupRequest } from "@/types/group.types";
 import { groupService } from "@/services/api/groups";
 
 interface GroupDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   group: Group;
-  onUpdateGroup: (groupId: string, updates: any) => void;
+  onUpdateGroup: (groupId: string, updates: Partial<CreateGroupRequest>) => void;
 }
 
 export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
@@ -32,13 +32,7 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
   });
 
   // Load group members
-  useEffect(() => {
-    if (isOpen) {
-      loadMembers();
-    }
-  }, [isOpen, group.id]);
-
-  const loadMembers = async () => {
+  const loadMembers = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -50,7 +44,13 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [group.id, language]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadMembers();
+    }
+  }, [isOpen, loadMembers]);
 
   const handleSaveEdit = async () => {
     try {
@@ -75,10 +75,10 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
     }
   };
 
-  const handleUpdatePaymentStatus = async (studentId: number, paymentStatus: string) => {
+  const handleUpdatePaymentStatus = async (studentId: number, paymentStatus: 'pending' | 'deposit_paid' | 'fully_paid') => {
     try {
       await groupService.updatePaymentStatus(group.id.toString(), {
-        payment_status: paymentStatus as any,
+        payment_status: paymentStatus,
         student_id: studentId
       });
       await loadMembers(); // Refresh the list
@@ -291,7 +291,7 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
                     {/* Payment Status */}
                     <select
                       value={member.payment_status}
-                      onChange={(e) => handleUpdatePaymentStatus(member.student_id, e.target.value)}
+                      onChange={(e) => handleUpdatePaymentStatus(member.student_id, e.target.value as 'pending' | 'deposit_paid' | 'fully_paid')}
                       className="px-2 py-1 border border-gray-300 rounded text-sm"
                     >
                       <option value="pending">{language === 'th' ? 'รอชำระ' : 'Pending'}</option>

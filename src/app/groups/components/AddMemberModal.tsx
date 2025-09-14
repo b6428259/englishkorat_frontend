@@ -13,6 +13,7 @@ interface Student {
   first_name?: string;
   last_name?: string;
   nickname?: string;
+  role?: string;
 }
 
 interface AddMemberModalProps {
@@ -41,11 +42,44 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
   const [submitting, setSubmitting] = useState(false);
 
   // Load students on modal open
+  const loadStudents = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Get all users and filter for students
+      const response = await userService.getUsers(1, 1000); // Get a large number to get all students
+      
+      if (response.success) {
+        // Filter for students who are not already in this group
+        const currentMemberIds = group.members?.map(m => m.student_id) || [];
+        const availableStudents = response.data.users
+          .filter((user: Student) => user.role === 'student' && !currentMemberIds.includes(user.id))
+          .map((user: Student) => ({
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            nickname: user.nickname
+          }));
+        
+        setStudents(availableStudents);
+        setFilteredStudents(availableStudents);
+      }
+    } catch (err) {
+      setError(language === 'th' ? 'ไม่สามารถโหลดรายชื่อนักเรียนได้' : 'Failed to load students');
+      console.error('Error loading students:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [group.members, language]);
+
   useEffect(() => {
     if (isOpen) {
       loadStudents();
     }
-  }, [isOpen]);
+  }, [isOpen, loadStudents]);
 
   // Filter students based on search term
   useEffect(() => {
@@ -65,39 +99,6 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
       setFilteredStudents(filtered);
     }
   }, [searchTerm, students]);
-
-  const loadStudents = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Get all users and filter for students
-      const response = await userService.getUsers(1, 1000); // Get a large number to get all students
-      
-      if (response.success) {
-        // Filter for students who are not already in this group
-        const currentMemberIds = group.members?.map(m => m.student_id) || [];
-        const availableStudents = response.data.users
-          .filter((user: any) => user.role === 'student' && !currentMemberIds.includes(user.id))
-          .map((user: any) => ({
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            first_name: user.first_name,
-            last_name: user.last_name,
-            nickname: user.nickname
-          }));
-        
-        setStudents(availableStudents);
-        setFilteredStudents(availableStudents);
-      }
-    } catch (err) {
-      setError(language === 'th' ? 'ไม่สามารถโหลดรายชื่อนักเรียนได้' : 'Failed to load students');
-      console.error('Error loading students:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -238,7 +239,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
             </label>
             <select
               value={paymentStatus}
-              onChange={(e) => setPaymentStatus(e.target.value as any)}
+              onChange={(e) => setPaymentStatus(e.target.value as 'pending' | 'deposit_paid' | 'fully_paid')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="pending">{language === 'th' ? 'รอชำระ' : 'Pending'}</option>

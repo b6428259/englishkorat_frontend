@@ -75,7 +75,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
     onConfirm(formData);
   };
 
-  const handleInputChange = (field: keyof CreateGroupRequest, value: any) => {
+  const handleInputChange = (field: keyof CreateGroupRequest, value: string | number) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -195,7 +195,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
               </label>
               <select
                 value={formData.payment_status}
-                onChange={(e) => handleInputChange('payment_status', e.target.value as any)}
+                onChange={(e) => handleInputChange('payment_status', e.target.value as 'pending' | 'deposit_paid' | 'fully_paid')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="pending">{language === 'th' ? 'รอชำระ' : 'Pending'}</option>

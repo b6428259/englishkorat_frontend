@@ -12,7 +12,6 @@ import {
   CreateCommentRequest,
   ScheduleResponse,
   ScheduleListResponse,
-  SessionListResponse,
   CommentListResponse,
   TeachersScheduleResponse,
   CalendarViewResponse
@@ -888,7 +887,7 @@ export const scheduleService = {
           session_per_week: 1, // Would be populated from API
           start_date: scheduleResponse.data.schedule.start_date,
           estimated_end_date: scheduleResponse.data.schedule.start_date, // Would be populated from API
-          status: scheduleResponse.data.schedule.status as any,
+          status: scheduleResponse.data.schedule.status as 'scheduled' | 'paused' | 'completed' | 'cancelled' | 'assigned',
           auto_reschedule: scheduleResponse.data.schedule.auto_reschedule_holidays === 1
         },
         sessions: sessionsResponse.data.sessions.map(session => ({
@@ -899,7 +898,7 @@ export const scheduleService = {
           end_time: session.end_time,
           session_number: session.session_number,
           week_number: session.week_number,
-          status: session.status as any,
+          status: session.status as 'scheduled' | 'confirmed' | 'pending' | 'completed' | 'cancelled' | 'rescheduled' | 'no-show',
           is_makeup: false, // Would be populated from API
           notes: session.notes,
           assigned_teacher_id: session.teacher_id,
