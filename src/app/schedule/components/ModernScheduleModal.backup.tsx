@@ -11,7 +11,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Checkbox } from '@/components/forms';
 import { TimeSlotSelector } from '@/components/forms/TimeSlotSelector';
 import { 
-  CreateScheduleRequest, 
+  CreateScheduleInput as CreateScheduleRequest, 
   Course, 
   Room, 
   TeacherOption 

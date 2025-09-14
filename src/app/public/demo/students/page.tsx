@@ -2,8 +2,25 @@
 
 import React, { useState } from 'react';
 
-// Mock student data for demonstration
-const mockStudents = [
+interface Student {
+  id: number;
+  first_name: string;
+  last_name: string;
+  nickname_th: string;
+  phone: string;
+  email: string;
+  registration_status: RegistrationStatus;
+  registration_type: 'quick' | 'full';
+  citizen_id: string;
+  age: number;
+  grammar_score?: number;
+  speaking_score?: number;
+  listening_score?: number;
+  reading_score?: number;
+  writing_score?: number;
+}
+
+const mockStudents: Student[] = [
   {
     id: 1,
     first_name: "สมชาย",
@@ -51,10 +68,10 @@ type RegistrationStatus = 'pending_review' | 'schedule_exam' | 'waiting_for_grou
 
 export default function StudentsDemo() {
   const [activeTab, setActiveTab] = useState<RegistrationStatus>('pending_review');
-  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [showEditForm, setShowEditForm] = useState(false);
   const [showExamForm, setShowExamForm] = useState(false);
-  const [language] = useState('th'); // Fixed to Thai for demo
+  // const language = 'th'; // Fixed to Thai for demo (not used)
 
   const statusTabs = [
     {
@@ -98,7 +115,7 @@ export default function StudentsDemo() {
     }
   };
 
-  const handleStudentClick = (student: any) => {
+  const handleStudentClick = (student: Student) => {
     setSelectedStudent(student);
     if (activeTab === 'pending_review') {
       setShowEditForm(true);
@@ -128,7 +145,7 @@ export default function StudentsDemo() {
               </h3>
               <div className="mt-2 text-sm text-yellow-700">
                 <p>
-                  เลขบัตรประชาชนเป็นข้อมูลที่จำเป็นต้องกรอก เมื่อบันทึกสำเร็จ สถานะจะเปลี่ยนเป็น "จัดสอบ"
+                  เลขบัตรประชาชนเป็นข้อมูลที่จำเป็นต้องกรอก เมื่อบันทึกสำเร็จ สถานะจะเปลี่ยนเป็น &quot;จัดสอบ&quot;
                 </p>
               </div>
             </div>
@@ -268,7 +285,7 @@ export default function StudentsDemo() {
             </h3>
             <div className="mt-2 text-sm text-yellow-700">
               <p>
-                เมื่อบันทึกคะแนนสำเร็จ สถานะของนักเรียนจะเปลี่ยนเป็น "รอจัดกลุ่ม" โดยอัตโนมัติ
+                เมื่อบันทึกคะแนนสำเร็จ สถานะของนักเรียนจะเปลี่ยนเป็น &quot;รอจัดกลุ่ม&quot; โดยอัตโนมัติ
               </p>
             </div>
           </div>
@@ -354,7 +371,7 @@ export default function StudentsDemo() {
                   ไม่มีนักเรียน
                 </h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  ไม่มีนักเรียนในสถานะ "{statusTabs.find(t => t.key === activeTab)?.label}"
+                  ไม่มีนักเรียนในสถานะ &quot;{statusTabs.find(t => t.key === activeTab)?.label}&quot;
                 </p>
               </div>
             ) : (

@@ -2,19 +2,16 @@ import { api } from './base';
 import { API_ENDPOINTS } from './endpoints';
 import {
   Schedule,
-  Session,
   ScheduleParticipant,
   ScheduleComment,
-  CreateScheduleRequest,
+  Session as DetailedSession,
   ConfirmScheduleRequest,
   UpdateSessionStatusRequest,
   CreateMakeupSessionRequest,
   CreateCommentRequest,
   ScheduleResponse,
-  ScheduleListResponse,
   CommentListResponse,
-  TeachersScheduleResponse,
-  CalendarViewResponse
+  TeachersScheduleResponse
 } from '@/types/group.types';
 
 // Updated API endpoints for Group-based scheduling
@@ -136,7 +133,8 @@ export interface ScheduleDetailResponse {
 }
 
 // Schedule list response interface
-export interface ScheduleListResponse {
+// Internal API shape used by legacy list endpoints
+export interface ScheduleListApiResponse {
   success: boolean;
   data: {
     schedules: Array<{
@@ -166,7 +164,7 @@ export interface ScheduleListResponse {
 }
 
 // Create schedule request interface
-export interface CreateScheduleRequest {
+export interface CreateScheduleInput {
   course_id: number;
   teacher_id?: number;
   room_id?: number;
@@ -175,12 +173,16 @@ export interface CreateScheduleRequest {
   hours_per_session?: number;
   // New spec fields
   schedule_type?: 'class' | 'meeting' | 'event' | 'holiday' | 'appointment';
+  // For class schedules, associate to a group
+  group_id?: number;
   recurring_pattern?: 'none' | 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'yearly' | 'custom';
   session_per_week?: number;
   assigned_to_user_id?: number; // teacher id alias
   max_students?: number;
   start_date: string;
   estimated_end_date?: string;
+  // For event/appointment schedules, specify participants
+  participant_user_ids?: number[];
   time_slots: Array<{
     day_of_week: string;
     start_time: string;
@@ -323,7 +325,8 @@ export interface CalendarSession {
   students?: Array<{ id: number; name: string; level: string | null }>;
 }
 
-export interface CalendarViewResponse {
+// Internal API shape used by legacy calendar endpoints
+export interface CalendarViewApiResponse {
   success: boolean;
   data: {
     view: 'day' | 'week' | 'month';
@@ -405,7 +408,7 @@ export const scheduleService = {
     room_id?: number;
     status?: string;
     branch_id?: number;
-  }): Promise<ScheduleListResponse> => {
+  }): Promise<ScheduleListApiResponse> => {
     const queryParams = new URLSearchParams();
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
@@ -460,7 +463,7 @@ export const scheduleService = {
       include_students?: boolean;
       include_holidays?: boolean;
     }
-  ): Promise<CalendarViewResponse> => {
+  ): Promise<CalendarViewApiResponse> => {
     const queryParams = new URLSearchParams({ view, date });
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
@@ -516,13 +519,13 @@ export const scheduleService = {
   },
 
   // Create a new schedule
-  createSchedule: async (scheduleData: CreateScheduleRequest) => {
+  createSchedule: async (scheduleData: CreateScheduleInput) => {
     const response = await api.post(API_ENDPOINTS.SCHEDULES.CREATE, scheduleData);
     return response.data;
   },
 
   // Update an existing schedule
-  updateSchedule: async (scheduleId: string, updates: Partial<CreateScheduleRequest>) => {
+  updateSchedule: async (scheduleId: string, updates: Partial<CreateScheduleInput>) => {
     const response = await api.put(API_ENDPOINTS.SCHEDULES.UPDATE(scheduleId), updates);
     return response.data;
   },
@@ -574,7 +577,7 @@ export const scheduleService = {
   },
 
   // Create makeup session
-  createMakeupSession: async (scheduleId: string, makeupData: {
+  createScheduleMakeupSession: async (scheduleId: string, makeupData: {
     original_session_id: number;
     makeup_date: string;
     makeup_start_time: string;
@@ -675,7 +678,7 @@ export const scheduleService = {
     status?: string;
     page?: number;
     limit?: number;
-  }): Promise<ScheduleListResponse> => {
+  }): Promise<ScheduleListApiResponse> => {
     const queryParams = new URLSearchParams();
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
@@ -690,8 +693,11 @@ export const scheduleService = {
     
     if (response.data.success) {
       return {
-        schedules: response.data.data?.schedules || response.data.schedules || [],
-        pagination: response.data.data?.pagination || response.data.pagination
+        success: true,
+        data: {
+          schedules: response.data.data?.schedules || response.data.schedules || [],
+          pagination: response.data.data?.pagination || response.data.pagination
+        }
       };
     } else {
       throw new Error(response.data.message || 'Failed to fetch user schedules');
@@ -815,13 +821,28 @@ export const scheduleService = {
    * Get enhanced calendar view with session details
    * Permissions: Teacher, Admin, Owner
    */
-  getEnhancedCalendarView: async (): Promise<CalendarViewResponse> => {
+  getEnhancedCalendarView: async (): Promise<CalendarViewApiResponse> => {
     const response = await api.get(API_ENDPOINTS.SCHEDULES.CALENDAR);
     
     if (response.data.success) {
       return {
-        sessions: response.data.data?.sessions || response.data.sessions || [],
-        message: response.data.message || 'Basic session list - full calendar view to be implemented'
+        success: true,
+        data: {
+          view: response.data.data?.view ?? 'day',
+          period: response.data.data?.period ?? { start_date: '', end_date: '', total_days: 0 },
+          calendar: response.data.data?.calendar ?? {},
+          holidays: response.data.data?.holidays ?? [],
+          summary: response.data.data?.summary ?? {
+            total_sessions: 0,
+            total_holidays: 0,
+            total_exceptions: 0,
+            sessions_by_status: {},
+            sessions_by_branch: {},
+            sessions_by_teacher: {},
+            days_with_sessions: 0,
+            days_with_holidays: 0
+          }
+        }
       };
     } else {
       throw new Error(response.data.message || 'Failed to fetch calendar view');
@@ -832,14 +853,14 @@ export const scheduleService = {
    * Create Group-based Class Schedule
    * Enhanced version that supports the new group-based workflow
    */
-  createGroupBasedSchedule: async (scheduleData: CreateScheduleRequest): Promise<ScheduleResponse> => {
+  createGroupBasedSchedule: async (scheduleData: CreateScheduleInput): Promise<ScheduleResponse> => {
     // Validate that for class schedules, group_id is provided
     if (scheduleData.schedule_type === 'class' && !scheduleData.group_id) {
       throw new Error('Group ID is required for class schedules');
     }
     
     // Validate that for event/appointment schedules, participant_user_ids is provided
-    if (['event', 'appointment'].includes(scheduleData.schedule_type) && (!scheduleData.participant_user_ids || scheduleData.participant_user_ids.length === 0)) {
+  if (scheduleData.schedule_type && ['event', 'appointment'].includes(scheduleData.schedule_type) && (!scheduleData.participant_user_ids || scheduleData.participant_user_ids.length === 0)) {
       throw new Error('Participant user IDs are required for event/appointment schedules');
     }
 
@@ -860,7 +881,7 @@ export const scheduleService = {
    */
   getEnhancedScheduleDetails: async (scheduleId: string): Promise<{
     schedule: Schedule;
-    sessions: Session[];
+    sessions: DetailedSession[];
     participants?: ScheduleParticipant[];
     comments: ScheduleComment[];
   }> => {
@@ -890,7 +911,7 @@ export const scheduleService = {
           status: scheduleResponse.data.schedule.status as 'scheduled' | 'paused' | 'completed' | 'cancelled' | 'assigned',
           auto_reschedule: scheduleResponse.data.schedule.auto_reschedule_holidays === 1
         },
-        sessions: sessionsResponse.data.sessions.map(session => ({
+  sessions: sessionsResponse.data.sessions.map(session => ({
           id: session.id,
           schedule_id: session.schedule_id,
           session_date: session.session_date,
@@ -900,7 +921,7 @@ export const scheduleService = {
           week_number: session.week_number,
           status: session.status as 'scheduled' | 'confirmed' | 'pending' | 'completed' | 'cancelled' | 'rescheduled' | 'no-show',
           is_makeup: false, // Would be populated from API
-          notes: session.notes,
+          notes: session.notes ?? undefined,
           assigned_teacher_id: session.teacher_id,
           room_id: undefined // Would be populated from API
         })),
