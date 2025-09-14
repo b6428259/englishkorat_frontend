@@ -18,6 +18,7 @@ import {
   Room, 
   TeacherOption 
 } from '@/services/api/schedules';
+import { GroupOption } from '@/types/group.types';
 
 // Legacy interface for backward compatibility
 interface LegacyTimeSlot {
@@ -42,6 +43,7 @@ interface ModernScheduleModalProps {
   courses: Course[];
   rooms: Room[];
   teachers: TeacherOption[];
+  groups?: GroupOption[]; // New: Group options for group-based scheduling
   isLoading?: boolean;
   error?: string | null;
 }
@@ -55,6 +57,7 @@ export default function ModernScheduleModal({
   courses,
   rooms,
   teachers,
+  groups = [], // New: Group options
   isLoading = false,
   error
 }: ModernScheduleModalProps) {
@@ -63,7 +66,9 @@ export default function ModernScheduleModal({
   // Internal form state with proper persistence
   const [internalForm, setInternalForm] = useState<Partial<CreateScheduleRequest>>({
     schedule_name: '',
+    schedule_type: 'class', // New: Default to class schedule
     course_id: 0,
+    group_id: 0, // New: Group selection for class schedules
     teacher_id: 0,
     room_id: 0,
     total_hours: 30,
@@ -71,7 +76,7 @@ export default function ModernScheduleModal({
     max_students: 6,
     start_date: new Date().toISOString().split('T')[0],
     time_slots: [],
-    auto_reschedule_holidays: true,
+    auto_reschedule: true, // Updated field name
     notes: ''
   });
 
@@ -231,6 +236,85 @@ export default function ModernScheduleModal({
                 <p className="mt-1 text-xs text-red-600">{getFieldError('course_id')}</p>
               )}
             </div>
+          </FieldGroup>
+        </FormSection>
+
+        {/* Schedule Type and Group Selection */}
+        <FormSection
+          title={language === 'th' ? 'ประเภทและกลุ่ม' : 'Type and Group'}
+          icon={<HiUserGroup />}
+          color="purple"
+        >
+          <FieldGroup columns={2}>
+            {/* Schedule Type */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {language === 'th' ? 'ประเภทตารางเรียน *' : 'Schedule Type *'}
+              </label>
+              <EnhancedSelect
+                value={scheduleForm.schedule_type || 'class'}
+                onChange={(value) => updateForm({ 
+                  schedule_type: Array.isArray(value) ? value[0] : value as 'class' | 'meeting' | 'event' | 'holiday' | 'appointment',
+                  // Reset group/participant selection when type changes
+                  group_id: undefined,
+                  participant_user_ids: undefined
+                })}
+                options={[
+                  { value: 'class', label: language === 'th' ? 'คลาสเรียน' : 'Class' },
+                  { value: 'event', label: language === 'th' ? 'อีเว้นท์' : 'Event' },
+                  { value: 'appointment', label: language === 'th' ? 'นัดหมาย' : 'Appointment' }
+                ]}
+                placeholder={language === 'th' ? 'เลือกประเภท' : 'Select Type'}
+              />
+              {getFieldError('schedule_type') && (
+                <p className="mt-1 text-xs text-red-600">{getFieldError('schedule_type')}</p>
+              )}
+            </div>
+
+            {/* Group Selection (for class schedules) */}
+            {scheduleForm.schedule_type === 'class' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {language === 'th' ? 'กลุ่มเรียน *' : 'Learning Group *'}
+                </label>
+                <EnhancedSelect
+                  value={(scheduleForm.group_id || 0).toString()}
+                  onChange={(value) => updateForm({ group_id: parseInt(Array.isArray(value) ? value[0] : value) })}
+                  options={groups.map(group => ({
+                    value: group.id.toString(),
+                    label: `${group.group_name} (${group.current_students}/${group.max_students})`,
+                    sublabel: `${group.course_name} - ${group.level}`
+                  }))}
+                  placeholder={language === 'th' ? 'เลือกกลุ่มเรียน' : 'Select Group'}
+                  searchable
+                />
+                {getFieldError('group_id') && (
+                  <p className="mt-1 text-xs text-red-600">{getFieldError('group_id')}</p>
+                )}
+                {(!scheduleForm.group_id || scheduleForm.group_id === 0) && (
+                  <p className="mt-1 text-xs text-amber-600">
+                    {language === 'th' ? 'กรุณาเลือกกลุ่มเรียนสำหรับคลาสเรียน' : 'Please select a group for class schedules'}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Participant Information (for events/appointments) */}
+            {(scheduleForm.schedule_type === 'event' || scheduleForm.schedule_type === 'appointment') && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {language === 'th' ? 'ผู้เข้าร่วม' : 'Participants'}
+                </label>
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                  <p className="text-sm text-amber-700">
+                    {language === 'th' 
+                      ? 'การเลือกผู้เข้าร่วมจะพัฒนาในอนาคต' 
+                      : 'Participant selection will be implemented in future updates'
+                    }
+                  </p>
+                </div>
+              </div>
+            )}
           </FieldGroup>
         </FormSection>
 

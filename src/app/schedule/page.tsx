@@ -9,6 +9,8 @@ import ErrorMessage from "@/components/common/ErrorMessage";
 import { colors } from "@/styles/colors";
 // import { ButtonGroup } from "@heroui/react";
 import { scheduleService, Teacher, Session, Student, Course, Room, TeacherOption, CreateScheduleRequest, CreateSessionRequest, CalendarViewResponse, CalendarSession } from "@/services/api/schedules";
+import { groupService } from "@/services/api/groups";
+import { GroupOption } from "@/types/group.types";
 import { validateScheduleForm, deriveScheduleFields, validateSessionForm } from '@/utils/scheduleValidation';
 import { SessionDetailModal } from "./components";
 import ModernScheduleModal from "./components/ModernScheduleModal";
@@ -357,6 +359,7 @@ export default function SchedulePage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [teacherOptions, setTeacherOptions] = useState<TeacherOption[]>([]);
+  const [groups, setGroups] = useState<GroupOption[]>([]); // New: Groups for group-based scheduling
   // const [schedules, setSchedules] = useState<Array<{schedule_id: number, schedule_name: string, course_name: string}>>([]);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -365,7 +368,9 @@ export default function SchedulePage() {
   // Schedule form data
   const [scheduleForm, setScheduleForm] = useState<Partial<CreateScheduleRequest>>({
     schedule_name: '',
+    schedule_type: 'class', // New: Default to class schedule
     course_id: 0,
+    group_id: 0, // New: Group selection for class schedules
     teacher_id: 0,
     room_id: 0,
     total_hours: 30,
@@ -373,7 +378,7 @@ export default function SchedulePage() {
     max_students: 6,
     start_date: new Date().toISOString().split('T')[0],
     time_slots: [],
-    auto_reschedule_holidays: true,
+    auto_reschedule: true, // Updated field name
     notes: ''
   });
 
@@ -482,7 +487,7 @@ export default function SchedulePage() {
     
     try {
       setFormLoading(true);
-      const [coursesRes, roomsRes, teachersRes, schedulesRes, studentsRes] = await Promise.all([
+      const [coursesRes, roomsRes, teachersRes, schedulesRes, studentsRes, groupsRes] = await Promise.all([
         scheduleService.getCourses(),
         scheduleService.getRooms(), 
         scheduleService.getTeachers(),
@@ -490,7 +495,9 @@ export default function SchedulePage() {
         // Fetch users with student role - we'll filter students from all users for now
         import('@/services/user.service').then(service => 
           service.userService.getUsers(1, 1000).catch(() => ({ success: false, data: { users: [] } }))
-        )
+        ),
+        // Fetch groups for group-based scheduling
+        groupService.getGroupOptions().catch(() => [])
       ]);
 
       console.log("courses:", coursesRes.data);
@@ -546,6 +553,9 @@ export default function SchedulePage() {
           }));
         setStudents(studentUsers);
       }
+      
+      // Set groups
+      setGroups(groupsRes);
       
       setFormOptionsLoaded(true);
     } catch (err) {
@@ -719,7 +729,8 @@ export default function SchedulePage() {
         auto_reschedule_holidays: scheduleForm.auto_reschedule_holidays ?? scheduleForm.auto_reschedule ?? false,
       };
 
-      const response = await scheduleService.createSchedule(payload);
+      // Create schedule using the enhanced group-based method
+      const response = await scheduleService.createGroupBasedSchedule(payload);
       
       if (response.success) {
         setIsCreateModalOpen(false);
@@ -1291,6 +1302,7 @@ export default function SchedulePage() {
           courses={courses}
           rooms={rooms}
           teachers={teacherOptions}
+          groups={groups} // New: Pass groups for group-based scheduling
           scheduleForm={scheduleForm}
           updateForm={setScheduleForm}
           isLoading={formLoading}
@@ -1356,14 +1368,17 @@ export default function SchedulePage() {
             // Reset form and open create schedule modal
             setScheduleForm({
               schedule_name: '',
+              schedule_type: 'class', // New: Default to class schedule
               course_id: 0,
+              group_id: 0, // New: Reset group selection
               teacher_id: 0,
               start_date: new Date().toISOString().split('T')[0],
               time_slots: [],
               max_students: 15,
               total_hours: 40,
               hours_per_session: 2,
-              auto_reschedule_holidays: false
+              auto_reschedule: false, // Updated field name
+              notes: ''
             });
             setFormError(null);
             openModal('createSchedule');
