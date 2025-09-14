@@ -29,6 +29,18 @@ export const API_ENDPOINTS = {
     DELETE: (id: string) => `/courses/${id}`,
     ENROLL: (id: string) => `/courses/${id}/enroll`
   },
+
+  // Group management endpoints (New Group-based scheduling system)
+  GROUPS: {
+    LIST: '/groups',
+    CREATE: '/groups',
+    GET_BY_ID: (id: string) => `/groups/${id}`,
+    UPDATE: (id: string) => `/groups/${id}`,
+    DELETE: (id: string) => `/groups/${id}`,
+    ADD_MEMBER: (id: string) => `/groups/${id}/members`,
+    REMOVE_MEMBER: (id: string, studentId: string) => `/groups/${id}/members/${studentId}`,
+    UPDATE_PAYMENT: (id: string) => `/groups/${id}/payment-status`
+  },
   
   // Student management endpoints
   STUDENTS: {
@@ -42,15 +54,21 @@ export const API_ENDPOINTS = {
     EXAM_SCORES: (id: string) => `/students/${id}/exam-scores`
   },
   
-  // Schedule management endpoints
+  // Enhanced Schedule management endpoints (Group-based system)
   SCHEDULES: {
     LIST: '/schedules',
     CREATE: '/schedules',
     GET_BY_ID: (id: string) => `/schedules/${id}`,
     UPDATE: (id: string) => `/schedules/${id}`,
     DELETE: (id: string) => `/schedules/${id}`,
+    MY_SCHEDULES: '/schedules/my',
+    CONFIRM: (id: string) => `/schedules/${id}/confirm`,
     TEACHERS: (dateFilter: 'day' | 'week' | 'month') => `/schedules/teachers?date_filter=${dateFilter}`,
+    TEACHERS_LIST: '/schedules/teachers',
     SESSIONS: (id: string) => `/schedules/${id}/sessions`,
+    SESSION_STATUS: (sessionId: string) => `/schedules/sessions/${sessionId}/status`,
+    MAKEUP_SESSION: '/schedules/sessions/makeup',
+    COMMENTS: '/schedules/comments',
     WEEKLY: '/schedules/weekly',
     CALENDAR: '/schedules/calendar'
   },

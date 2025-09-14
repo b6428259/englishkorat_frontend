@@ -7,6 +7,8 @@ export { authApi } from './auth';
 export { usersApi } from './users';
 export { coursesApi } from './courses';
 export { teachersApi } from './teachers';
+export { groupService } from './groups';
+export { scheduleService } from './schedules';
 
 // Type exports
 export type { 
@@ -31,6 +33,30 @@ export type {
   TeachersListResponse, 
   TeacherResponse 
 } from './teachers';
+
+// Group-based scheduling types
+export type {
+  Group,
+  GroupMember,
+  Schedule,
+  Session,
+  ScheduleParticipant,
+  ScheduleComment,
+  CreateGroupRequest,
+  AddGroupMemberRequest,
+  UpdatePaymentStatusRequest,
+  CreateScheduleRequest,
+  ConfirmScheduleRequest,
+  UpdateSessionStatusRequest,
+  CreateMakeupSessionRequest,
+  CreateCommentRequest,
+  GroupResponse,
+  GroupListResponse,
+  ScheduleResponse,
+  ScheduleListResponse,
+  SessionListResponse,
+  CommentListResponse
+} from '../types/group.types';
 
 // Re-export auth types for convenience
 export type { LoginRequest, RegisterRequest, AuthResponse } from '../../types/auth.types';

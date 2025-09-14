@@ -1,7 +1,33 @@
 import { api } from './base';
 import { API_ENDPOINTS } from './endpoints';
+import {
+  Schedule,
+  Session,
+  ScheduleParticipant,
+  ScheduleComment,
+  CreateScheduleRequest,
+  ConfirmScheduleRequest,
+  UpdateSessionStatusRequest,
+  CreateMakeupSessionRequest,
+  CreateCommentRequest,
+  ScheduleResponse,
+  ScheduleListResponse,
+  SessionListResponse,
+  CommentListResponse,
+  TeachersScheduleResponse,
+  CalendarViewResponse
+} from '@/types/group.types';
 
-// Types for schedule data
+// Updated API endpoints for Group-based scheduling
+export const SCHEDULE_ENDPOINTS_EXTENDED = {
+  ...API_ENDPOINTS.SCHEDULES,
+  MY_SCHEDULES: '/schedules/my',
+  CONFIRM: (id: string) => `/schedules/${id}/confirm`,
+  SESSION_STATUS: (sessionId: string) => `/schedules/sessions/${sessionId}/status`,
+  MAKEUP_SESSION: '/schedules/sessions/makeup',
+  COMMENTS: '/schedules/comments',
+  TEACHERS_SCHEDULE: '/schedules/teachers'
+} as const;
 export interface Teacher {
   teacher_id: number;
   teacher_name: string;
@@ -633,5 +659,257 @@ export const scheduleService = {
   }) => {
     const response = await api.post(`/schedules/${sessionData.schedule_id}/sessions/bulk-create`, sessionData);
     return response.data;
+  },
+
+  // Enhanced Group-based Scheduling Methods
+  
+  /**
+   * Get schedules relevant to current user
+   * Returns schedules based on user role:
+   * - Teachers: Schedules where they are assigned
+   * - Students: Schedules of groups they belong to  
+   * - Admin/Owner: All schedules
+   * Permissions: All authenticated users
+   */
+  getMySchedules: async (params?: {
+    schedule_type?: 'class' | 'meeting' | 'event' | 'holiday' | 'appointment';
+    status?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ScheduleListResponse> => {
+    const queryParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      });
+    }
+    
+    const url = queryParams.toString() ? `${SCHEDULE_ENDPOINTS_EXTENDED.MY_SCHEDULES}?${queryParams}` : SCHEDULE_ENDPOINTS_EXTENDED.MY_SCHEDULES;
+    const response = await api.get(url);
+    
+    if (response.data.success) {
+      return {
+        schedules: response.data.data?.schedules || response.data.schedules || [],
+        pagination: response.data.data?.pagination || response.data.pagination
+      };
+    } else {
+      throw new Error(response.data.message || 'Failed to fetch user schedules');
+    }
+  },
+
+  /**
+   * Confirm schedule
+   * Permissions: Assigned teacher (for class schedules), Participants (for events), Admin/Owner
+   */
+  confirmSchedule: async (scheduleId: string, confirmData: ConfirmScheduleRequest): Promise<{ message: string }> => {
+    const response = await api.patch(SCHEDULE_ENDPOINTS_EXTENDED.CONFIRM(scheduleId), confirmData);
+    
+    if (response.data.success || response.data.message) {
+      return {
+        message: response.data.message || 'Schedule confirmed successfully'
+      };
+    } else {
+      throw new Error(response.data.message || 'Failed to confirm schedule');
+    }
+  },
+
+  /**
+   * Update session status
+   * Permissions: Assigned teacher, Admin, Owner
+   */
+  updateSessionStatus: async (sessionId: string, statusData: UpdateSessionStatusRequest): Promise<{ message: string }> => {
+    const response = await api.patch(SCHEDULE_ENDPOINTS_EXTENDED.SESSION_STATUS(sessionId), statusData);
+    
+    if (response.data.success || response.data.message) {
+      return {
+        message: response.data.message || 'Session status updated successfully'
+      };
+    } else {
+      throw new Error(response.data.message || 'Failed to update session status');
+    }
+  },
+
+  /**
+   * Create makeup session
+   * Permissions: Teacher, Admin, Owner
+   */
+  createMakeupSession: async (makeupData: CreateMakeupSessionRequest): Promise<{ message: string; session: Session }> => {
+    const response = await api.post(SCHEDULE_ENDPOINTS_EXTENDED.MAKEUP_SESSION, makeupData);
+    
+    if (response.data.success || response.data.message) {
+      return {
+        message: response.data.message || 'Makeup session created successfully',
+        session: response.data.data?.session || response.data.session
+      };
+    } else {
+      throw new Error(response.data.message || 'Failed to create makeup session');
+    }
+  },
+
+  /**
+   * Add comment to schedule or session
+   * Permissions: All authenticated users
+   */
+  addComment: async (commentData: CreateCommentRequest): Promise<{ message: string; comment: ScheduleComment }> => {
+    const response = await api.post(SCHEDULE_ENDPOINTS_EXTENDED.COMMENTS, commentData);
+    
+    if (response.data.success || response.data.message) {
+      return {
+        message: response.data.message || 'Comment added successfully',
+        comment: response.data.data?.comment || response.data.comment
+      };
+    } else {
+      throw new Error(response.data.message || 'Failed to add comment');
+    }
+  },
+
+  /**
+   * Get comments for schedule or session
+   * Permissions: All authenticated users
+   */
+  getComments: async (params: {
+    schedule_id?: number;
+    session_id?: number;
+    page?: number;
+    limit?: number;
+  }): Promise<CommentListResponse> => {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, value.toString());
+      }
+    });
+    
+    const url = `${SCHEDULE_ENDPOINTS_EXTENDED.COMMENTS}?${queryParams}`;
+    const response = await api.get(url);
+    
+    if (response.data.success) {
+      return {
+        comments: response.data.data?.comments || response.data.comments || [],
+        pagination: response.data.data?.pagination || response.data.pagination
+      };
+    } else {
+      throw new Error(response.data.message || 'Failed to fetch comments');
+    }
+  },
+
+  /**
+   * Get teachers' schedules with enhanced group information
+   * Permissions: Teacher, Admin, Owner
+   */
+  getTeachersSchedules: async (): Promise<TeachersScheduleResponse> => {
+    const response = await api.get(SCHEDULE_ENDPOINTS_EXTENDED.TEACHERS_SCHEDULE);
+    
+    if (response.data.success) {
+      return {
+        schedules: response.data.data?.schedules || response.data.schedules || [],
+        message: response.data.message || 'Basic schedule list - full calendar view to be implemented'
+      };
+    } else {
+      throw new Error(response.data.message || 'Failed to fetch teachers schedules');
+    }
+  },
+
+  /**
+   * Get enhanced calendar view with session details
+   * Permissions: Teacher, Admin, Owner
+   */
+  getEnhancedCalendarView: async (): Promise<CalendarViewResponse> => {
+    const response = await api.get(API_ENDPOINTS.SCHEDULES.CALENDAR);
+    
+    if (response.data.success) {
+      return {
+        sessions: response.data.data?.sessions || response.data.sessions || [],
+        message: response.data.message || 'Basic session list - full calendar view to be implemented'
+      };
+    } else {
+      throw new Error(response.data.message || 'Failed to fetch calendar view');
+    }
+  },
+
+  /**
+   * Create Group-based Class Schedule
+   * Enhanced version that supports the new group-based workflow
+   */
+  createGroupBasedSchedule: async (scheduleData: CreateScheduleRequest): Promise<ScheduleResponse> => {
+    // Validate that for class schedules, group_id is provided
+    if (scheduleData.schedule_type === 'class' && !scheduleData.group_id) {
+      throw new Error('Group ID is required for class schedules');
+    }
+    
+    // Validate that for event/appointment schedules, participant_user_ids is provided
+    if (['event', 'appointment'].includes(scheduleData.schedule_type) && (!scheduleData.participant_user_ids || scheduleData.participant_user_ids.length === 0)) {
+      throw new Error('Participant user IDs are required for event/appointment schedules');
+    }
+
+    const response = await api.post(API_ENDPOINTS.SCHEDULES.CREATE, scheduleData);
+    
+    if (response.data.success || response.data.message) {
+      return {
+        message: response.data.message || 'Schedule created successfully',
+        schedule: response.data.data?.schedule || response.data.schedule
+      };
+    } else {
+      throw new Error(response.data.message || 'Failed to create schedule');
+    }
+  },
+
+  /**
+   * Get schedule with enhanced group/participant information
+   */
+  getEnhancedScheduleDetails: async (scheduleId: string): Promise<{
+    schedule: Schedule;
+    sessions: Session[];
+    participants?: ScheduleParticipant[];
+    comments: ScheduleComment[];
+  }> => {
+    try {
+      // Get basic schedule details
+      const scheduleResponse = await scheduleService.getScheduleDetails(scheduleId);
+      
+      // Get enhanced session information
+      const sessionsResponse = await scheduleService.getScheduleSessions(scheduleId);
+      
+      // Get comments
+      const commentsResponse = await scheduleService.getComments({ schedule_id: parseInt(scheduleId) });
+      
+      return {
+        schedule: {
+          id: scheduleResponse.data.schedule.id,
+          schedule_name: scheduleResponse.data.schedule.schedule_name,
+          schedule_type: 'class', // Default, would be enhanced from API
+          group_id: undefined, // Would be populated from API
+          created_by_user_id: 0, // Would be populated from API
+          recurring_pattern: 'weekly', // Would be populated from API
+          total_hours: parseFloat(scheduleResponse.data.schedule.total_hours),
+          hours_per_session: parseFloat(scheduleResponse.data.schedule.hours_per_session),
+          session_per_week: 1, // Would be populated from API
+          start_date: scheduleResponse.data.schedule.start_date,
+          estimated_end_date: scheduleResponse.data.schedule.start_date, // Would be populated from API
+          status: scheduleResponse.data.schedule.status as any,
+          auto_reschedule: scheduleResponse.data.schedule.auto_reschedule_holidays === 1
+        },
+        sessions: sessionsResponse.data.sessions.map(session => ({
+          id: session.id,
+          schedule_id: session.schedule_id,
+          session_date: session.session_date,
+          start_time: session.start_time,
+          end_time: session.end_time,
+          session_number: session.session_number,
+          week_number: session.week_number,
+          status: session.status as any,
+          is_makeup: false, // Would be populated from API
+          notes: session.notes,
+          assigned_teacher_id: session.teacher_id,
+          room_id: undefined // Would be populated from API
+        })),
+        comments: commentsResponse.comments
+      };
+    } catch (error) {
+      console.error('Error fetching enhanced schedule details:', error);
+      throw error;
+    }
   }
 };
