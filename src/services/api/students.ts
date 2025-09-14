@@ -483,7 +483,7 @@ export const studentsApi = {
    * Update student by ID (admin only)
    */
   updateStudent: async (id: string, studentData: UpdateStudentRequest): Promise<StudentResponse> => {
-    const response = await api.put(API_ENDPOINTS.STUDENTS.UPDATE(id), studentData);
+    const response = await api.patch(API_ENDPOINTS.STUDENTS.UPDATE(id), studentData);
     const data = response.data || {};
     const raw = data.student ?? data.data?.student ?? data;
     

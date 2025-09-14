@@ -3,7 +3,9 @@ import CryptoJS from 'crypto-js';
 
 // Secret key for encryption (in production, this should come from environment variables)
 const ENCRYPTION_KEY = process.env.NEXT_PUBLIC_ENCRYPTION_KEY || 'englishkorat-secret-key-2024';
-const TOKEN_COOKIE_NAME = 'auth_token';
+// Use a distinct client-only cookie name to avoid collision with backend cookies
+const TOKEN_COOKIE_NAME = 'ek_auth_secure';
+const LEGACY_COOKIE_NAME = 'auth_token';
 const TOKEN_EXPIRY_HOURS = 2;
 
 export interface TokenData {
@@ -45,7 +47,8 @@ export const setSecureToken = (token: string, userId?: string): void => {
     expires: TOKEN_EXPIRY_HOURS / 24, // Convert hours to days for js-cookie
     httpOnly: false, // Note: js-cookie can't set httpOnly cookies from client-side
     secure: process.env.NODE_ENV === 'production', // Only use secure in production
-    sameSite: 'strict'
+  sameSite: 'strict',
+  path: '/', // Ensure cookie is available across the entire site
   });
 };
 
@@ -54,7 +57,8 @@ export const setSecureToken = (token: string, userId?: string): void => {
  */
 export const getSecureToken = (): string | null => {
   try {
-    const encryptedData = Cookies.get(TOKEN_COOKIE_NAME);
+  // Prefer new cookie; fallback to legacy name during migration
+  const encryptedData = Cookies.get(TOKEN_COOKIE_NAME) || Cookies.get(LEGACY_COOKIE_NAME);
     
     if (!encryptedData) {
       return null;
@@ -72,7 +76,7 @@ export const getSecureToken = (): string | null => {
     return tokenData.token;
   } catch (error) {
     console.error('Error retrieving secure token:', error);
-    removeSecureToken(); // Remove corrupted token
+  removeSecureToken(); // Remove corrupted token
     return null;
   }
 };
@@ -83,7 +87,14 @@ export const getSecureToken = (): string | null => {
 export const removeSecureToken = (): void => {
   Cookies.remove(TOKEN_COOKIE_NAME, {
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict'
+  sameSite: 'strict',
+  path: '/', // Ensure removal across all paths
+  });
+  // Also remove legacy cookie if present
+  Cookies.remove(LEGACY_COOKIE_NAME, {
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/',
   });
 };
 
@@ -99,7 +110,7 @@ export const hasValidToken = (): boolean => {
  */
 export const getTokenExpiryTime = (): Date | null => {
   try {
-    const encryptedData = Cookies.get(TOKEN_COOKIE_NAME);
+  const encryptedData = Cookies.get(TOKEN_COOKIE_NAME) || Cookies.get(LEGACY_COOKIE_NAME);
     
     if (!encryptedData) {
       return null;

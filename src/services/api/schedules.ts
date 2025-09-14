@@ -148,14 +148,21 @@ export interface CreateScheduleRequest {
   schedule_name: string;
   total_hours: number;
   hours_per_session?: number;
+  // New spec fields
+  schedule_type?: 'class' | 'meeting' | 'event' | 'holiday' | 'appointment';
+  recurring_pattern?: 'none' | 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'yearly' | 'custom';
+  session_per_week?: number;
+  assigned_to_user_id?: number; // teacher id alias
   max_students?: number;
   start_date: string;
+  estimated_end_date?: string;
   time_slots: Array<{
     day_of_week: string;
     start_time: string;
     end_time: string;
   }>;
   auto_reschedule_holidays?: boolean;
+  auto_reschedule?: boolean; // spec naming
   notes?: string;
 }
 

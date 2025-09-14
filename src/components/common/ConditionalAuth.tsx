@@ -30,7 +30,8 @@ export const ConditionalAuth: React.FC<ConditionalAuthProps> = ({
   ];
   
   // ทุกหน้าที่ขึ้นต้นด้วย /public เป็น public path
-  const isPublicPath = pathname.startsWith('/public/') || publicPaths.includes(pathname);
+  // ให้สอดคล้องกับ middleware: อนุญาตทุก path ที่ขึ้นต้นด้วย /public หรือ /demo
+  const isPublicPath = pathname.startsWith('/public') || pathname.startsWith('/demo') || publicPaths.includes(pathname);
 
   useEffect(() => {
     // Skip authentication check for public paths

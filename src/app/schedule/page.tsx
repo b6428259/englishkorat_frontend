@@ -9,6 +9,7 @@ import ErrorMessage from "@/components/common/ErrorMessage";
 import { colors } from "@/styles/colors";
 // import { ButtonGroup } from "@heroui/react";
 import { scheduleService, Teacher, Session, Student, Course, Room, TeacherOption, CreateScheduleRequest, CreateSessionRequest, CalendarViewResponse, CalendarSession } from "@/services/api/schedules";
+import { validateScheduleForm, deriveScheduleFields, validateSessionForm } from '@/utils/scheduleValidation';
 import { SessionDetailModal } from "./components";
 import ModernScheduleModal from "./components/ModernScheduleModal";
 import { ModernSessionsModal } from "./components/ModernSessionsModal";
@@ -702,12 +703,23 @@ export default function SchedulePage() {
       setFormLoading(true);
       setFormError(null);
 
-      if (!scheduleForm.schedule_name || !scheduleForm.course_id || scheduleForm.time_slots?.length === 0) {
-        setFormError(language === 'th' ? 'กรุณากรอกข้อมูลให้ครบถ้วน' : 'Please fill in all required fields');
+      // Validate per new spec
+      const issues = validateScheduleForm(scheduleForm);
+      if (issues.length > 0) {
+        setFormError(issues[0].message);
         return;
       }
 
-      const response = await scheduleService.createSchedule(scheduleForm as CreateScheduleRequest);
+      // Derive fields (estimated_end_date/total sessions)
+      const derived = deriveScheduleFields(scheduleForm);
+      const payload: CreateScheduleRequest = {
+        ...(scheduleForm as CreateScheduleRequest),
+        estimated_end_date: derived.estimated_end_date,
+        // Map spec naming if provided
+        auto_reschedule_holidays: scheduleForm.auto_reschedule_holidays ?? scheduleForm.auto_reschedule ?? false,
+      };
+
+      const response = await scheduleService.createSchedule(payload);
       
       if (response.success) {
         setIsCreateModalOpen(false);
@@ -792,13 +804,9 @@ export default function SchedulePage() {
         return;
       }
 
-      if (!sessionForm.session_date) {
-        setFormError(language === 'th' ? 'กรุณาเลือกวันที่เซสชัน' : 'Please select session date');
-        return;
-      }
-
-      if (!sessionForm.start_time || !sessionForm.end_time) {
-        setFormError(language === 'th' ? 'กรุณากรอกเวลาเริ่มต้นและเวลาสิ้นสุด' : 'Please enter start and end time');
+      const sessIssues = validateSessionForm(sessionForm);
+      if (sessIssues.length > 0) {
+        setFormError(sessIssues[0].message);
         return;
       }
 

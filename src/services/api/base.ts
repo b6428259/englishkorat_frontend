@@ -1,5 +1,5 @@
 import axios, { AxiosResponse, AxiosError } from 'axios';
-import { getSecureToken, removeSecureToken } from '../../utils/secureStorage';
+import { getSecureToken } from '../../utils/secureStorage';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1';
 
@@ -29,11 +29,7 @@ api.interceptors.response.use(
   (error: AxiosError) => {
     // Handle common errors
     if (error.response?.status === 401) {
-      // Token expired or invalid - clear token and redirect to auth
-      removeSecureToken();
-      if (typeof window !== 'undefined') {
-        window.location.href = '/auth';
-      }
+      // Let callers/AuthContext handle 401 to avoid clearing tokens during refresh
     } else if (error.response?.status === 403) {
       console.error('Access forbidden:', error.response.data);
     } else if ((error.response?.status ?? 0) >= 500) {

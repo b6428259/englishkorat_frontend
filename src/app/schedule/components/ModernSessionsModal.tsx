@@ -507,6 +507,9 @@ export function ModernSessionsModal({
                 min={new Date().toISOString().split('T')[0]}
                 key={`start-date-${sessionForm.start_date}`}
               />
+              {validation.errors.includes(language === 'th' ? 'กรุณาเลือกวันที่เริ่ม' : 'Please select start date') && (
+                <p className="mt-1 text-xs text-red-600">{language === 'th' ? 'กรุณาเลือกวันที่เริ่ม' : 'Please select start date'}</p>
+              )}
             </div>
 
             <div>
@@ -519,6 +522,9 @@ export function ModernSessionsModal({
                 min={sessionForm.start_date || new Date().toISOString().split('T')[0]}
                 key={`end-date-${sessionForm.end_date}`}
               />
+              {validation.errors.includes(language === 'th' ? 'กรุณาเลือกวันที่สิ้นสุด' : 'Please select end date') && (
+                <p className="mt-1 text-xs text-red-600">{language === 'th' ? 'กรุณาเลือกวันที่สิ้นสุด' : 'Please select end date'}</p>
+              )}
             </div>
 
             <div>
@@ -556,6 +562,9 @@ export function ModernSessionsModal({
             className="w-full"
             key={`time-slots-${sessionForm.time_slots.length}`}
           />
+          {validation.errors.includes(language === 'th' ? 'กรุณาเพิ่มช่วงเวลา' : 'Please add time slots') && (
+            <p className="mt-2 text-xs text-red-600">{language === 'th' ? 'กรุณาเพิ่มช่วงเวลา' : 'Please add time slots'}</p>
+          )}
         </FormSection>
 
         {/* Notes */}

@@ -26,7 +26,8 @@ export function middleware(request: NextRequest) {
   }
   
   // For protected routes, check if user has auth token
-  const token = request.cookies.get('auth_token')?.value;
+  // Support both new client cookie and legacy name
+  const token = request.cookies.get('ek_auth_secure')?.value || request.cookies.get('auth_token')?.value;
   
   // If no token found and not a public path, redirect to auth
   if (!token) {

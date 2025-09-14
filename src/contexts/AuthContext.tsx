@@ -1,7 +1,8 @@
 "use client";
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-import { User, LoginRequest, RegisterRequest, AuthResponse, UpdateProfileRequest, ChangePasswordRequest } from '../types/auth.types';
+import { User, LoginRequest, RegisterRequest, AuthResponse, UpdateProfileRequest, ChangePasswordRequest, ProfileResponse } from '../types/auth.types';
 import { authApi } from '../services/api/auth';
+import { removeSecureToken } from '../utils/secureStorage';
 import { useRouter } from 'next/navigation';
 
 export type UserRole = 'student' | 'teacher' | 'admin' | 'owner';
@@ -60,7 +61,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  const isAuthenticated = authApi.isAuthenticated() && user !== null;
+  // Consider user authenticated if a valid token exists.
+  // The profile may still be loading/populating `user` after refresh.
+  const isAuthenticated = authApi.isAuthenticated();
 
   // Check if user has specific role(s)
   const hasRole = (roles: UserRole | UserRole[]): boolean => {
@@ -76,10 +79,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Logout function
-  const handleLogout = useCallback(async () => {
+  const handleLogout = useCallback(async (localOnly: boolean = false) => {
     setIsLoading(true);
     try {
-      await authApi.logout();
+      if (!localOnly) {
+        await authApi.logout();
+      } else {
+        // Clear only client-side token/caches
+        removeSecureToken();
+      }
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
@@ -99,18 +107,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     try {
       setIsLoading(true);
-      const response = await authApi.getProfile();
-      if (response.success) {
+      const response: ProfileResponse = await authApi.getProfile();
+      if (response?.success && response.data?.user) {
         setUser(response.data.user);
       } else {
-        // Token might be invalid, logout
-        await handleLogout();
+        // Don't logout on non-401/unknown shapes; keep token and let app continue
+        console.warn('Profile response not in expected shape; skipping logout.');
       }
     } catch (err: unknown) {
       console.error('Failed to load user profile:', err);
       // If unauthorized, clear auth state
       if (isApiError(err) && err.response?.status === 401) {
-        await handleLogout();
+        await handleLogout(true); // local-only on 401
       }
       setError('ไม่สามารถโหลดข้อมูลผู้ใช้ได้');
     } finally {
@@ -211,7 +219,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (err: unknown) {
       console.error('Failed to refresh profile:', err);
       if (isApiError(err) && err.response?.status === 401) {
-        await handleLogout();
+        await handleLogout(true);
       }
     }
   };

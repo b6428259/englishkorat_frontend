@@ -10,6 +10,8 @@ import ModernInput from '@/components/common/forms/ModernInput';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Checkbox } from '@/components/forms';
 import { TimeSlotSelector } from '@/components/forms/TimeSlotSelector';
+import { DateInput } from '@/components/forms/DateInput';
+import { validateScheduleForm, deriveScheduleFields, type ValidationIssue } from '@/utils/scheduleValidation';
 import { 
   CreateScheduleRequest, 
   Course, 
@@ -94,6 +96,12 @@ export default function ModernScheduleModal({
     }
   }, [externalForm, externalUpdate]);
 
+  // Validation and derived preview
+  const issues = useMemo<ValidationIssue[]>(() => validateScheduleForm(scheduleForm), [scheduleForm]);
+  const getFieldError = useCallback((field: string) => issues.find(i => i.field === field)?.message, [issues]);
+  const hasErrors = issues.length > 0;
+  const { estimated_end_date, total_sessions } = useMemo(() => deriveScheduleFields(scheduleForm), [scheduleForm]);
+
   const courseOptions = useMemo(() => [
     { value: '0', label: language === 'th' ? 'เลือกคอร์ส' : 'Select Course', disabled: true },
     ...courses.map(course => ({
@@ -124,13 +132,7 @@ export default function ModernScheduleModal({
     }))
   ], [rooms, language]);
 
-  const isFormValid = scheduleForm.schedule_name &&
-                     scheduleForm.course_id &&
-                     scheduleForm.course_id !== 0 &&
-                     scheduleForm.teacher_id &&
-                     scheduleForm.teacher_id !== 0 &&
-                     scheduleForm.time_slots &&
-                     scheduleForm.time_slots.length > 0;
+  const isFormValid = !hasErrors;
 
   const handleConfirm = useCallback(async () => {
     if (!isFormValid) return;
@@ -158,14 +160,22 @@ export default function ModernScheduleModal({
 
   // Enhanced time slots update handler to prevent data loss
   const handleTimeSlotsChange = useCallback((slots: (LegacyTimeSlot | ScheduleTimeSlot)[]) => {
-    // Filter and convert to ScheduleTimeSlot format
-    const scheduleSlots: ScheduleTimeSlot[] = slots
-      .filter((slot): slot is ScheduleTimeSlot => 'day_of_week' in slot)
-      .map(slot => ({
-        day_of_week: slot.day_of_week,
-        start_time: slot.start_time,
-        end_time: slot.end_time
-      }));
+    // Normalize both legacy and modern formats to ScheduleTimeSlot
+    const scheduleSlots: ScheduleTimeSlot[] = slots.map((slot) => {
+      if ('day_of_week' in slot) {
+        return {
+          day_of_week: slot.day_of_week,
+          start_time: slot.start_time,
+          end_time: slot.end_time,
+        };
+      }
+      const legacy = slot as LegacyTimeSlot;
+      return {
+        day_of_week: legacy.day,
+        start_time: legacy.timeFrom,
+        end_time: legacy.timeTo,
+      };
+    });
     updateForm({ time_slots: scheduleSlots });
   }, [updateForm]);
 
@@ -201,6 +211,9 @@ export default function ModernScheduleModal({
                 placeholder={language === 'th' ? 'กรอกชื่อตารางเรียน' : 'Enter schedule name'}
                 leftIcon={<HiDocumentText />}
               />
+              {getFieldError('schedule_name') && (
+                <p className="mt-1 text-xs text-red-600">{getFieldError('schedule_name')}</p>
+              )}
             </div>
 
             <div>
@@ -214,6 +227,9 @@ export default function ModernScheduleModal({
                 placeholder={language === 'th' ? 'เลือกคอร์ส' : 'Select Course'}
                 searchable
               />
+              {getFieldError('course_id') && (
+                <p className="mt-1 text-xs text-red-600">{getFieldError('course_id')}</p>
+              )}
             </div>
           </FieldGroup>
         </FormSection>
@@ -236,6 +252,10 @@ export default function ModernScheduleModal({
                 placeholder={language === 'th' ? 'เลือกครู' : 'Select Teacher'}
                 searchable
               />
+              {/* Teacher is optional in API but we show hint if unset */}
+              {(!scheduleForm.teacher_id || scheduleForm.teacher_id === 0) && (
+                <p className="mt-1 text-xs text-amber-600">{language === 'th' ? 'แนะนำให้เลือกครูผู้สอน' : 'Teacher selection is recommended'}</p>
+              )}
             </div>
 
             <div>
@@ -272,6 +292,9 @@ export default function ModernScheduleModal({
                 max="200"
                 leftIcon={<HiClock />}
               />
+              {getFieldError('total_hours') && (
+                <p className="mt-1 text-xs text-red-600">{getFieldError('total_hours')}</p>
+              )}
             </div>
 
             <div>
@@ -286,6 +309,9 @@ export default function ModernScheduleModal({
                 max="8"
                 leftIcon={<HiClock />}
               />
+              {getFieldError('hours_per_session') && (
+                <p className="mt-1 text-xs text-red-600">{getFieldError('hours_per_session')}</p>
+              )}
             </div>
 
             <div>
@@ -300,8 +326,76 @@ export default function ModernScheduleModal({
                 max="50"
                 leftIcon={<HiUserGroup />}
               />
+              {getFieldError('max_students') && (
+                <p className="mt-1 text-xs text-red-600">{getFieldError('max_students')}</p>
+              )}
             </div>
           </FieldGroup>
+
+          <FieldGroup columns={3}>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {language === 'th' ? 'วันที่เริ่มต้น *' : 'Start Date *'}
+              </label>
+              <DateInput
+                value={scheduleForm.start_date || ''}
+                onChange={(e) => updateForm({ start_date: e.target.value })}
+                language={language}
+              />
+              {getFieldError('start_date') && (
+                <p className="mt-1 text-xs text-red-600">{getFieldError('start_date')}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {language === 'th' ? 'รูปแบบการเกิดซ้ำ' : 'Recurring Pattern'}
+              </label>
+              <EnhancedSelect
+                value={(scheduleForm.recurring_pattern || 'weekly')}
+                onChange={(value) => {
+                  const next = Array.isArray(value) ? value[0] : value;
+                  updateForm({ recurring_pattern: next as NonNullable<CreateScheduleRequest['recurring_pattern']> });
+                }}
+                options={[
+                  { value: 'none', label: language === 'th' ? 'ไม่เกิดซ้ำ' : 'None' },
+                  { value: 'daily', label: language === 'th' ? 'รายวัน' : 'Daily' },
+                  { value: 'weekly', label: language === 'th' ? 'รายสัปดาห์' : 'Weekly' },
+                  { value: 'bi-weekly', label: language === 'th' ? 'รายสองสัปดาห์' : 'Bi-weekly' },
+                  { value: 'monthly', label: language === 'th' ? 'รายเดือน' : 'Monthly' },
+                ]}
+                placeholder={language === 'th' ? 'เลือกรูปแบบ' : 'Select pattern'}
+              />
+            </div>
+
+            {(scheduleForm.recurring_pattern && scheduleForm.recurring_pattern !== 'none') && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {language === 'th' ? 'จำนวนครั้งต่อสัปดาห์' : 'Sessions per week'}
+                </label>
+                <ModernInput
+                  type="number"
+                  value={(scheduleForm.session_per_week || 1).toString()}
+                  onChange={(e) => updateForm({ session_per_week: parseInt(e.target.value) || 1 })}
+                  min="1"
+                  max="14"
+                  leftIcon={<HiClock />}
+                />
+                {getFieldError('session_per_week') && (
+                  <p className="mt-1 text-xs text-red-600">{getFieldError('session_per_week')}</p>
+                )}
+              </div>
+            )}
+          </FieldGroup>
+
+          {/* Derived preview */}
+          {total_sessions && scheduleForm.start_date && (
+            <div className="mt-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm">
+              {language === 'th'
+                ? `จะสร้างทั้งหมด ${total_sessions} เซสชัน โดยคาดว่าจะสิ้นสุดวันที่ ${estimated_end_date || '-'}`
+                : `Will create ${total_sessions} sessions, estimated to end on ${estimated_end_date || '-'}`}
+            </div>
+          )}
         </FormSection>
 
         {/* Time Slots */}
@@ -320,6 +414,9 @@ export default function ModernScheduleModal({
             maxSlots={7}
             showBulkSelection={true}
           />
+          {getFieldError('time_slots') && (
+            <p className="mt-2 text-xs text-red-600">{getFieldError('time_slots')}</p>
+          )}
         </FormSection>
 
         {/* Additional Settings */}
