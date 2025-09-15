@@ -352,6 +352,22 @@ export interface Translations {
   advanced: string;
   learningNeeds: string;
 
+  //student Bill
+  studentBill: string;
+  invoice: string;
+  createInvoice: string;
+  searchBy: string;
+  studentName: string;
+  invoiceNumber: string;
+  studentID: string;
+  invoiceDate: string;
+  paymentDue: string;
+  item: string;
+  quantity: string;
+  price: string;
+  amount: string;
+  actions: string;
+
   //Teachers
   teachingReport: string;
 
@@ -510,6 +526,21 @@ export const translations: Record<Language, Translations> = {
     lineOA: 'Line OA',
     studentPortal: 'Student Portal',
     studentSchedule: 'ตารางเรียนนักเรียน',
+
+    // Student  Bill
+    studentBill: 'ออกบิลนักเรียน',
+    invoice: 'ใบแจ้งหนี้',
+    createInvoice: 'สร้างใบแจ้งหนี้',
+    searchBy: 'ค้นหาด้วย',
+    studentName: 'ชื่อนักเรียน',
+    invoiceNumber: 'หมายเลขใบแจ้งหนี้',
+    studentID: 'รหัสนักเรียน',
+    invoiceDate: 'วันที่ออกใบแจ้งหนี้',
+    paymentDue: 'วันครบกำหนดชำระ',
+    item: 'รายการ',
+    quantity: 'จำนวน',
+    price: 'ราคา',
+    amount: 'จำนวนเงิน',
 
     // Authentication
     login: 'เข้าสู่ระบบ',
@@ -979,6 +1010,21 @@ export const translations: Record<Language, Translations> = {
     teacherList: 'Teacher List',
     teacherNew: 'New Teacher',
     lineOA: 'Line OA',
+
+    //Student Bill
+    studentBill: 'Student Bills',
+    invoice: 'Invoice',
+    createInvoice: 'Create an Invoice',
+    searchBy: 'Search by',
+    studentName: 'Student Name',
+    invoiceNumber: 'Invoice Number',
+    studentID: 'Student ID',
+    invoiceDate: 'Invoice Date',
+    paymentDue: 'Payment Due',
+    item: 'Item',
+    quantity: 'Quantity',
+    price: 'Price',
+    amount: 'Amount',
 
     // Authentication
     login: 'Login',

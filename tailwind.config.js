@@ -8,7 +8,7 @@ module.exports = {
     "./src/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./node_modules/@heroui/theme/dist/components/(alert|button|ripple|spinner|card|divider|link).js",
+    "./node_modules/@heroui/theme/dist/components/(alert|autocomplete|button|chip|date-picker|ripple|spinner|form|input|listbox|divider|popover|scroll-shadow|calendar|date-input).js"
   ],
   theme: {
     extend: {
