@@ -439,7 +439,7 @@ export default function SchedulePage() {
       setLoading(true);
       setError(null);
       
-      if (viewMode === 'day') {
+  if (viewMode === 'day') {
         // For day view, use the existing API to maintain compatibility
         const response = await scheduleService.getTeachersSchedule(
           'day',
@@ -450,12 +450,15 @@ export default function SchedulePage() {
         );
 
         if (response.success) {
-          setTeachers(response.data.teachers);
+          const teachersList = Array.isArray(response.data?.teachers) ? response.data.teachers : [];
+          setTeachers(teachersList);
 
           // Auto-select all teachers if none selected and data available
-          if (selectedTeachers.length === 0 && response.data.teachers.length > 0) {
-            setSelectedTeachers(response.data.teachers.map(t => t.teacher_id));
+          if (selectedTeachers.length === 0 && teachersList.length > 0) {
+            setSelectedTeachers(teachersList.map((t: Teacher) => t.teacher_id));
           }
+        } else {
+          setTeachers([]);
         }
       } else {
         // For week and month views, use the calendar API
@@ -469,7 +472,13 @@ export default function SchedulePage() {
         );
 
         if (calendarResponse.success) {
-          setCalendarData(calendarResponse);
+          // Ensure calendarResponse has the expected structure
+          const safeCalendar = calendarResponse as CalendarViewResponse;
+          safeCalendar.data = safeCalendar.data ?? { view: viewMode, period: { start_date: '', end_date: '', total_days: 0 }, calendar: {}, holidays: [], summary: {} };
+          safeCalendar.data.calendar = safeCalendar.data.calendar ?? {};
+          setCalendarData(safeCalendar);
+        } else {
+          setCalendarData(null);
         }
       }
     } catch (err) {
@@ -488,24 +497,24 @@ export default function SchedulePage() {
     try {
       setFormLoading(true);
       const [coursesRes, roomsRes, teachersRes, schedulesRes, studentsRes, groupsRes] = await Promise.all([
-        scheduleService.getCourses(),
-        scheduleService.getRooms(), 
-        scheduleService.getTeachers(),
-        scheduleService.getSchedules(),
+        scheduleService.getCourses().catch(() => ({ success: true, data: [] })),
+        scheduleService.getRooms().catch(() => ({ success: true, data: [] })), 
+        scheduleService.getTeachers().catch(() => ({ success: true, data: [] })),
+        scheduleService.getSchedules().catch(() => ({ success: true, data: [] })),
         // Fetch users with student role - we'll filter students from all users for now
         import('@/services/user.service').then(service => 
           service.userService.getUsers(1, 1000).catch(() => ({ success: false, data: { users: [] } }))
-        ),
+        ).catch(() => ({ success: false, data: { users: [] } })),
         // Fetch groups for group-based scheduling
         groupService.getGroupOptions().catch(() => [])
       ]);
 
-      console.log("courses:", coursesRes.data);
-      if (coursesRes.success) setCourses(coursesRes.data);
+  console.log("courses:", coursesRes.data);
+  if (coursesRes && coursesRes.success && Array.isArray(coursesRes.data)) setCourses(coursesRes.data);
 
-      console.log("rooms:", roomsRes.data);
-      if (roomsRes.success) setRooms(roomsRes.data);
-      if (teachersRes.success) setTeacherOptions(teachersRes.data);
+  console.log("rooms:", roomsRes.data);
+  if (roomsRes && roomsRes.success && Array.isArray(roomsRes.data)) setRooms(roomsRes.data);
+  if (teachersRes && teachersRes.success && Array.isArray(teachersRes.data)) setTeacherOptions(teachersRes.data);
       if (schedulesRes.success) {
         // Transform the schedules data for the dropdown
         /*
@@ -523,39 +532,40 @@ export default function SchedulePage() {
       }
       
       // Filter and set students from users data
-      if (studentsRes.success) {
+      if (studentsRes && studentsRes.success && Array.isArray(studentsRes.data?.users)) {
         const studentUsers = studentsRes.data.users
           .filter((user: { role: string }) => user.role === 'student')
-          .map((user: { 
-            id: number; 
-            username: string;
+          .map((user: {
+            id: number;
+            username?: string;
             first_name?: string;
             first_name_en?: string;
             last_name?: string;
             last_name_en?: string;
             nickname?: string;
             age?: number;
-            email: string;
+            email?: string;
             phone?: string;
             line_id?: string;
+            role: string;
           }) => ({
             id: user.id,
             user_id: user.id,
-            first_name: user.first_name || user.username,
-            first_name_en: user.first_name_en || user.first_name || user.username,
-            last_name: user.last_name || '',
-            last_name_en: user.last_name_en || user.last_name || '',
-            nickname: user.nickname || user.username,
-            age: user.age || 18,
-            email: user.email,
-            phone: user.phone || '',
-            line_id: user.line_id || ''
+            first_name: user.first_name ?? user.username ?? '',
+            first_name_en: user.first_name_en ?? user.first_name ?? user.username ?? '',
+            last_name: user.last_name ?? '',
+            last_name_en: user.last_name_en ?? user.last_name ?? '',
+            nickname: user.nickname ?? user.username ?? '',
+            age: user.age ?? 18,
+            email: user.email ?? '',
+            phone: user.phone ?? '',
+            line_id: user.line_id ?? ''
           }));
         setStudents(studentUsers);
       }
       
-      // Set groups
-      setGroups(groupsRes);
+  // Set groups (groupsRes may be array or other)
+  setGroups(Array.isArray(groupsRes) ? groupsRes : (groupsRes || []));
       
       setFormOptionsLoaded(true);
     } catch (err) {

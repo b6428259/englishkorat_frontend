@@ -1,178 +1,182 @@
-import { api } from './base';
-import {
+import { 
   Group,
   GroupMember,
+  GroupListResponse,
+  GroupResponse,
+  GroupMemberResponse,
+  GetGroupsParams,
   CreateGroupRequest,
   AddGroupMemberRequest,
   UpdatePaymentStatusRequest,
-  GroupResponse,
-  GroupListResponse
+  Student
 } from '@/types/group.types';
+import { API_ENDPOINTS } from './endpoints';
+import { api } from './base';
 
-// API endpoints for groups
-export const GROUP_ENDPOINTS = {
-  LIST: '/groups',
-  CREATE: '/groups',
-  GET_BY_ID: (id: string) => `/groups/${id}`,
-  UPDATE: (id: string) => `/groups/${id}`,
-  DELETE: (id: string) => `/groups/${id}`,
-  ADD_MEMBER: (id: string) => `/groups/${id}/members`,
-  REMOVE_MEMBER: (id: string, studentId: string) => `/groups/${id}/members/${studentId}`,
-  UPDATE_PAYMENT: (id: string) => `/groups/${id}/payment-status`
-} as const;
 
-export const groupService = {
+class GroupService {
+  // Uses shared axios instance `api` which applies auth token via interceptor
+
   /**
-   * Get list of groups with optional filters
-   * Permissions: Teacher, Admin, Owner
+   * Get all groups with optional filters
    */
-  getGroups: async (params?: {
-    course_id?: number;
-    status?: 'active' | 'inactive' | 'suspended' | 'full' | 'need-feeling' | 'empty';
-    payment_status?: 'pending' | 'deposit_paid' | 'fully_paid';
-    page?: number;
-    limit?: number;
-  }): Promise<GroupListResponse> => {
-    const queryParams = new URLSearchParams();
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          queryParams.append(key, value.toString());
-        }
-      });
-    }
-    
-    const url = queryParams.toString() ? `${GROUP_ENDPOINTS.LIST}?${queryParams}` : GROUP_ENDPOINTS.LIST;
-    const response = await api.get(url);
-    
-    if (response.data.success) {
+  async getGroups(params: GetGroupsParams = {}): Promise<GroupListResponse> {
+    try {
+      const searchParams = new URLSearchParams();
+      
+      // Add filter parameters
+      if (params.course_id) searchParams.append('course_id', params.course_id.toString());
+      if (params.branch_id) searchParams.append('branch_id', params.branch_id.toString());
+      if (params.status) searchParams.append('status', params.status);
+      if (params.payment_status) searchParams.append('payment_status', params.payment_status);
+      if (params.page) searchParams.append('page', params.page.toString());
+      if (params.per_page) searchParams.append('per_page', params.per_page.toString());
+
+  const response = await api.get(API_ENDPOINTS.GROUPS.LIST, { params: Object.fromEntries(searchParams) });
+  return response.data as GroupListResponse;
+    } catch (error) {
+      console.error('Error fetching groups:', error);
+      // Return empty response structure for defensive programming
       return {
-        groups: response.data.data.groups || response.data.groups || [],
-        pagination: response.data.data.pagination || response.data.pagination
+        groups: [],
+        page: 1,
+        per_page: 20,
+        total: 0,
+        total_pages: 0
       };
-    } else {
-      throw new Error(response.data.message || 'Failed to fetch groups');
     }
-  },
+  }
 
   /**
    * Get specific group by ID
-   * Permissions: Teacher, Admin, Owner
    */
-  getGroupById: async (id: string): Promise<Group> => {
-    const response = await api.get(GROUP_ENDPOINTS.GET_BY_ID(id));
-    
-    if (response.data.success) {
-      return response.data.data.group || response.data.group;
-    } else {
-      throw new Error(response.data.message || 'Failed to fetch group');
+  async getGroup(id: string): Promise<Group | null> {
+    try {
+  const response = await api.get(API_ENDPOINTS.GROUPS.GET_BY_ID(id));
+  const data: GroupResponse = response.data;
+  return data.group;
+    } catch (error) {
+      console.error('Error fetching group:', error);
+      return null;
     }
-  },
+  }
 
   /**
-   * Create new group
-   * Permissions: Admin, Owner
+   * Create a new group
    */
-  createGroup: async (groupData: CreateGroupRequest): Promise<GroupResponse> => {
-    const response = await api.post(GROUP_ENDPOINTS.CREATE, groupData);
-    
-    if (response.data.success || response.data.message) {
-      return {
-        message: response.data.message || 'Group created successfully',
-        group: response.data.data?.group || response.data.group
-      };
-    } else {
-      throw new Error(response.data.message || 'Failed to create group');
+  async createGroup(groupData: CreateGroupRequest): Promise<Group | null> {
+    try {
+  const response = await api.post(API_ENDPOINTS.GROUPS.CREATE, groupData);
+  const data: GroupResponse = response.data;
+  return data.group;
+    } catch (error) {
+      console.error('Error creating group:', error);
+      return null;
     }
-  },
+  }
 
   /**
-   * Update existing group
-   * Permissions: Admin, Owner
+   * Update an existing group
    */
-  updateGroup: async (id: string, updates: Partial<CreateGroupRequest>): Promise<GroupResponse> => {
-    const response = await api.put(GROUP_ENDPOINTS.UPDATE(id), updates);
-    
-    if (response.data.success || response.data.message) {
-      return {
-        message: response.data.message || 'Group updated successfully',
-        group: response.data.data?.group || response.data.group
-      };
-    } else {
-      throw new Error(response.data.message || 'Failed to update group');
+  async updateGroup(groupId: string, updates: Partial<CreateGroupRequest>): Promise<Group | null> {
+    try {
+  const response = await api.put(API_ENDPOINTS.GROUPS.UPDATE(groupId), updates);
+  const data: GroupResponse = response.data;
+  return data.group;
+    } catch (error) {
+      console.error('Error updating group:', error);
+      return null;
     }
-  },
-
-  /**
-   * Delete group
-   * Permissions: Admin, Owner
-   */
-  deleteGroup: async (id: string): Promise<{ message: string }> => {
-    const response = await api.delete(GROUP_ENDPOINTS.DELETE(id));
-    
-    if (response.data.success) {
-      return {
-        message: response.data.message || 'Group deleted successfully'
-      };
-    } else {
-      throw new Error(response.data.message || 'Failed to delete group');
-    }
-  },
+  }
 
   /**
    * Add member to group
-   * Permissions: Admin, Owner
    */
-  addMember: async (groupId: string, memberData: AddGroupMemberRequest): Promise<{ message: string; member: GroupMember }> => {
-    const response = await api.post(GROUP_ENDPOINTS.ADD_MEMBER(groupId), memberData);
-    
-    if (response.data.success || response.data.message) {
-      return {
-        message: response.data.message || 'Member added successfully',
-        member: response.data.data?.member || response.data.member
-      };
-    } else {
-      throw new Error(response.data.message || 'Failed to add member');
+  async addMember(groupId: string, memberData: AddGroupMemberRequest): Promise<GroupMember | null> {
+    try {
+  const response = await api.post(API_ENDPOINTS.GROUPS.ADD_MEMBER(groupId), memberData);
+  const data: GroupMemberResponse = response.data;
+  return data.member;
+    } catch (error) {
+      console.error('Error adding member:', error);
+      return null;
     }
-  },
+  }
 
   /**
    * Remove member from group
-   * Permissions: Admin, Owner
    */
-  removeMember: async (groupId: string, studentId: string): Promise<{ message: string }> => {
-    const response = await api.delete(GROUP_ENDPOINTS.REMOVE_MEMBER(groupId, studentId));
-    
-    if (response.data.success) {
-      return {
-        message: response.data.message || 'Member removed successfully'
-      };
-    } else {
-      throw new Error(response.data.message || 'Failed to remove member');
+  async removeMember(groupId: string, studentId: string): Promise<boolean> {
+    try {
+  const response = await api.delete(API_ENDPOINTS.GROUPS.REMOVE_MEMBER(groupId, studentId));
+  return response.status >= 200 && response.status < 300;
+    } catch (error) {
+      console.error('Error removing member:', error);
+      return false;
     }
-  },
+  }
 
   /**
    * Update payment status
-   * Permissions: Admin, Owner
    */
-  updatePaymentStatus: async (groupId: string, paymentData: UpdatePaymentStatusRequest): Promise<{ message: string }> => {
-    const response = await api.patch(GROUP_ENDPOINTS.UPDATE_PAYMENT(groupId), paymentData);
-    
-    if (response.data.success) {
-      return {
-        message: response.data.message || 'Payment status updated successfully'
-      };
-    } else {
-      throw new Error(response.data.message || 'Failed to update payment status');
+  async updatePaymentStatus(groupId: string, paymentData: UpdatePaymentStatusRequest): Promise<boolean> {
+    try {
+  const response = await api.patch(API_ENDPOINTS.GROUPS.UPDATE_PAYMENT(groupId), paymentData);
+  return response.status >= 200 && response.status < 300;
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      return false;
     }
-  },
+  }
+
+  /**
+   * Get available students for assignment
+   */
+  async getAvailableStudents(search?: string): Promise<Student[]> {
+    try {
+      const searchParams = new URLSearchParams();
+      if (search) searchParams.append('search', search);
+
+  const response = await api.get(API_ENDPOINTS.STUDENTS.LIST, { params: Object.fromEntries(searchParams) });
+  const data = response.data;
+  return Array.isArray(data.students) ? data.students : data.students || [];
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      return []; // Return empty array on error for defensive programming
+    }
+  }
+
+  /**
+   * Get courses for filtering
+   */
+  async getCourses(): Promise<Array<{ id: number; name: string; level: string }>> {
+    try {
+  const response = await api.get(API_ENDPOINTS.COURSES.LIST);
+  const data = response.data;
+  return Array.isArray(data.courses) ? data.courses : data.courses || [];
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+      return []; // Return empty array on error for defensive programming
+    }
+  }
+
+  /**
+   * Get group members
+   */
+  async getGroupMembers(groupId: string): Promise<GroupMember[]> {
+    try {
+      const group = await this.getGroup(groupId);
+      return group?.members || [];
+    } catch (error) {
+      console.error('Error fetching group members:', error);
+      return [];
+    }
+  }
 
   /**
    * Get groups for dropdown selection
-   * Returns simplified group data suitable for dropdowns
    */
-  getGroupOptions: async (): Promise<Array<{
+  async getGroupOptions(): Promise<Array<{
     id: number;
     group_name: string;
     course_name: string;
@@ -180,9 +184,9 @@ export const groupService = {
     current_students: number;
     max_students: number;
     payment_status: string;
-  }>> => {
+  }>> {
     try {
-      const response = await groupService.getGroups({ status: 'active' });
+      const response = await this.getGroups({ status: 'active' });
       
       return response.groups.map(group => ({
         id: group.id,
@@ -197,49 +201,9 @@ export const groupService = {
       console.error('Error fetching group options:', error);
       return [];
     }
-  },
-
-  /**
-   * Get group members
-   * Returns detailed member information for a specific group
-   */
-  getGroupMembers: async (groupId: string): Promise<GroupMember[]> => {
-    try {
-      const group = await groupService.getGroupById(groupId);
-      return group.members || [];
-    } catch (error) {
-      console.error('Error fetching group members:', error);
-      return [];
-    }
-  },
-
-  /**
-   * Get groups by course
-   * Returns groups filtered by course ID
-   */
-  getGroupsByCourse: async (courseId: number): Promise<Group[]> => {
-    try {
-      const response = await groupService.getGroups({ course_id: courseId });
-      return response.groups;
-    } catch (error) {
-      console.error('Error fetching groups by course:', error);
-      return [];
-    }
-  },
-
-  /**
-   * Get groups by payment status
-   * Returns groups filtered by payment status
-   */
-  getGroupsByPaymentStatus: async (paymentStatus: 'pending' | 'deposit_paid' | 'fully_paid'): Promise<Group[]> => {
-    try {
-      const response = await groupService.getGroups({ payment_status: paymentStatus });
-      return response.groups;
-    } catch (error) {
-      console.error('Error fetching groups by payment status:', error);
-      return [];
-    }
   }
-};
+}
+
+export const groupService = new GroupService();
 
 export default groupService;

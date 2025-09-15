@@ -76,6 +76,7 @@ export const getSidebarItems = (t: Translations): SidebarItem[] => [
       { id: 'student-assign', label: t.studentRegistration, href: '/students/assign', icon: <HiOutlineIdentification {...iconProps} /> },
       { id: 'student-new', label: t.studentNew, href: '/students/new', icon: <HiOutlineUser {...iconProps} /> },
       { id: 'student-list', label: t.studentList, href: '/students/list', icon: <HiOutlineDocumentText {...iconProps} /> },
+      { id: 'student-groups', label: t.studyGroups, href: '/students/groups', icon: <HiOutlineUser {...iconProps} /> },
     ],
   },
   {

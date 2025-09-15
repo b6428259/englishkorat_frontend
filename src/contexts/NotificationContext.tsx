@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { webSocketService } from '../services/websocket.service';
 import { notificationApi } from '../services/api/notifications';
-import { getSecureToken } from '../utils/secureStorage';
+import { getSecureToken } from '@/utils/secureStorage';
 import { useAuth } from './AuthContext';
 import type { Notification } from '../types/notification';
 import toast, { Toaster } from 'react-hot-toast';

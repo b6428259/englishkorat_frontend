@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import AuthForm from '../../components/forms/AuthForm';
 import Button from '../../components/common/Button';
 import { SuccessModal, ErrorModal } from '../../components/common';
+import { hasValidToken } from '@/utils/secureStorage';
 
 function AuthPageContent() {
   const router = useRouter();
@@ -13,6 +14,20 @@ function AuthPageContent() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [redirecting, setRedirecting] = useState(false);
+
+  // // If already authenticated, skip login page
+  // useEffect(() => {
+  //   if (hasValidToken()) {
+  //     setRedirecting(true);
+  //     if (redirectUrl && redirectUrl !== '/auth') {
+  //       router.replace(redirectUrl);
+  //     } else {
+  //       router.replace('/dashboard');
+  //     }
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [redirectUrl]);
 
   const handleBack = () => {
     router.push('/');
@@ -36,6 +51,11 @@ function AuthPageContent() {
   };
 
   return (
+    redirecting ? (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-gray-600">Redirecting...</div>
+      </div>
+    ) : (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
       {/* Success Modal */}
       <SuccessModal
@@ -93,6 +113,7 @@ function AuthPageContent() {
         </div>
       </main>
     </div>
+  )
   );
 }
 

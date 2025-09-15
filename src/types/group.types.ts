@@ -1,9 +1,12 @@
 // Group-based Scheduling System Types
 // Based on the comprehensive API documentation
 
-// Group Model Types
+// Group Model Types - Updated to match actual API response
 export interface Group {
   id: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
   group_name: string;
   course_id: number;
   level: string;
@@ -11,32 +14,76 @@ export interface Group {
   status: 'active' | 'inactive' | 'suspended' | 'full' | 'need-feeling' | 'empty';
   payment_status: 'pending' | 'deposit_paid' | 'fully_paid';
   description?: string;
+  course?: Course;
+  members?: GroupMember[];
+}
+
+// Course interface matching API response
+export interface Course {
+  id: number;
   created_at: string;
   updated_at: string;
-  course?: {
-    id: number;
-    name: string;
-    level: string;
-  };
-  members?: GroupMember[];
+  deleted_at?: string | null;
+  name: string;
+  code: string;
+  course_type: string;
+  branch_id: number;
+  description: string;
+  status: string;
+  category_id: number;
+  duration_id: number;
+  level: string;
+  branch?: Branch;
+  category?: Category;
+}
+
+export interface Branch {
+  id: number;
+  deleted_at?: string | null;
+  name_en: string;
+  name_th: string;
+  code: string;
+  address: string;
+  phone: string;
+  type: string;
+  active: boolean;
+}
+
+export interface Category {
+  id: number;
+  deleted_at?: string | null;
+  name: string;
+  name_en: string;
+  description: string;
+  description_en: string;
+  type: string;
+  level: string;
+  sort_order: number;
+  active: boolean;
 }
 
 export interface GroupMember {
   id: number;
+  created_at: string;
+  updated_at: string;
   group_id: number;
   student_id: number;
   payment_status: 'pending' | 'deposit_paid' | 'fully_paid';
-  joined_at: string;
+  joined_at?: string;
   status: 'active' | 'inactive' | 'suspended';
-  student?: {
-    id: number;
-    user_id: number;
-    first_name: string;
-    last_name: string;
-    nickname: string;
-    email: string;
-    phone: string;
-  };
+  student?: Student;
+}
+
+export interface Student {
+  id: number;
+  first_name_en: string;
+  first_name_th: string;
+  last_name_en: string;
+  last_name_th: string;
+  nickname_en?: string;
+  nickname_th?: string;
+  email?: string;
+  phone?: string;
 }
 
 // Enhanced Schedule Model for Group-based System
@@ -210,20 +257,52 @@ export interface CreateCommentRequest {
   comment: string;
 }
 
-// API Response Types
+// API Response Types - Updated to match actual API structure
 export interface GroupResponse {
-  message: string;
   group: Group;
+  message: string;
 }
 
 export interface GroupListResponse {
   groups: Group[];
-  pagination?: {
-    current_page: number;
-    per_page: number;
-    total: number;
-    total_pages: number;
-  };
+  page: number;
+  per_page: number;
+  total: number;
+  total_pages: number;
+}
+
+export interface GroupMemberResponse {
+  member: GroupMember;
+  message: string;
+}
+
+// API Request Types
+export interface GetGroupsParams {
+  course_id?: number;
+  branch_id?: number;
+  status?: 'active' | 'inactive' | 'suspended' | 'full' | 'need-feeling' | 'empty';
+  payment_status?: 'pending' | 'deposit_paid' | 'fully_paid';
+  page?: number;
+  per_page?: number;
+}
+
+export interface CreateGroupRequest {
+  group_name: string;
+  course_id: number;
+  level: string;
+  max_students: number;
+  payment_status: 'pending' | 'deposit_paid' | 'fully_paid';
+  description?: string;
+}
+
+export interface AddGroupMemberRequest {
+  student_id: number;
+  payment_status: 'pending' | 'deposit_paid' | 'fully_paid';
+}
+
+export interface UpdatePaymentStatusRequest {
+  payment_status: 'pending' | 'deposit_paid' | 'fully_paid';
+  student_id?: number; // Optional: update specific member, otherwise update group
 }
 
 export interface ScheduleResponse {

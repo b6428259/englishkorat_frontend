@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import Button from "@/components/common/Button";
+import ModernInput from "@/components/common/forms/ModernInput";
+import EnhancedSelect from "@/components/common/forms/EnhancedSelect";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Group, GroupMember } from "@/types/group.types";
 import { groupService } from "@/services/api/groups";
@@ -121,8 +123,7 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
           <div className="flex justify-between items-start">
             <div>
               {editMode ? (
-                <input
-                  type="text"
+                <ModernInput
                   value={editData.group_name}
                   onChange={(e) => setEditData(prev => ({ ...prev, group_name: e.target.value }))}
                   className="text-2xl font-bold bg-transparent border-b border-white/50 focus:outline-none focus:border-white"
@@ -173,12 +174,11 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
                 {editMode ? (
                   <span>
                     /
-                    <input
+                    <ModernInput
                       type="number"
                       value={editData.max_students}
-                      onChange={(e) => setEditData(prev => ({ ...prev, max_students: parseInt(e.target.value) }))}
-                      className="w-12 ml-1 text-center border rounded"
-                      min="1"
+                      onChange={(e) => setEditData(prev => ({ ...prev, max_students: parseInt(e.target.value as unknown as string, 10) }))}
+                      className="w-16 ml-1 text-center"
                     />
                   </span>
                 ) : (
@@ -201,7 +201,7 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
 
           {/* Description */}
           <div className="mb-6">
-            <h3 className="text-sm font-medium text-gray-600 mb-2">
+            <h3 className="text-md font-semibold text-gray-700 mb-2">
               {language === 'th' ? 'คำอธิบาย' : 'Description'}
             </h3>
             {editMode ? (
@@ -209,11 +209,11 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
                 value={editData.description}
                 onChange={(e) => setEditData(prev => ({ ...prev, description: e.target.value }))}
                 rows={3}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full p-3 border border-gray-300 text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder={language === 'th' ? 'คำอธิบายเกี่ยวกับกลุ่ม...' : 'Description about the group...'}
               />
             ) : (
-              <p className="p-3 bg-gray-50 rounded-lg">
+              <p className="p-3 bg-gray-50 text-black rounded-lg">
                 {group.description || (language === 'th' ? 'ไม่มีคำอธิบาย' : 'No description')}
               </p>
             )}
@@ -221,7 +221,7 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
 
           {/* Edit Controls */}
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-semibold">
+            <h3 className="text-md font-semibold text-gray-700">
               {language === 'th' ? 'รายชื่อสมาชิก' : 'Members List'}
             </h3>
             <div className="flex gap-2">
@@ -264,7 +264,7 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
               {error}
             </div>
           ) : members.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-black">
               {language === 'th' ? 'ยังไม่มีสมาชิกในกลุ่ม' : 'No members in this group yet'}
             </div>
           ) : (
@@ -272,7 +272,7 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
               {members.map((member) => (
                 <div
                   key={member.id}
-                  className="bg-gray-50 p-4 rounded-lg flex items-center justify-between"
+                  className="bg-gray-50 text-black p-4 rounded-lg flex items-center justify-between"
                 >
                   <div className="flex-1">
                     <div className="font-medium">
@@ -298,15 +298,16 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
                   
                   <div className="flex items-center gap-3">
                     {/* Payment Status */}
-                    <select
+                    <EnhancedSelect
                       value={member.payment_status}
-                      onChange={(e) => handleUpdatePaymentStatus(member.student_id, e.target.value as 'pending' | 'deposit_paid' | 'fully_paid')}
-                      className="px-2 py-1 border border-gray-300 rounded text-sm"
-                    >
-                      <option value="pending">{language === 'th' ? 'รอชำระ' : 'Pending'}</option>
-                      <option value="deposit_paid">{language === 'th' ? 'ชำระมัดจำ' : 'Deposit Paid'}</option>
-                      <option value="fully_paid">{language === 'th' ? 'ชำระครบ' : 'Fully Paid'}</option>
-                    </select>
+                      onChange={(val) => handleUpdatePaymentStatus(member.student_id, val as 'pending' | 'deposit_paid' | 'fully_paid')}
+                      options={[
+                        { value: 'pending', label: language === 'th' ? 'รอชำระ' : 'Pending' },
+                        { value: 'deposit_paid', label: language === 'th' ? 'ชำระมัดจำ' : 'Deposit Paid' },
+                        { value: 'fully_paid', label: language === 'th' ? 'ชำระครบ' : 'Fully Paid' },
+                      ]}
+                      className="min-w-[180px]"
+                    />
                     
                     {/* Remove Button */}
                     <Button

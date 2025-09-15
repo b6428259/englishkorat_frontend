@@ -194,22 +194,23 @@ export interface CreateScheduleInput {
 }
 
 // Raw course response from API
-interface RawCourseResponse {
+interface CourseDTO {
   id: number;
+  created_at: string;
+  updated_at: string;
   name: string;
   code: string;
   course_type: string;
   branch_id: number;
   description: string | null;
   status: string;
-  created_at: string;
-  updated_at: string;
   category_id: number;
-  duration_id: number | null;
   level: string;
-  branch_name_en: string;
-  branch_name_th: string;
-  branch_code: string;
+  branch?: { id: number; name_en?: string; name_th?: string } | null;
+  duration_id?: number | null;
+  branch_name_en?: string;
+  branch_name_th?: string;
+  branch_code?: string;
 }
 
 // Raw teacher response from API
@@ -222,24 +223,7 @@ interface RawTeacherResponse {
   phone: string | null;
 }
 
-// Raw course response from API
-interface RawCourseResponse {
-  id: number;
-  name: string;
-  code: string;
-  course_type: string;
-  branch_id: number;
-  description: string | null;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  category_id: number;
-  duration_id: number | null;
-  level: string;
-  branch_name_en: string;
-  branch_name_th: string;
-  branch_code: string;
-}
+// (legacy RawCourseResponse removed in favor of CourseDTO)
 
 // Course interface for dropdowns
 export interface Course {
@@ -359,42 +343,108 @@ export interface CalendarViewApiResponse {
   };
 }
 
+export type GetCoursesParams = {
+  branch_id?: number | string;
+  status?: string; // API default: 'active'
+  course_type?: string;
+  level?: string;
+  page?: number; // 1-based
+  per_page?: number; // default 20, cap 100
+};
+
 export const scheduleService = {
-  // Get list of courses for dropdown
-  getCourses: async (): Promise<{ success: boolean; data: Course[] }> => {
-    const response = await api.get('/courses');
+  // Get list of courses with optional filters + pagination
+  getCourses: async (params?: GetCoursesParams): Promise<{
+    success: boolean;
+    data: Course[];
+    page: number;
+    per_page: number;
+    total: number;
+    total_pages: number;
+  }> => {
+    const query = new URLSearchParams();
+    if (params) {
+      const {
+        branch_id,
+        status = 'active',
+        course_type,
+        level,
+        page,
+        per_page,
+      } = params;
+      if (branch_id !== undefined && branch_id !== null) query.append('branch_id', String(branch_id));
+      if (status) query.append('status', status);
+      if (course_type) query.append('course_type', course_type);
+      if (level) query.append('level', level);
+      if (typeof page === 'number') query.append('page', String(page));
+      if (typeof per_page === 'number') query.append('per_page', String(per_page));
+    } else {
+      // Default status=active per API if no params provided
+      query.append('status', 'active');
+    }
+
+    const url = query.toString() ? `${API_ENDPOINTS.COURSES.LIST}?${query}` : API_ENDPOINTS.COURSES.LIST;
+    const response = await api.get(url);
+
+  const rawCourses = (response?.data?.data?.courses ?? response?.data?.courses ?? []) as CourseDTO[];
+  const mapped: Course[] = rawCourses.map((c) => ({
+      id: c.id,
+      name: c.name,
+      code: c.code,
+      course_name: c.name,
+      course_code: c.code,
+      course_type: c.course_type,
+      branch_id: c.branch_id,
+      description: c.description ?? null,
+      status: c.status,
+      created_at: c.created_at,
+      updated_at: c.updated_at,
+      category_id: c.category_id,
+      duration_id: c.duration_id ?? null,
+      level: c.level,
+      branch_name_en: c.branch_name_en ?? c.branch?.name_en ?? '',
+      branch_name_th: c.branch_name_th ?? c.branch?.name_th ?? '',
+      branch_code: c.branch_code ?? '',
+    }));
+
+    const pageMeta = {
+      page: response?.data?.data?.page ?? response?.data?.page ?? 1,
+      per_page: response?.data?.data?.per_page ?? response?.data?.per_page ?? mapped.length,
+      total: response?.data?.data?.total ?? response?.data?.total ?? mapped.length,
+      total_pages: response?.data?.data?.total_pages ?? response?.data?.total_pages ?? 1,
+    };
+
     return {
-      success: response.data.success,
-      data: response.data.data.courses.map((course: RawCourseResponse) => ({
-        ...course,
-        course_name: course.name,
-        course_code: course.code
-      }))
+      success: !!(response?.data?.success ?? true),
+      data: mapped,
+      ...pageMeta,
     };
   },
 
   // Get list of rooms for dropdown
   getRooms: async (): Promise<{ success: boolean; data: Room[] }> => {
     const response = await api.get('/rooms');
+    // Defensive: guard against missing shapes
+    const rooms = response?.data?.data?.rooms ?? response?.data?.rooms ?? [];
     return {
-      success: response.data.success,
-      data: response.data.data.rooms
+      success: !!(response?.data?.success ?? true),
+      data: Array.isArray(rooms) ? rooms : []
     };
   },
 
   // Get list of teachers for dropdown
   getTeachers: async (): Promise<{ success: boolean; data: TeacherOption[] }> => {
     const response = await api.get('/teachers');
-    const raw: RawTeacherResponse[] = response?.data?.data?.teachers ?? [];
-    const mapped: TeacherOption[] = raw.map(t => ({
+    const raw: RawTeacherResponse[] = response?.data?.data?.teachers ?? response?.data?.teachers ?? [];
+    const mapped: TeacherOption[] = Array.isArray(raw) ? raw.map(t => ({
       id: t.id,
       teacher_name: `${t.first_name}${t.last_name ? ' ' + t.last_name : ''}`.trim(),
       teacher_nickname: t.nickname ?? t.first_name,
       teacher_email: t.email ?? undefined,
       teacher_phone: t.phone ?? undefined,
-    }));
+    })) : [];
     return {
-      success: response.data.success,
+      success: !!(response?.data?.success ?? true),
       data: mapped,
     };
   },
@@ -444,9 +494,14 @@ export const scheduleService = {
       });
     }
     const response = await api.get(`${API_ENDPOINTS.SCHEDULES.TEACHERS(dateFilter)}&${queryParams}`);
+    const data = response?.data?.data ?? {};
+    // Ensure teachers and pagination exist
+    data.teachers = Array.isArray(data.teachers) ? data.teachers : [];
+    data.filter_info = data.filter_info ?? { date_filter: dateFilter, start_date: '', end_date: '', total_sessions: 0 };
+    data.pagination = data.pagination ?? { current_page: 1, per_page: data.teachers.length || 0, total: data.teachers.length || 0, total_pages: 1 };
     return {
-      success: response.data.success,
-      data: response.data.data
+      success: !!(response?.data?.success ?? true),
+      data
     };
   },
 
@@ -473,9 +528,25 @@ export const scheduleService = {
       });
     }
     const response = await api.get(`${API_ENDPOINTS.SCHEDULES.CALENDAR}?${queryParams}`);
+    const data = response?.data?.data ?? {};
+    // Defensive defaults
+    data.view = data.view ?? view;
+    data.period = data.period ?? { start_date: '', end_date: '', total_days: 0 };
+    data.calendar = data.calendar ?? {};
+    data.holidays = Array.isArray(data.holidays) ? data.holidays : [];
+    data.summary = data.summary ?? {
+      total_sessions: 0,
+      total_holidays: 0,
+      total_exceptions: 0,
+      sessions_by_status: {},
+      sessions_by_branch: {},
+      sessions_by_teacher: {},
+      days_with_sessions: 0,
+      days_with_holidays: 0
+    };
     return {
-      success: response.data.success,
-      data: response.data.data
+      success: !!(response?.data?.success ?? true),
+      data
     };
   },
 

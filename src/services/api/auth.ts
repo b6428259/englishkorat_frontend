@@ -1,7 +1,7 @@
 import { api } from './base';
 import { API_ENDPOINTS } from './endpoints';
 import { LoginRequest, RegisterRequest, AuthResponse, ProfileResponse, UpdateProfileRequest, ChangePasswordRequest, LoginResponse } from '../../types/auth.types';
-import { setSecureToken, getSecureToken, removeSecureToken, hasValidToken } from '../../utils/secureStorage';
+import { setSecureToken, getSecureToken, removeSecureToken, hasValidToken } from '@/utils/secureStorage';
 
 export const authApi = {
   /**

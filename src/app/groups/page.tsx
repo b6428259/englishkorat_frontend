@@ -287,7 +287,7 @@ export default function GroupsPage() {
           isOpen={isDetailsModalOpen}
           onClose={() => setIsDetailsModalOpen(false)}
           group={selectedGroup}
-          onUpdateGroup={handleUpdateGroup}
+          onGroupUpdated={() => fetchGroups()}
         />
       )}
 

@@ -16,6 +16,84 @@ export interface Translations {
   studentManagement: string;
   studentNew: string;
   studentList: string;
+  
+  // Groups Management
+  groupManagement: string;
+  groups: string;
+  studyGroups: string;
+  manageStudyGroups: string;
+  viewGroupDetails: string;
+  assignStudent: string;
+  addStudentToGroup: string;
+  removeStudentFromGroup: string;
+  groupDetails: string;
+  groupMembers: string;
+  membersList: string;
+  noGroupsFound: string;
+  noMembersInGroup: string;
+  groupName: string;
+  groupCourse: string;
+  groupLevel: string;
+  groupStatus: string;
+  groupPaymentStatus: string;
+  groupStudents: string;
+  groupAvailable: string;
+  groupSlots: string;
+  slotsAvailable: string;
+  groupFull: string;
+  groupEmpty: string;
+  groupActive: string;
+  groupInactive: string;
+  groupSuspended: string;
+  groupNeedMore: string;
+  paymentPending: string;
+  paymentDepositPaid: string;
+  paymentFullyPaid: string;
+  groupMaxStudents: string;
+  groupCurrentStudents: string;
+  groupDescription: string;
+  noGroupDescription: string;
+  groupCreated: string;
+  groupLastUpdated: string;
+  memberJoined: string;
+  memberPayment: string;
+  groupCategory: string;
+  allGroupCourses: string;
+  allGroupStatus: string;
+  allGroupPaymentStatus: string;
+  groupPerPage: string;
+  showGroupPerPage: string;
+  groupFilters: string;
+  groupQuickFilters: string;
+  clearGroupFilters: string;
+  clearAllFilters: string;
+  refreshGroups: string;
+  loadingGroups: string;
+  tryAgainGroups: string;
+  previousPage: string;
+  nextPage: string;
+  pageNum: string;
+  pageOf: string;
+  assignStudentToGroup: string;
+  selectedGroupStudent: string;
+  selectGroupStudent: string;
+  searchGroupStudents: string;
+  groupNameSurnameOrEmail: string;
+  noGroupStudentsFound: string;
+  noGroupStudentsAvailable: string;
+  assigningStudent: string;
+  studentAssignmentSuccess: string;
+  studentAssignmentFailed: string;
+  removeMemberConfirm: string;
+  removeMemberError: string;
+  updateMemberPaymentError: string;
+  loadGroupMembersError: string;
+  loadGroupStudentsError: string;
+  groupIsFullError: string;
+  groupFullMessage: string;
+  changeStudent: string;
+  editGroup: string;
+  removeGroupMember: string;
   settings: string;
   settingsProfile: string;
   settingsSystem: string;
@@ -500,6 +578,84 @@ export const translations: Record<Language, Translations> = {
     studentManagement: 'การจัดการนักเรียน',
     studentNew: 'นักเรียนใหม่',
     studentList: 'รายชื่อนักเรียน',
+    
+    // Groups Management
+    groupManagement: 'การจัดการกลุ่มเรียน',
+    groups: 'กลุ่มเรียน',
+    studyGroups: 'กลุ่มเรียน',
+    manageStudyGroups: 'จัดการกลุ่มเรียน',
+    viewGroupDetails: 'ดูรายละเอียด',
+    assignStudent: 'เพิ่มนักเรียน',
+    addStudentToGroup: 'เพิ่มนักเรียนเข้ากลุ่ม',
+    removeStudentFromGroup: 'ลบนักเรียนออกจากกลุ่ม',
+    groupDetails: 'รายละเอียดกลุ่ม',
+    groupMembers: 'สมาชิกกลุ่ม',
+    membersList: 'รายชื่อสมาชิก',
+    noGroupsFound: 'ไม่พบกลุ่มเรียน',
+    noMembersInGroup: 'ยังไม่มีสมาชิกในกลุ่ม',
+    groupName: 'ชื่อกลุ่ม',
+    groupCourse: 'คอร์ส',
+    groupLevel: 'ระดับ',
+    groupStatus: 'สถานะ',
+    groupPaymentStatus: 'สถานะการชำระเงิน',
+    groupStudents: 'นักเรียน',
+    groupAvailable: 'ที่ว่าง',
+    groupSlots: 'ที่นั่ง',
+    slotsAvailable: 'เหลือที่ว่าง',
+    groupFull: 'เต็มแล้ว',
+    groupEmpty: 'ว่าง',
+    groupActive: 'เปิดรับ',
+    groupInactive: 'ปิด',
+    groupSuspended: 'พักการเรียน',
+    groupNeedMore: 'ต้องเติม',
+    paymentPending: 'รอชำระ',
+    paymentDepositPaid: 'ชำระมัดจำ',
+    paymentFullyPaid: 'ชำระครบ',
+    groupMaxStudents: 'จำนวนนักเรียนสูงสุด',
+    groupCurrentStudents: 'นักเรียนปัจจุบัน',
+    groupDescription: 'คำอธิบาย',
+    noGroupDescription: 'ไม่มีคำอธิบาย',
+    groupCreated: 'สร้างเมื่อ',
+    groupLastUpdated: 'แก้ไขล่าสุด',
+    memberJoined: 'เข้าร่วมเมื่อ',
+    memberPayment: 'การชำระเงิน',
+    groupCategory: 'หมวดหมู่',
+    allGroupCourses: 'ทุกคอร์ส',
+    allGroupStatus: 'ทุกสถานะ',
+    allGroupPaymentStatus: 'ทุกสถานะการชำระ',
+    groupPerPage: 'แสดงต่อหน้า',
+    showGroupPerPage: 'แสดงต่อหน้า',
+    groupFilters: 'ตัวกรอง',
+    groupQuickFilters: 'ตัวกรองด่วน',
+    clearGroupFilters: 'ล้างตัวกรอง',
+    clearAllFilters: 'ล้างทั้งหมด',
+    refreshGroups: 'รีเฟรช',
+    loadingGroups: 'กำลังโหลด...',
+    tryAgainGroups: 'ลองใหม่',
+    previousPage: 'ก่อนหน้า',
+    nextPage: 'ถัดไป',
+    pageNum: 'หน้า',
+    pageOf: 'จาก',
+    assignStudentToGroup: 'เพิ่มนักเรียนเข้ากลุ่ม',
+    selectedGroupStudent: 'นักเรียนที่เลือก',
+    selectGroupStudent: 'เลือกนักเรียน',
+    searchGroupStudents: 'ค้นหานักเรียน',
+    groupNameSurnameOrEmail: 'ชื่อ, นามสกุล, หรืออีเมล...',
+    noGroupStudentsFound: 'ไม่พบนักเรียนที่ค้นหา',
+    noGroupStudentsAvailable: 'ไม่มีนักเรียนที่สามารถเพิ่มได้',
+    assigningStudent: 'กำลังเพิ่ม...',
+    studentAssignmentSuccess: 'เพิ่มนักเรียนสำเร็จ',
+    studentAssignmentFailed: 'เกิดข้อผิดพลาดในการเพิ่มนักเรียน',
+    removeMemberConfirm: 'คุณแน่ใจหรือไม่ที่จะลบสมาชิกนี้?',
+    removeMemberError: 'เกิดข้อผิดพลาดในการลบสมาชิก',
+    updateMemberPaymentError: 'เกิดข้อผิดพลาดในการอัปเดตสถานะการชำระเงิน',
+    loadGroupMembersError: 'ไม่สามารถโหลดรายชื่อสมาชิกได้',
+    loadGroupStudentsError: 'ไม่สามารถโหลดรายชื่อนักเรียนได้',
+    groupIsFullError: 'กลุ่มเต็มแล้ว',
+    groupFullMessage: 'ไม่สามารถเพิ่มนักเรียนใหม่ได้ เนื่องจากกลุ่มมีสมาชิกครบแล้ว',
+    changeStudent: 'เปลี่ยน',
+    editGroup: 'แก้ไข',
+    removeGroupMember: 'ลบ',
     settings: 'การตั้งค่า',
     settingsProfile: 'ข้อมูลส่วนตัว',
     settingsSystem: 'การตั้งค่าระบบ',
@@ -971,6 +1127,84 @@ export const translations: Record<Language, Translations> = {
     studentManagement: 'Student Management',
     settings: 'Settings',
     studentList: 'Student List',
+    
+    // Groups Management
+    groupManagement: 'Group Management',
+    groups: 'Groups',
+    studyGroups: 'Study Groups',
+    manageStudyGroups: 'Manage Study Groups',
+    viewGroupDetails: 'View Details',
+    assignStudent: 'Assign Student',
+    addStudentToGroup: 'Add Student to Group',
+    removeStudentFromGroup: 'Remove Student from Group',
+    groupDetails: 'Group Details',
+    groupMembers: 'Group Members',
+    membersList: 'Members List',
+    noGroupsFound: 'No groups found',
+    noMembersInGroup: 'No members in this group yet',
+    groupName: 'Group Name',
+    groupCourse: 'Course',
+    groupLevel: 'Level',
+    groupStatus: 'Status',
+    groupPaymentStatus: 'Payment Status',
+    groupStudents: 'Students',
+    groupAvailable: 'Available',
+    groupSlots: 'Slots',
+    slotsAvailable: 'slots available',
+    groupFull: 'Full',
+    groupEmpty: 'Empty',
+    groupActive: 'Active',
+    groupInactive: 'Inactive',
+    groupSuspended: 'Suspended',
+    groupNeedMore: 'Need More',
+    paymentPending: 'Pending',
+    paymentDepositPaid: 'Deposit Paid',
+    paymentFullyPaid: 'Fully Paid',
+    groupMaxStudents: 'Max Students',
+    groupCurrentStudents: 'Current Students',
+    groupDescription: 'Description',
+    noGroupDescription: 'No description',
+    groupCreated: 'Created',
+    groupLastUpdated: 'Last updated',
+    memberJoined: 'Joined',
+    memberPayment: 'Payment',
+    groupCategory: 'Category',
+    allGroupCourses: 'All Courses',
+    allGroupStatus: 'All Status',
+    allGroupPaymentStatus: 'All Payment Status',
+    groupPerPage: 'Per Page',
+    showGroupPerPage: 'Show Per Page',
+    groupFilters: 'Filters',
+    groupQuickFilters: 'Quick Filters',
+    clearGroupFilters: 'Clear Filters',
+    clearAllFilters: 'Clear All',
+    refreshGroups: 'Refresh',
+    loadingGroups: 'Loading...',
+    tryAgainGroups: 'Try Again',
+    previousPage: 'Previous',
+    nextPage: 'Next',
+    pageNum: 'Page',
+    pageOf: 'of',
+    assignStudentToGroup: 'Assign Student to Group',
+    selectedGroupStudent: 'Selected Student',
+    selectGroupStudent: 'Select Student',
+    searchGroupStudents: 'Search Students',
+    groupNameSurnameOrEmail: 'Name, surname, or email...',
+    noGroupStudentsFound: 'No students found',
+    noGroupStudentsAvailable: 'No students available',
+    assigningStudent: 'Assigning...',
+    studentAssignmentSuccess: 'Student assigned successfully',
+    studentAssignmentFailed: 'Failed to assign student',
+    removeMemberConfirm: 'Are you sure you want to remove this member?',
+    removeMemberError: 'Error removing member',
+    updateMemberPaymentError: 'Error updating payment status',
+    loadGroupMembersError: 'Failed to load members',
+    loadGroupStudentsError: 'Failed to load students',
+    groupIsFullError: 'Group is Full',
+    groupFullMessage: 'Cannot assign new students as the group has reached maximum capacity.',
+    changeStudent: 'Change',
+    editGroup: 'Edit',
+    removeGroupMember: 'Remove',
     studentNew: 'New Student',
     settingsPassword: 'Change Password',
     settingsProfile: 'Profile Settings',

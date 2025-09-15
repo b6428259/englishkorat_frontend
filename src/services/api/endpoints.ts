@@ -30,7 +30,7 @@ export const API_ENDPOINTS = {
     ENROLL: (id: string) => `/courses/${id}/enroll`
   },
 
-  // Group management endpoints (New Group-based scheduling system)
+  // Group management endpoints (group-based system)
   GROUPS: {
     LIST: '/groups',
     CREATE: '/groups',
@@ -41,6 +41,8 @@ export const API_ENDPOINTS = {
     REMOVE_MEMBER: (id: string, studentId: string) => `/groups/${id}/members/${studentId}`,
     UPDATE_PAYMENT: (id: string) => `/groups/${id}/payment-status`
   },
+
+
   
   // Student management endpoints
   STUDENTS: {

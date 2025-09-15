@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { User, LoginRequest, RegisterRequest, AuthResponse, UpdateProfileRequest, ChangePasswordRequest, ProfileResponse } from '../types/auth.types';
 import { authApi } from '../services/api/auth';
-import { removeSecureToken } from '../utils/secureStorage';
+import { removeSecureToken } from '@/utils/secureStorage';
 import { useRouter } from 'next/navigation';
 
 export type UserRole = 'student' | 'teacher' | 'admin' | 'owner';
