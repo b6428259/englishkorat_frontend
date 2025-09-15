@@ -8,7 +8,7 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import ErrorMessage from "@/components/common/ErrorMessage";
 import { colors } from "@/styles/colors";
 // import { ButtonGroup } from "@heroui/react";
-import { scheduleService, Teacher, Session, Student, Course, Room, TeacherOption, CreateScheduleRequest, CreateSessionRequest, CalendarViewResponse, CalendarSession } from "@/services/api/schedules";
+import { scheduleService, Teacher, Session as TeacherSession, Student, Course, Room, TeacherOption, CreateScheduleInput as CreateScheduleRequest, CreateSessionRequest, CalendarViewApiResponse as CalendarViewResponse, CalendarSession } from "@/services/api/schedules";
 import { groupService } from "@/services/api/groups";
 import { GroupOption } from "@/types/group.types";
 import { validateScheduleForm, deriveScheduleFields, validateSessionForm } from '@/utils/scheduleValidation';
@@ -332,7 +332,7 @@ export default function SchedulePage() {
   const [calendarData, setCalendarData] = useState<CalendarViewResponse | null>(null);
   
   // Modal states
-  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [selectedSession, setSelectedSession] = useState<TeacherSession | null>(null);
   const [scheduleDetail, setScheduleDetail] = useState<ScheduleDetail | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -612,9 +612,9 @@ export default function SchedulePage() {
   };
 
   // Handle session click for details (updated for calendar sessions)
-  const handleSessionClick = async (session: Session | CalendarSession) => {
+  const handleSessionClick = async (session: TeacherSession | CalendarSession) => {
     // Convert CalendarSession to Session if needed
-    const sessionForModal: Session = 'session_id' in session ? session : {
+  const sessionForModal: TeacherSession = 'session_id' in session ? session : {
       session_id: session.id,
       schedule_id: session.schedule_id,
       schedule_name: session.schedule_name,
@@ -692,7 +692,7 @@ export default function SchedulePage() {
     handleEditSchedule(scheduleDetail);
   };
 
-  const handleSessionDetailCreateSession = (session: Session) => {
+  const handleSessionDetailCreateSession = (session: TeacherSession) => {
     setSessionForm(prev => ({
       ...prev,
       schedule_id: session.schedule_id,
@@ -703,7 +703,7 @@ export default function SchedulePage() {
   openModal('createSession');
   };
 
-  const handleSessionDetailRetryLoading = (session: Session) => {
+  const handleSessionDetailRetryLoading = (session: TeacherSession) => {
     handleSessionClick(session);
   };
 
@@ -731,8 +731,7 @@ export default function SchedulePage() {
 
       // Create schedule using the enhanced group-based method
       const response = await scheduleService.createGroupBasedSchedule(payload);
-      
-      if (response.success) {
+      if (response && response.schedule) {
         setIsCreateModalOpen(false);
         await fetchData(); // Refresh the schedule data
         // Refresh form options to include new schedule
@@ -740,7 +739,7 @@ export default function SchedulePage() {
         await fetchFormOptions();
         // Show success message (you can add toast notification here)
       } else {
-        setFormError(response.message || (language === 'th' ? 'เกิดข้อผิดพลาดในการสร้างตารางเรียน' : 'Failed to create schedule'));
+        setFormError(response?.message || (language === 'th' ? 'เกิดข้อผิดพลาดในการสร้างตารางเรียน' : 'Failed to create schedule'));
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -925,7 +924,7 @@ export default function SchedulePage() {
 
   return (
     <SidebarLayout breadcrumbItems={[{ label: t.schedule }]}>
-  <div className="h-full flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen min-h-0">
+  <div className="h-full flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
         {/* Header Section */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-4 flex-shrink-0 border border-gray-200">
           <div className="flex items-center justify-between mb-6">

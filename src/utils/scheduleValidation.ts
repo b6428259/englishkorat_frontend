@@ -1,4 +1,4 @@
-import type { CreateScheduleRequest, CreateSessionRequest } from '@/services/api/schedules';
+import type { CreateScheduleInput as CreateScheduleRequest, CreateSessionRequest } from '@/services/api/schedules';
 
 export type ValidationIssue = { field: string; message: string };
 

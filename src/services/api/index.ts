@@ -56,7 +56,7 @@ export type {
   ScheduleListResponse,
   SessionListResponse,
   CommentListResponse
-} from '../types/group.types';
+} from '../../types/group.types';
 
 // Re-export auth types for convenience
 export type { LoginRequest, RegisterRequest, AuthResponse } from '../../types/auth.types';

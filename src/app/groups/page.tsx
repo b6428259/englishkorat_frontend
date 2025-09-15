@@ -36,6 +36,19 @@ export default function GroupsPage() {
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Helper: normalize filter values to API-accepted union types
+  const toStatusParam = (value: string): Group['status'] | undefined => {
+    if (value === 'all') return undefined;
+    const allowed: Group['status'][] = ['active', 'inactive', 'suspended', 'full', 'need-feeling', 'empty'];
+    return (allowed as readonly string[]).includes(value) ? (value as Group['status']) : undefined;
+  };
+
+  const toPaymentParam = (value: string): Group['payment_status'] | undefined => {
+    if (value === 'all') return undefined;
+    const allowed: Group['payment_status'][] = ['pending', 'deposit_paid', 'fully_paid'];
+    return (allowed as readonly string[]).includes(value) ? (value as Group['payment_status']) : undefined;
+  };
+
   // Fetch groups data
   const fetchGroups = useCallback(async () => {
     try {
@@ -43,12 +56,14 @@ export default function GroupsPage() {
       setError(null);
       
       const params: {
-        status?: string;
-        payment_status?: string;
+        status?: Group['status'];
+        payment_status?: Group['payment_status'];
         // course_id?: number; // TODO: Implement course filtering
       } = {};
-      if (statusFilter !== 'all') params.status = statusFilter;
-      if (paymentFilter !== 'all') params.payment_status = paymentFilter;
+      const s = toStatusParam(statusFilter);
+      const p = toPaymentParam(paymentFilter);
+      if (s) params.status = s;
+      if (p) params.payment_status = p;
       // if (courseFilter) params.course_id = courseFilter;
       
       const response = await groupService.getGroups(params);

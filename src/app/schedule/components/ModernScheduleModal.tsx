@@ -13,7 +13,7 @@ import { TimeSlotSelector } from '@/components/forms/TimeSlotSelector';
 import { DateInput } from '@/components/forms/DateInput';
 import { validateScheduleForm, deriveScheduleFields, type ValidationIssue } from '@/utils/scheduleValidation';
 import { 
-  CreateScheduleRequest, 
+  CreateScheduleInput as CreateScheduleRequest, 
   Course, 
   Room, 
   TeacherOption 
@@ -253,12 +253,15 @@ export default function ModernScheduleModal({
               </label>
               <EnhancedSelect
                 value={scheduleForm.schedule_type || 'class'}
-                onChange={(value) => updateForm({ 
-                  schedule_type: Array.isArray(value) ? value[0] : value as 'class' | 'meeting' | 'event' | 'holiday' | 'appointment',
-                  // Reset group/participant selection when type changes
-                  group_id: undefined,
-                  participant_user_ids: undefined
-                })}
+                onChange={(value) => {
+                  const selected = Array.isArray(value) ? value[0] : value;
+                  updateForm({
+                    schedule_type: selected as NonNullable<CreateScheduleRequest['schedule_type']>,
+                    // Reset group/participant selection when type changes
+                    group_id: undefined,
+                    participant_user_ids: undefined
+                  });
+                }}
                 options={[
                   { value: 'class', label: language === 'th' ? 'คลาสเรียน' : 'Class' },
                   { value: 'event', label: language === 'th' ? 'อีเว้นท์' : 'Event' },
