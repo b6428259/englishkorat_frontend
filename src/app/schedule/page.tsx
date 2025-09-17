@@ -8,7 +8,7 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import ErrorMessage from "@/components/common/ErrorMessage";
 import { colors } from "@/styles/colors";
 // import { ButtonGroup } from "@heroui/react";
-import { scheduleService, Teacher, Session as TeacherSession, Student, Course, Room, TeacherOption, CreateScheduleInput as CreateScheduleRequest, CreateSessionRequest, CalendarViewApiResponse as CalendarViewResponse, CalendarSession } from "@/services/api/schedules";
+import { scheduleService, Teacher, Student, Course, Room, TeacherOption, CreateScheduleInput as CreateScheduleRequest, CalendarViewApiResponse as CalendarViewResponse, CalendarSession, TeacherSession } from "@/services/api/schedules";
 import { groupService } from "@/services/api/groups";
 import { GroupOption } from "@/types/group.types";
 import { validateScheduleForm, deriveScheduleFields, validateSessionForm } from '@/utils/scheduleValidation';
@@ -250,9 +250,22 @@ const WeekView: React.FC<{
 };
 
 // Extended session form interface for the modals
-interface ExtendedCreateSessionRequest extends CreateSessionRequest {
+interface ExtendedCreateSessionRequest {
   mode: 'single' | 'multiple' | 'bulk';
   schedule_id: number;
+  session_date: string;
+  start_time: string;
+  end_time: string;
+  repeat?: {
+    enabled: boolean;
+    frequency: 'daily' | 'weekly' | 'monthly';
+    interval: number;
+    end: { type: 'after' | 'never' | 'on'; count?: number; date?: string };
+    days_of_week: string[];
+  };
+  is_makeup_session?: boolean;
+  notes?: string;
+  appointment_notes?: string;
   session_count?: number;
   repeat_frequency?: 'daily' | 'weekly' | 'monthly';
 }
@@ -266,55 +279,6 @@ const timeSlots = Array.from({ length: (22 - 8) * 2 + 1 }, (_, i) => {
   }${hour < 12 ? "am" : "pm"}`;
   return { hour, minute, label };
 });
-
-const branchColors: Record<number, string> = {
-  1: "bg-[#334293] text-white", // Branch 1 - Blue
-  2: "bg-[#5EABD6] text-white", // Online - Light Blue
-  3: "bg-[#EFE957] text-black", // Branch 3 - Yellow
-};
-
-interface ScheduleDetail {
-  schedule: {
-    id: number;
-    schedule_name: string;
-    course_name: string;
-    course_code: string;
-    total_hours: string;
-    hours_per_session: string;
-    max_students: number;
-    current_students: number;
-    available_spots: number;
-    start_date: string;
-    status: string;
-    schedule_type: string;
-    auto_reschedule_holidays: number;
-  };
-  students: Student[];
-  sessions: Array<{
-    id: number;
-    schedule_id: number;
-    session_date: string;
-    session_number: number;
-    week_number: number;
-    start_time: string;
-    end_time: string;
-    teacher_id: number;
-    room_name: string;
-    status: string;
-    teacher_first_name: string;
-    teacher_last_name: string;
-    notes: string | null;
-  }>;
-  summary: {
-    total_sessions: number;
-    scheduled: number;
-    completed: number;
-    cancelled: number;
-    makeup_sessions: number;
-    total_exceptions: number;
-    total_enrolled_students: number;
-  };
-}
 
 export default function SchedulePage() {
   const { t, language } = useLanguage();
@@ -332,10 +296,8 @@ export default function SchedulePage() {
   const [calendarData, setCalendarData] = useState<CalendarViewResponse | null>(null);
   
   // Modal states
-  const [selectedSession, setSelectedSession] = useState<TeacherSession | null>(null);
-  const [scheduleDetail, setScheduleDetail] = useState<ScheduleDetail | null>(null);
+  const [selectedSession, setSelectedSession] = useState<number | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [detailLoading, setDetailLoading] = useState(false);
   
   // Create/Edit schedule modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -343,13 +305,11 @@ export default function SchedulePage() {
   // Prevent overlapping or looping fetches
   const isFetchingRef = useRef(false);
 
-  const openModal = useCallback((modal: 'detail' | 'createSchedule' | 'createSession') => {
+  const openModal = useCallback((modal: 'createSchedule' | 'createSession') => {
     // Close others first
-    setIsDetailModalOpen(false);
     setIsCreateModalOpen(false);
     setIsCreateSessionModalOpen(false);
     // Open requested
-    if (modal === 'detail') setIsDetailModalOpen(true);
     if (modal === 'createSchedule') setIsCreateModalOpen(true);
     if (modal === 'createSession') setIsCreateSessionModalOpen(true);
   }, []);
@@ -450,12 +410,12 @@ export default function SchedulePage() {
         );
 
         if (response.success) {
-          const teachersList = Array.isArray(response.data?.teachers) ? response.data.teachers : [];
+          const teachersList = Array.isArray(response.data) ? response.data : [];
           setTeachers(teachersList);
 
           // Auto-select all teachers if none selected and data available
           if (selectedTeachers.length === 0 && teachersList.length > 0) {
-            setSelectedTeachers(teachersList.map((t: Teacher) => t.teacher_id));
+            setSelectedTeachers(teachersList.map((t: Teacher) => t.id));
           }
         } else {
           setTeachers([]);
@@ -588,7 +548,7 @@ export default function SchedulePage() {
   // Filter teachers based on selection - memoized for performance
   const filteredTeachers = useMemo(() => 
     teachers.filter(teacher => 
-      selectedTeachers.includes(teacher.teacher_id)
+      selectedTeachers.includes(teacher.id)
     ),
     [teachers, selectedTeachers]
   );
@@ -602,7 +562,7 @@ export default function SchedulePage() {
   };
 
   const selectAllTeachers = () => {
-    setSelectedTeachers(teachers.map(t => t.teacher_id));
+    setSelectedTeachers(teachers.map(t => t.id));
   };
 
   const clearSelection = () => {
@@ -621,44 +581,11 @@ export default function SchedulePage() {
     return Math.max(1, diffMinutes / 30); // 30 minutes per slot
   };
 
-  // Handle session click for details (updated for calendar sessions)
-  const handleSessionClick = async (session: TeacherSession | CalendarSession) => {
-    // Convert CalendarSession to Session if needed
-  const sessionForModal: TeacherSession = 'session_id' in session ? session : {
-      session_id: session.id,
-      schedule_id: session.schedule_id,
-      schedule_name: session.schedule_name,
-      course_name: session.course_name,
-      course_code: session.course_code || '',
-      session_date: session.session_date,
-      start_time: session.start_time,
-      end_time: session.end_time,
-      session_number: 0,
-      week_number: 0,
-      status: session.status,
-      room_name: session.room_name,
-      max_students: 0,
-      current_students: session.students?.length || 0,
-      branch_id: 0,
-      branch_name_en: session.branch_name,
-      branch_name_th: session.branch_name,
-      notes: null
-    };
-
-    setSelectedSession(sessionForModal);
-    setDetailLoading(true);
-    openModal('detail');
-    
-    try {
-      const response = await scheduleService.getScheduleDetails(session.schedule_id.toString());
-      if (response.success) {
-        setScheduleDetail(response.data);
-      }
-    } catch (err) {
-      console.error('Error fetching schedule details:', err);
-    } finally {
-      setDetailLoading(false);
-    }
+  // Handle session click for details
+  const handleSessionClick = (session: TeacherSession | CalendarSession) => {
+    const sessionId = session.id;
+    setSelectedSession(sessionId);
+    setIsDetailModalOpen(true);
   };
 
   // Handle day click in month view
@@ -695,26 +622,6 @@ export default function SchedulePage() {
     }));
     
   openModal('createSchedule');
-  };
-
-  // Modal callback handlers
-  const handleSessionDetailEditSchedule = (scheduleDetail: ScheduleDetail) => {
-    handleEditSchedule(scheduleDetail);
-  };
-
-  const handleSessionDetailCreateSession = (session: TeacherSession) => {
-    setSessionForm(prev => ({
-      ...prev,
-      schedule_id: session.schedule_id,
-      session_date: session.session_date,
-      start_time: session.start_time.slice(0, 5),
-      end_time: session.end_time.slice(0, 5)
-    }));
-  openModal('createSession');
-  };
-
-  const handleSessionDetailRetryLoading = (session: TeacherSession) => {
-    handleSessionClick(session);
   };
 
   // Handle schedule creation
@@ -758,59 +665,6 @@ export default function SchedulePage() {
       setFormLoading(false);
     }
   };
-
-  // Handle schedule editing
-  const handleEditSchedule = (scheduleDetail: ScheduleDetail) => {
-    // Look up course_id from course_name
-    const course = courses.find(c => c.course_name === scheduleDetail.schedule.course_name);
-    const courseId = course ? course.id : 0;
-
-    // Look up teacher_id from teacher information in sessions
-    // Assuming all sessions have the same teacher
-    const firstSession = scheduleDetail.sessions[0];
-    const teacher = teacherOptions.find(t => t.teacher_name === `${firstSession?.teacher_first_name} ${firstSession?.teacher_last_name}`);
-    const teacherId = teacher ? teacher.id : 0;
-
-    // Look up room_id from room information in sessions
-    // Using the most common room or the first one if they differ
-    const roomCounts = scheduleDetail.sessions.reduce((acc, session) => {
-      acc[session.room_name] = (acc[session.room_name] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-    
-    const mostCommonRoom = Object.entries(roomCounts).sort(([,a], [,b]) => b - a)[0]?.[0];
-    const room = rooms.find(r => r.room_name === mostCommonRoom);
-    const roomId = room ? room.id : 0;
-
-    // Populate time_slots from existing sessions
-    const timeSlots = scheduleDetail.sessions.map(session => {
-      const sessionDate = new Date(session.session_date);
-      const dayOfWeek = sessionDate.toLocaleDateString('en', { weekday: 'long' }).toLowerCase();
-      
-      return {
-        day_of_week: dayOfWeek,
-        start_time: session.start_time,
-        end_time: session.end_time
-      };
-    });
-
-    setScheduleForm({
-      schedule_name: scheduleDetail.schedule.schedule_name,
-      course_id: courseId,
-      teacher_id: teacherId,
-      room_id: roomId,
-      total_hours: parseFloat(scheduleDetail.schedule.total_hours),
-      hours_per_session: parseFloat(scheduleDetail.schedule.hours_per_session),
-      max_students: scheduleDetail.schedule.max_students,
-      start_date: scheduleDetail.schedule.start_date,
-      time_slots: timeSlots,
-      auto_reschedule_holidays: scheduleDetail.schedule.auto_reschedule_holidays === 1,
-      notes: ''
-    });
-    setIsCreateModalOpen(true);
-  };
-
-  // Handle schedule update
 
   // Handle session creation within a schedule
   const handleCreateSession = async () => {
@@ -1049,22 +903,29 @@ export default function SchedulePage() {
                   </p>
                 ) : (
                   teachers.map((teacher) => (
-                    <label key={teacher.teacher_id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded cursor-pointer text-sm">
+                    <label key={teacher.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded cursor-pointer text-sm">
                       <input
                         type="checkbox"
-                        checked={selectedTeachers.includes(teacher.teacher_id)}
-                        onChange={() => toggleTeacher(teacher.teacher_id)}
+                        checked={selectedTeachers.includes(teacher.id)}
+                        onChange={() => toggleTeacher(teacher.id)}
                         className="h-4 w-4 rounded focus:ring-0"
                         style={{ accentColor: colors.yellowLogo }}
                       />
                       <div className="min-w-0 flex-1">
                         <span className="text-sm font-medium block truncate" style={{ color: colors.blueLogo }}>
-                          {teacher.teacher_nickname}
+                          {teacher.name.nickname_en || teacher.name.first_en}
                         </span>
-                        <p className="text-xs text-gray-500 truncate">{teacher.teacher_name}</p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {`${teacher.name.first_en} ${teacher.name.last_en}`.trim()}
+                        </p>
                         <p className="text-xs text-green-600">
                           {teacher.sessions.length} {language === 'th' ? 'ครั้งเรียน' : 'sessions'}
                         </p>
+                        {teacher.branch.name_en && (
+                          <p className="text-xs text-blue-600 truncate">
+                            {teacher.branch.name_en}
+                          </p>
+                        )}
                       </div>
                     </label>
                   ))
@@ -1131,12 +992,17 @@ export default function SchedulePage() {
                           ) : (
                             filteredTeachers.map((teacher) => (
                               <th 
-                                key={teacher.teacher_id}
+                                key={teacher.id}
                                 className={`text-center font-bold text-white border border-gray-300 p-3 text-sm min-w-[200px] bg-gradient-to-br from-indigo-600 to-purple-700`}
                               >
                                 <div className="p-2">
-                                  <div className="font-bold">{teacher.teacher_nickname}</div>
-                                  <div className="text-xs opacity-90 mt-1">{teacher.teacher_name}</div>
+                                  <div className="font-bold">{teacher.name.nickname_en || teacher.name.first_en}</div>
+                                  <div className="text-xs opacity-90 mt-1">
+                                    {`${teacher.name.first_en} ${teacher.name.last_en}`.trim()}
+                                  </div>
+                                  {teacher.branch.name_en && (
+                                    <div className="text-xs opacity-75 mt-1">{teacher.branch.name_en}</div>
+                                  )}
                                 </div>
                               </th>
                           ))
@@ -1168,7 +1034,7 @@ export default function SchedulePage() {
                                 const rowSpan = getRowSpan(session.start_time, session.end_time);
                                 return (
                                   <td 
-                                    key={teacher.teacher_id} 
+                                    key={teacher.id} 
                                     rowSpan={rowSpan}
                                     className="p-1 border border-gray-300 align-top relative"
                                   >
@@ -1181,29 +1047,20 @@ export default function SchedulePage() {
                                     >
                                       <div className="space-y-1">
                                         <p className="font-bold text-xs text-black line-clamp-1">
-                                          {session.schedule_name}
-                                        </p>
-
-                                        <p className="font-bold text-xs text-rose-600">
-                                          {session.current_students}
-                                          {session.max_students > 0 ? `/${session.max_students}` : ''} {t.people}
+                                          Session #{session.session_number}
                                         </p>
 
                                         <p className="text-xs text-gray-600 line-clamp-1">
-                                          {session.course_name}
+                                          {session.room.name || 'No Room'}
                                         </p>
 
                                         <p className="text-xs text-gray-500">
-                                          {session.room_name}
+                                          Status: {session.status}
                                         </p>
 
-                                        {(session.branch_name_th || session.branch_name_en) && (
-                                          <span
-                                            className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                                              session.branch_id && branchColors[session.branch_id] ? branchColors[session.branch_id] : 'bg-gray-200 text-gray-700'
-                                            }`}
-                                          >
-                                            {language === 'th' ? (session.branch_name_th || session.branch_name_en) : (session.branch_name_en || session.branch_name_th)}
+                                        {session.is_makeup && (
+                                          <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-yellow-200 text-yellow-800">
+                                            Makeup
                                           </span>
                                         )}
 
@@ -1236,9 +1093,9 @@ export default function SchedulePage() {
                               // Empty cell
                               return (
                                 <td 
-                                  key={teacher.teacher_id}
+                                  key={teacher.id}
                                   className="border border-gray-300 bg-white hover:bg-gray-50 cursor-pointer transition-colors duration-200"
-                                  onClick={() => handleEmptyCellClick(teacher.teacher_id, timeSlot)}
+                                  onClick={() => handleEmptyCellClick(teacher.id, timeSlot)}
                                 >
                                   <div className="w-full h-8 flex items-center justify-center">
                                     <div className="w-6 h-6 rounded-full bg-gray-100 hover:bg-blue-100 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200">
@@ -1290,16 +1147,11 @@ export default function SchedulePage() {
       </div>
 
       {/* Modals */}
-      {isDetailModalOpen && (
+      {isDetailModalOpen && selectedSession && (
         <SessionDetailModal
           isOpen={isDetailModalOpen}
           onClose={() => setIsDetailModalOpen(false)}
-          selectedSession={selectedSession}
-          scheduleDetail={scheduleDetail}
-          detailLoading={detailLoading}
-          onEditSchedule={handleSessionDetailEditSchedule}
-          onCreateSession={handleSessionDetailCreateSession}
-          onRetryLoading={handleSessionDetailRetryLoading}
+          sessionId={selectedSession}
         />
       )}
 

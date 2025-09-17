@@ -17,7 +17,7 @@ export const API_ENDPOINTS = {
     GET_BY_ID: (id: string) => `/users/${id}`,
     UPDATE: (id: string) => `/users/${id}`,
     DELETE: (id: string) => `/users/${id}`,
-    PROFILE: '/users/profile'
+    PROFILE: '/profile'
   },
   
   // Course management endpoints

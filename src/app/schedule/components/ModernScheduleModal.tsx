@@ -1,16 +1,15 @@
 "use client";
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { HiCalendarDays, HiAcademicCap, HiUserGroup, HiClock, HiDocumentText } from 'react-icons/hi2';
-import ActionModal from '@/components/common/ActionModal';
-import FormSection from '@/components/common/forms/FormSection';
-import FieldGroup from '@/components/common/forms/FieldGroup';
-import EnhancedSelect from '@/components/common/forms/EnhancedSelect';
-import ModernInput from '@/components/common/forms/ModernInput';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Button from '@/components/common/Button';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Checkbox } from '@/components/forms';
-import { TimeSlotSelector } from '@/components/forms/TimeSlotSelector';
-import { DateInput } from '@/components/forms/DateInput';
+import { HiDocumentText } from 'react-icons/hi2';
+import { CalendarIcon, ClockIcon, BookOpenIcon, UsersIcon, MapPinIcon } from 'lucide-react';
 import { validateScheduleForm, deriveScheduleFields, type ValidationIssue } from '@/utils/scheduleValidation';
 import { 
   CreateScheduleInput as CreateScheduleRequest, 
@@ -19,14 +18,6 @@ import {
   TeacherOption 
 } from '@/services/api/schedules';
 import { GroupOption } from '@/types/group.types';
-
-// Legacy interface for backward compatibility
-interface LegacyTimeSlot {
-  id: string;
-  day: string;
-  timeFrom: string;
-  timeTo: string;
-}
 
 interface ScheduleTimeSlot {
   day_of_week: string;
@@ -43,7 +34,7 @@ interface ModernScheduleModalProps {
   courses: Course[];
   rooms: Room[];
   teachers: TeacherOption[];
-  groups?: GroupOption[]; // New: Group options for group-based scheduling
+  groups?: GroupOption[];
   isLoading?: boolean;
   error?: string | null;
 }
@@ -57,18 +48,19 @@ export default function ModernScheduleModal({
   courses,
   rooms,
   teachers,
-  groups = [], // New: Group options
+  groups = [],
   isLoading = false,
   error
 }: ModernScheduleModalProps) {
   const { language } = useLanguage();
+  const [activeTab, setActiveTab] = useState("basic");
 
-  // Internal form state with proper persistence
+  // Internal form state
   const [internalForm, setInternalForm] = useState<Partial<CreateScheduleRequest>>({
     schedule_name: '',
-    schedule_type: 'class', // New: Default to class schedule
+    schedule_type: 'class',
     course_id: 0,
-    group_id: 0, // New: Group selection for class schedules
+    group_id: 0,
     teacher_id: 0,
     room_id: 0,
     total_hours: 30,
@@ -76,506 +68,554 @@ export default function ModernScheduleModal({
     max_students: 6,
     start_date: new Date().toISOString().split('T')[0],
     time_slots: [],
-    auto_reschedule: true, // Updated field name
+    auto_reschedule: true,
     notes: ''
   });
 
-  // Use external form if provided, otherwise use internal state
   const scheduleForm = externalForm || internalForm;
 
-  // Enhanced updateForm function with better state management
   const updateForm = useCallback((updates: Partial<CreateScheduleRequest>) => {
     if (externalUpdate) {
-      // Use external update function if provided
       externalUpdate(updates);
     } else {
-      // Update internal state and preserve existing data
       setInternalForm(prev => ({ ...prev, ...updates }));
     }
   }, [externalUpdate]);
 
-  // Effect to sync external form changes to internal state
   useEffect(() => {
     if (externalForm && !externalUpdate) {
       setInternalForm(externalForm);
     }
   }, [externalForm, externalUpdate]);
 
-  // Validation and derived preview
+  // Validation
   const issues = useMemo<ValidationIssue[]>(() => validateScheduleForm(scheduleForm), [scheduleForm]);
   const getFieldError = useCallback((field: string) => issues.find(i => i.field === field)?.message, [issues]);
   const hasErrors = issues.length > 0;
   const { estimated_end_date, total_sessions } = useMemo(() => deriveScheduleFields(scheduleForm), [scheduleForm]);
 
-  const courseOptions = useMemo(() => [
-    { value: '0', label: language === 'th' ? 'เลือกคอร์ส' : 'Select Course', disabled: true },
-    ...courses.map(course => ({
-      value: course.id.toString(),
-      label: course.course_name,
-      description: `${language === 'th' ? 'ระดับ' : 'Level'}: ${course.level}`,
-      icon: <HiAcademicCap className="text-blue-500" />
-    }))
-  ], [courses, language]);
+  const scheduleTypes = [
+    { value: 'class', label: language === 'th' ? 'คลาสเรียน' : 'Class', icon: UsersIcon },
+    { value: 'private', label: language === 'th' ? 'ติวเตอร์' : 'Private', icon: UsersIcon },
+    { value: 'workshop', label: language === 'th' ? 'เวิร์คช็อป' : 'Workshop', icon: BookOpenIcon },
+  ];
 
-  const teacherOptions_enhanced = useMemo(() => [
-    { value: '0', label: language === 'th' ? 'เลือกครู' : 'Select Teacher', disabled: true },
-    ...teachers.map((teacher: TeacherOption) => ({
-      value: teacher.id.toString(),
-      label: teacher.teacher_name,
-      description: teacher.teacher_email || '',
-      icon: <HiUserGroup className="text-green-500" />
-    }))
-  ], [teachers, language]);
+  const weekDays = [
+    { value: 'monday', label: language === 'th' ? 'จันทร์' : 'Monday' },
+    { value: 'tuesday', label: language === 'th' ? 'อังคาร' : 'Tuesday' },
+    { value: 'wednesday', label: language === 'th' ? 'พุธ' : 'Wednesday' },
+    { value: 'thursday', label: language === 'th' ? 'พฤหัสบดี' : 'Thursday' },
+    { value: 'friday', label: language === 'th' ? 'ศุกร์' : 'Friday' },
+    { value: 'saturday', label: language === 'th' ? 'เสาร์' : 'Saturday' },
+    { value: 'sunday', label: language === 'th' ? 'อาทิตย์' : 'Sunday' },
+  ];
 
-  const roomOptions = useMemo(() => [
-    { value: '0', label: language === 'th' ? 'เลือกห้องเรียน' : 'Select Room', disabled: true },
-    ...rooms.map(room => ({
-      value: room.id.toString(),
-      label: room.room_name,
-      description: `${language === 'th' ? 'ความจุ' : 'Capacity'}: ${room.capacity} ${language === 'th' ? 'คน' : 'people'}`,
-      icon: <HiClock className="text-orange-500" />
-    }))
-  ], [rooms, language]);
-
-  const isFormValid = !hasErrors;
-
-  const handleConfirm = useCallback(async () => {
-    if (!isFormValid) return;
-    await onConfirm();
-  }, [isFormValid, onConfirm]);
-
-  const handleClose = useCallback(() => {
-    if (!externalForm) {
-      setInternalForm({
-        schedule_name: '',
-        course_id: 0,
-        teacher_id: 0,
-        room_id: 0,
-        total_hours: 30,
-        hours_per_session: 3,
-        max_students: 6,
-        start_date: new Date().toISOString().split('T')[0],
-        time_slots: [],
-        auto_reschedule_holidays: true,
-        notes: ''
-      });
-    }
-    onClose();
-  }, [externalForm, onClose]);
-
-  // Enhanced time slots update handler to prevent data loss
-  const handleTimeSlotsChange = useCallback((slots: (LegacyTimeSlot | ScheduleTimeSlot)[]) => {
-    // Normalize both legacy and modern formats to ScheduleTimeSlot
-    const scheduleSlots: ScheduleTimeSlot[] = slots.map((slot) => {
-      if ('day_of_week' in slot) {
-        return {
-          day_of_week: slot.day_of_week,
-          start_time: slot.start_time,
-          end_time: slot.end_time,
-        };
-      }
-      const legacy = slot as LegacyTimeSlot;
-      return {
-        day_of_week: legacy.day,
-        start_time: legacy.timeFrom,
-        end_time: legacy.timeTo,
-      };
+  const addTimeSlot = () => {
+    const newSlot: ScheduleTimeSlot = {
+      day_of_week: 'monday',
+      start_time: '09:00',
+      end_time: '12:00'
+    };
+    updateForm({
+      time_slots: [...(scheduleForm.time_slots || []), newSlot]
     });
-    updateForm({ time_slots: scheduleSlots });
-  }, [updateForm]);
+  };
 
-  // Enhanced notes update handler
-  const handleNotesChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const newValue = e.target.value;
-    updateForm({ notes: newValue });
-  }, [updateForm]);
+  const removeTimeSlot = (index: number) => {
+    const newTimeSlots = (scheduleForm.time_slots || []).filter((_, i) => i !== index);
+    updateForm({ time_slots: newTimeSlots });
+  };
+
+  const updateTimeSlot = (index: number, updates: Partial<ScheduleTimeSlot>) => {
+    const newTimeSlots = (scheduleForm.time_slots || []).map((slot, i) => 
+      i === index ? { ...slot, ...updates } : slot
+    );
+    updateForm({ time_slots: newTimeSlots });
+  };
 
   return (
-    <ActionModal
-      isOpen={isOpen}
-      onClose={handleClose}
-      title={language === 'th' ? 'สร้างตารางเรียนใหม่' : 'Create New Schedule'}
-      size="xl"
-    >
-      <div className="space-y-6 max-h-[75vh] overflow-y-auto">
-        {/* Schedule Basic Info */}
-        <FormSection
-          title={language === 'th' ? 'ข้อมูลตารางเรียน' : 'Schedule Information'}
-          icon={<HiCalendarDays />}
-          color="blue"
-        >
-          <FieldGroup columns={2}>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {language === 'th' ? 'ชื่อตารางเรียน *' : 'Schedule Name *'}
-              </label>
-              <ModernInput
-                type="text"
-                value={scheduleForm.schedule_name || ''}
-                onChange={(e) => updateForm({ schedule_name: e.target.value })}
-                placeholder={language === 'th' ? 'กรอกชื่อตารางเรียน' : 'Enter schedule name'}
-                leftIcon={<HiDocumentText />}
-              />
-              {getFieldError('schedule_name') && (
-                <p className="mt-1 text-xs text-red-600">{getFieldError('schedule_name')}</p>
-              )}
-            </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden bg-white">
+        <DialogHeader className="border-b border-gray-200 pb-4">
+          <DialogTitle className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+            <CalendarIcon className="h-6 w-6 text-indigo-600" />
+            {language === 'th' ? 'สร้างตารางเรียนใหม่' : 'Create New Schedule'}
+          </DialogTitle>
+        </DialogHeader>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {language === 'th' ? 'คอร์ส *' : 'Course *'}
-              </label>
-              <EnhancedSelect
-                value={(scheduleForm.course_id || 0).toString()}
-                onChange={(value) => updateForm({ course_id: parseInt(Array.isArray(value) ? value[0] : value) })}
-                options={courseOptions}
-                placeholder={language === 'th' ? 'เลือกคอร์ส' : 'Select Course'}
-                searchable
-              />
-              {getFieldError('course_id') && (
-                <p className="mt-1 text-xs text-red-600">{getFieldError('course_id')}</p>
-              )}
-            </div>
-          </FieldGroup>
-        </FormSection>
+        <div className="flex-1 overflow-hidden">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+            <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsTrigger value="basic" className="flex items-center gap-2">
+                <BookOpenIcon className="h-4 w-4" />
+                {language === 'th' ? 'ข้อมูลพื้นฐาน' : 'Basic Info'}
+              </TabsTrigger>
+              <TabsTrigger value="schedule" className="flex items-center gap-2">
+                <ClockIcon className="h-4 w-4" />
+                {language === 'th' ? 'ตารางเวลา' : 'Time Schedule'}
+              </TabsTrigger>
+              <TabsTrigger value="preview" className="flex items-center gap-2">
+                <HiDocumentText className="h-4 w-4" />
+                {language === 'th' ? 'พรีวิว' : 'Preview'}
+              </TabsTrigger>
+            </TabsList>
 
-        {/* Schedule Type and Group Selection */}
-        <FormSection
-          title={language === 'th' ? 'ประเภทและกลุ่ม' : 'Type and Group'}
-          icon={<HiUserGroup />}
-          color="purple"
-        >
-          <FieldGroup columns={2}>
-            {/* Schedule Type */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {language === 'th' ? 'ประเภทตารางเรียน *' : 'Schedule Type *'}
-              </label>
-              <EnhancedSelect
-                value={scheduleForm.schedule_type || 'class'}
-                onChange={(value) => {
-                  const selected = Array.isArray(value) ? value[0] : value;
-                  updateForm({
-                    schedule_type: selected as NonNullable<CreateScheduleRequest['schedule_type']>,
-                    // Reset group/participant selection when type changes
-                    group_id: undefined,
-                    participant_user_ids: undefined
-                  });
-                }}
-                options={[
-                  { value: 'class', label: language === 'th' ? 'คลาสเรียน' : 'Class' },
-                  { value: 'event', label: language === 'th' ? 'อีเว้นท์' : 'Event' },
-                  { value: 'appointment', label: language === 'th' ? 'นัดหมาย' : 'Appointment' }
-                ]}
-                placeholder={language === 'th' ? 'เลือกประเภท' : 'Select Type'}
-              />
-              {getFieldError('schedule_type') && (
-                <p className="mt-1 text-xs text-red-600">{getFieldError('schedule_type')}</p>
-              )}
-            </div>
+            <TabsContent value="basic" className="flex-1 overflow-y-auto space-y-6">
+              {/* Schedule Name */}
+              <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <HiDocumentText className="h-5 w-5 text-indigo-600" />
+                  {language === 'th' ? 'ข้อมูลพื้นฐาน' : 'Basic Information'}
+                </h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {language === 'th' ? 'ชื่อตารางเรียน' : 'Schedule Name'}
+                    </label>
+                    <input
+                      type="text"
+                      value={scheduleForm.schedule_name || ''}
+                      onChange={(e) => updateForm({ schedule_name: e.target.value })}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      placeholder={language === 'th' ? 'ใส่ชื่อตารางเรียน' : 'Enter schedule name'}
+                    />
+                    {getFieldError('schedule_name') && (
+                      <p className="text-red-500 text-sm mt-1">{getFieldError('schedule_name')}</p>
+                    )}
+                  </div>
 
-            {/* Group Selection (for class schedules) */}
-            {scheduleForm.schedule_type === 'class' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {language === 'th' ? 'กลุ่มเรียน *' : 'Learning Group *'}
-                </label>
-                <EnhancedSelect
-                  value={(scheduleForm.group_id || 0).toString()}
-                  onChange={(value) => updateForm({ group_id: parseInt(Array.isArray(value) ? value[0] : value) })}
-                  options={groups.map(group => ({
-                    value: group.id.toString(),
-                    label: `${group.group_name} (${group.current_students}/${group.max_students})`,
-                    sublabel: `${group.course_name} - ${group.level}`
-                  }))}
-                  placeholder={language === 'th' ? 'เลือกกลุ่มเรียน' : 'Select Group'}
-                  searchable
-                />
-                {getFieldError('group_id') && (
-                  <p className="mt-1 text-xs text-red-600">{getFieldError('group_id')}</p>
-                )}
-                {(!scheduleForm.group_id || scheduleForm.group_id === 0) && (
-                  <p className="mt-1 text-xs text-amber-600">
-                    {language === 'th' ? 'กรุณาเลือกกลุ่มเรียนสำหรับคลาสเรียน' : 'Please select a group for class schedules'}
-                  </p>
-                )}
-              </div>
-            )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {language === 'th' ? 'ประเภทตารางเรียน' : 'Schedule Type'}
+                    </label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {scheduleTypes.map((type) => {
+                        const IconComponent = type.icon;
+                        return (
+                          <button
+                              key={type.value}
+                              type="button"
+                              onClick={() => updateForm({ schedule_type: type.value as import('@/services/api/schedules').CreateScheduleInput['schedule_type'] })}
+                              className={`p-4 rounded-lg border text-center transition-all ${
+                                scheduleForm.schedule_type === type.value
+                                  ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                  : 'border-gray-300 hover:border-gray-400'
+                              }`}
+                            >
+                            <IconComponent className="h-6 w-6 mx-auto mb-2" />
+                            <p className="font-medium">{type.label}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-            {/* Participant Information (for events/appointments) */}
-            {(scheduleForm.schedule_type === 'event' || scheduleForm.schedule_type === 'appointment') && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {language === 'th' ? 'ผู้เข้าร่วม' : 'Participants'}
-                </label>
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
-                  <p className="text-sm text-amber-700">
-                    {language === 'th' 
-                      ? 'การเลือกผู้เข้าร่วมจะพัฒนาในอนาคต' 
-                      : 'Participant selection will be implemented in future updates'
-                    }
-                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {language === 'th' ? 'คอร์ส' : 'Course'}
+                      </label>
+                      <select
+                        value={scheduleForm.course_id || 0}
+                        onChange={(e) => updateForm({ course_id: parseInt(e.target.value) })}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      >
+                        <option value={0}>{language === 'th' ? 'เลือกคอร์ส' : 'Select Course'}</option>
+                        {courses.map(course => (
+                          <option key={course.id} value={course.id}>
+                            {course.course_name} - {course.level}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {language === 'th' ? 'ครู' : 'Teacher'}
+                      </label>
+                      <select
+                        value={scheduleForm.teacher_id || 0}
+                        onChange={(e) => updateForm({ teacher_id: parseInt(e.target.value) })}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      >
+                        <option value={0}>{language === 'th' ? 'เลือกครู' : 'Select Teacher'}</option>
+                        {teachers.map(teacher => (
+                          <option key={teacher.id} value={teacher.id}>
+                            {teacher.teacher_name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {language === 'th' ? 'ห้องเรียน' : 'Room'}
+                      </label>
+                      <select
+                        value={scheduleForm.room_id || 0}
+                        onChange={(e) => updateForm({ room_id: parseInt(e.target.value) })}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      >
+                        <option value={0}>{language === 'th' ? 'เลือกห้องเรียน' : 'Select Room'}</option>
+                        {rooms.map(room => (
+                          <option key={room.id} value={room.id}>
+                            {room.room_name} (ความจุ: {room.capacity})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {groups.length > 0 && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {language === 'th' ? 'กลุ่ม' : 'Group'}
+                        </label>
+                        <select
+                          value={scheduleForm.group_id || 0}
+                          onChange={(e) => updateForm({ group_id: parseInt(e.target.value) })}
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        >
+                          <option value={0}>{language === 'th' ? 'เลือกกลุ่ม' : 'Select Group'}</option>
+                          {groups.map(group => (
+                          <option key={group.id} value={group.id}>
+                            {group.group_name}
+                          </option>
+                        ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {language === 'th' ? 'จำนวนชั่วโมงรวม' : 'Total Hours'}
+                      </label>
+                      <input
+                        type="number"
+                        value={scheduleForm.total_hours || ''}
+                        onChange={(e) => updateForm({ total_hours: parseInt(e.target.value) || 0 })}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        min="1"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {language === 'th' ? 'ชั่วโมงต่อครั้ง' : 'Hours per Session'}
+                      </label>
+                      <input
+                        type="number"
+                        value={scheduleForm.hours_per_session || ''}
+                        onChange={(e) => updateForm({ hours_per_session: parseInt(e.target.value) || 0 })}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        min="1"
+                        step="0.5"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {language === 'th' ? 'จำนวนนักเรียนสูงสุด' : 'Max Students'}
+                      </label>
+                      <input
+                        type="number"
+                        value={scheduleForm.max_students || ''}
+                        onChange={(e) => updateForm({ max_students: parseInt(e.target.value) || 0 })}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        min="1"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {language === 'th' ? 'วันที่เริ่มต้น' : 'Start Date'}
+                    </label>
+                    <input
+                      type="date"
+                      value={scheduleForm.start_date || ''}
+                      onChange={(e) => updateForm({ start_date: e.target.value })}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    />
+                  </div>
                 </div>
               </div>
-            )}
-          </FieldGroup>
-        </FormSection>
+            </TabsContent>
 
-        {/* Teacher and Room */}
-        <FormSection
-          title={language === 'th' ? 'ครูและห้องเรียน' : 'Teacher and Room'}
-          icon={<HiUserGroup />}
-          color="green"
-        >
-          <FieldGroup columns={2}>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {language === 'th' ? 'ครูผู้สอน *' : 'Teacher *'}
-              </label>
-              <EnhancedSelect
-                value={(scheduleForm.teacher_id || 0).toString()}
-                onChange={(value) => updateForm({ teacher_id: parseInt(Array.isArray(value) ? value[0] : value) })}
-                options={teacherOptions_enhanced}
-                placeholder={language === 'th' ? 'เลือกครู' : 'Select Teacher'}
-                searchable
-              />
-              {/* Teacher is optional in API but we show hint if unset */}
-              {(!scheduleForm.teacher_id || scheduleForm.teacher_id === 0) && (
-                <p className="mt-1 text-xs text-amber-600">{language === 'th' ? 'แนะนำให้เลือกครูผู้สอน' : 'Teacher selection is recommended'}</p>
-              )}
-            </div>
+            <TabsContent value="schedule" className="flex-1 overflow-y-auto">
+              <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <ClockIcon className="h-5 w-5 text-indigo-600" />
+                    {language === 'th' ? 'ตารางเวลา' : 'Time Schedule'}
+                  </h3>
+                  <Button
+                    onClick={addTimeSlot}
+                    variant="monthViewClicked"
+                    className="px-4 py-2 text-sm"
+                  >
+                    + {language === 'th' ? 'เพิ่มช่วงเวลา' : 'Add Time Slot'}
+                  </Button>
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {language === 'th' ? 'ห้องเรียน' : 'Room'}
-              </label>
-              <EnhancedSelect
-                value={(scheduleForm.room_id || 0).toString()}
-                onChange={(value) => updateForm({ room_id: parseInt(Array.isArray(value) ? value[0] : value) })}
-                options={roomOptions}
-                placeholder={language === 'th' ? 'เลือกห้องเรียน' : 'Select Room'}
-                searchable
-              />
-            </div>
-          </FieldGroup>
-        </FormSection>
+                <div className="space-y-4">
+                  {(scheduleForm.time_slots || []).map((slot, index) => (
+                    <div key={index} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-medium text-gray-900">
+                          {language === 'th' ? 'ช่วงเวลาที่' : 'Time Slot'} {index + 1}
+                        </h4>
+                        <button
+                          onClick={() => removeTimeSlot(index)}
+                          className="text-red-500 hover:text-red-700 text-sm font-medium"
+                        >
+                          {language === 'th' ? 'ลบ' : 'Remove'}
+                        </button>
+                      </div>
 
-        {/* Schedule Settings */}
-        <FormSection
-          title={language === 'th' ? 'การตั้งค่าตารางเรียน' : 'Schedule Settings'}
-          icon={<HiClock />}
-          color="purple"
-        >
-          <FieldGroup columns={3}>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {language === 'th' ? 'จำนวนชั่วโมงรวม' : 'Total Hours'}
-              </label>
-              <ModernInput
-                type="number"
-                value={(scheduleForm.total_hours || 30).toString()}
-                onChange={(e) => updateForm({ total_hours: parseInt(e.target.value) || 30 })}
-                min="1"
-                max="200"
-                leftIcon={<HiClock />}
-              />
-              {getFieldError('total_hours') && (
-                <p className="mt-1 text-xs text-red-600">{getFieldError('total_hours')}</p>
-              )}
-            </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {language === 'th' ? 'วันในสัปดาห์' : 'Day of Week'}
+                          </label>
+                          <select
+                            value={slot.day_of_week}
+                            onChange={(e) => updateTimeSlot(index, { day_of_week: e.target.value })}
+                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                          >
+                            {weekDays.map(day => (
+                              <option key={day.value} value={day.value}>
+                                {day.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {language === 'th' ? 'ชั่วโมงต่อเซสชัน' : 'Hours per Session'}
-              </label>
-              <ModernInput
-                type="number"
-                value={(scheduleForm.hours_per_session || 3).toString()}
-                onChange={(e) => updateForm({ hours_per_session: parseInt(e.target.value) || 3 })}
-                min="1"
-                max="8"
-                leftIcon={<HiClock />}
-              />
-              {getFieldError('hours_per_session') && (
-                <p className="mt-1 text-xs text-red-600">{getFieldError('hours_per_session')}</p>
-              )}
-            </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {language === 'th' ? 'เวลาเริ่ม' : 'Start Time'}
+                          </label>
+                          <input
+                            type="time"
+                            value={slot.start_time}
+                            onChange={(e) => updateTimeSlot(index, { start_time: e.target.value })}
+                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                          />
+                        </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {language === 'th' ? 'นักเรียนสูงสุด' : 'Max Students'}
-              </label>
-              <ModernInput
-                type="number"
-                value={(scheduleForm.max_students || 6).toString()}
-                onChange={(e) => updateForm({ max_students: parseInt(e.target.value) || 6 })}
-                min="1"
-                max="50"
-                leftIcon={<HiUserGroup />}
-              />
-              {getFieldError('max_students') && (
-                <p className="mt-1 text-xs text-red-600">{getFieldError('max_students')}</p>
-              )}
-            </div>
-          </FieldGroup>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {language === 'th' ? 'เวลาสิ้นสุด' : 'End Time'}
+                          </label>
+                          <input
+                            type="time"
+                            value={slot.end_time}
+                            onChange={(e) => updateTimeSlot(index, { end_time: e.target.value })}
+                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
 
-          <FieldGroup columns={3}>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {language === 'th' ? 'วันที่เริ่มต้น *' : 'Start Date *'}
-              </label>
-              <DateInput
-                value={scheduleForm.start_date || ''}
-                onChange={(e) => updateForm({ start_date: e.target.value })}
-                language={language}
-              />
-              {getFieldError('start_date') && (
-                <p className="mt-1 text-xs text-red-600">{getFieldError('start_date')}</p>
-              )}
-            </div>
+                  {(scheduleForm.time_slots || []).length === 0 && (
+                    <div className="text-center py-12 text-gray-500">
+                      <ClockIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                      <p>{language === 'th' ? 'ยังไม่มีช่วงเวลา คลิกเพิ่มช่วงเวลาเพื่อเริ่มต้น' : 'No time slots added. Click "Add Time Slot" to start.'}</p>
+                    </div>
+                  )}
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {language === 'th' ? 'รูปแบบการเกิดซ้ำ' : 'Recurring Pattern'}
-              </label>
-              <EnhancedSelect
-                value={(scheduleForm.recurring_pattern || 'weekly')}
-                onChange={(value) => {
-                  const next = Array.isArray(value) ? value[0] : value;
-                  updateForm({ recurring_pattern: next as NonNullable<CreateScheduleRequest['recurring_pattern']> });
-                }}
-                options={[
-                  { value: 'none', label: language === 'th' ? 'ไม่เกิดซ้ำ' : 'None' },
-                  { value: 'daily', label: language === 'th' ? 'รายวัน' : 'Daily' },
-                  { value: 'weekly', label: language === 'th' ? 'รายสัปดาห์' : 'Weekly' },
-                  { value: 'bi-weekly', label: language === 'th' ? 'รายสองสัปดาห์' : 'Bi-weekly' },
-                  { value: 'monthly', label: language === 'th' ? 'รายเดือน' : 'Monthly' },
-                ]}
-                placeholder={language === 'th' ? 'เลือกรูปแบบ' : 'Select pattern'}
-              />
-            </div>
+                <Separator className="my-6" />
 
-            {(scheduleForm.recurring_pattern && scheduleForm.recurring_pattern !== 'none') && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {language === 'th' ? 'จำนวนครั้งต่อสัปดาห์' : 'Sessions per week'}
-                </label>
-                <ModernInput
-                  type="number"
-                  value={(scheduleForm.session_per_week || 1).toString()}
-                  onChange={(e) => updateForm({ session_per_week: parseInt(e.target.value) || 1 })}
-                  min="1"
-                  max="14"
-                  leftIcon={<HiClock />}
-                />
-                {getFieldError('session_per_week') && (
-                  <p className="mt-1 text-xs text-red-600">{getFieldError('session_per_week')}</p>
-                )}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {language === 'th' ? 'หมายเหตุ' : 'Notes'}
+                    </label>
+                    <textarea
+                      value={scheduleForm.notes || ''}
+                      onChange={(e) => updateForm({ notes: e.target.value })}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent h-24 resize-none"
+                      placeholder={language === 'th' ? 'เพิ่มหมายเหตุ (ถ้ามี)' : 'Add notes (optional)'}
+                    />
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="auto_reschedule"
+                      checked={scheduleForm.auto_reschedule || false}
+                      onChange={(e) => updateForm({ auto_reschedule: e.target.checked })}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="auto_reschedule" className="text-sm text-gray-700">
+                      {language === 'th' ? 'จัดตารางใหม่อัตโนมัติเมื่อมีวันหยุด' : 'Auto reschedule for holidays'}
+                    </label>
+                  </div>
+                </div>
               </div>
-            )}
-          </FieldGroup>
+            </TabsContent>
 
-          {/* Derived preview */}
-          {total_sessions && scheduleForm.start_date && (
-            <div className="mt-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm">
-              {language === 'th'
-                ? `จะสร้างทั้งหมด ${total_sessions} เซสชัน โดยคาดว่าจะสิ้นสุดวันที่ ${estimated_end_date || '-'}`
-                : `Will create ${total_sessions} sessions, estimated to end on ${estimated_end_date || '-'}`}
-            </div>
-          )}
-        </FormSection>
+            <TabsContent value="preview" className="flex-1 overflow-y-auto">
+              <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+                  <HiDocumentText className="h-5 w-5 text-indigo-600" />
+                  {language === 'th' ? 'สรุปตารางเรียน' : 'Schedule Summary'}
+                </h3>
 
-        {/* Time Slots */}
-        <FormSection
-          title={language === 'th' ? 'ช่วงเวลาเรียน' : 'Time Slots'}
-          icon={<HiClock />}
-          color="orange"
-        >
-          <TimeSlotSelector
-            value={scheduleForm.time_slots || []}
-            onChange={handleTimeSlotsChange}
-            title=""
-            format="schedule"
-            variant="compact"
-            language={language}
-            maxSlots={7}
-            showBulkSelection={true}
-          />
-          {getFieldError('time_slots') && (
-            <p className="mt-2 text-xs text-red-600">{getFieldError('time_slots')}</p>
-          )}
-        </FormSection>
+                <div className="space-y-6">
+                  {/* Basic Info Summary */}
+                  <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-xl border border-indigo-100">
+                    <h4 className="font-semibold text-gray-900 mb-4">
+                      {scheduleForm.schedule_name || (language === 'th' ? 'ไม่ระบุชื่อ' : 'Untitled Schedule')}
+                    </h4>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="flex items-center gap-2">
+                        <BookOpenIcon className="h-4 w-4 text-indigo-600" />
+                        <span className="text-sm text-gray-600">
+                          {courses.find(c => c.id === scheduleForm.course_id)?.course_name || 
+                           (language === 'th' ? 'ไม่ระบุคอร์ส' : 'No course selected')}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <UsersIcon className="h-4 w-4 text-indigo-600" />
+                        <span className="text-sm text-gray-600">
+                          {teachers.find(t => t.id === scheduleForm.teacher_id)?.teacher_name || 
+                           (language === 'th' ? 'ไม่ระบุครู' : 'No teacher selected')}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <MapPinIcon className="h-4 w-4 text-indigo-600" />
+                        <span className="text-sm text-gray-600">
+                          {rooms.find(r => r.id === scheduleForm.room_id)?.room_name || 
+                           (language === 'th' ? 'ไม่ระบุห้อง' : 'No room selected')}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
 
-        {/* Additional Settings */}
-        <FormSection
-          title={language === 'th' ? 'การตั้งค่าเพิ่มเติม' : 'Additional Settings'}
-          icon={<HiDocumentText />}
-          color="gray"
-        >
-          <div className="space-y-4">
-            <div>
-              <Checkbox
-                label={language === 'th' ? 'เลื่อนตารางเรียนอัตโนมัติในวันหยุด' : 'Auto reschedule for holidays'}
-                checked={scheduleForm.auto_reschedule_holidays || false}
-                onChange={(e) => updateForm({ auto_reschedule_holidays: e.target.checked })}
-              />
-            </div>
+                  {/* Schedule Details */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h5 className="font-medium text-gray-900 mb-3">
+                        {language === 'th' ? 'รายละเอียดการเรียน' : 'Class Details'}
+                      </h5>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">{language === 'th' ? 'ประเภท:' : 'Type:'}</span>
+                          <Badge variant="outline">{scheduleForm.schedule_type}</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">{language === 'th' ? 'จำนวนชั่วโมงรวม:' : 'Total Hours:'}</span>
+                          <span>{scheduleForm.total_hours} {language === 'th' ? 'ชั่วโมง' : 'hours'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">{language === 'th' ? 'ชั่วโมงต่อครั้ง:' : 'Hours per Session:'}</span>
+                          <span>{scheduleForm.hours_per_session} {language === 'th' ? 'ชั่วโมง' : 'hours'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">{language === 'th' ? 'นักเรียนสูงสุด:' : 'Max Students:'}</span>
+                          <span>{scheduleForm.max_students} {language === 'th' ? 'คน' : 'students'}</span>
+                        </div>
+                      </div>
+                    </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {language === 'th' ? 'หมายเหตุ' : 'Notes'}
-              </label>
-              <ModernInput
-                type="textarea"
-                value={scheduleForm.notes || ''}
-                onChange={handleNotesChange}
-                placeholder={language === 'th' ? 'เพิ่มหมายเหตุเพิ่มเติม...' : 'Add any additional notes...'}
-                leftIcon={<HiDocumentText />}
-              />
-            </div>
-          </div>
-        </FormSection>
+                    <div>
+                      <h5 className="font-medium text-gray-900 mb-3">
+                        {language === 'th' ? 'ประมาณการ' : 'Estimates'}
+                      </h5>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">{language === 'th' ? 'จำนวนครั้งทั้งหมด:' : 'Total Sessions:'}</span>
+                          <span>{total_sessions} {language === 'th' ? 'ครั้ง' : 'sessions'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">{language === 'th' ? 'วันที่เริ่ม:' : 'Start Date:'}</span>
+                          <span>{scheduleForm.start_date}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">{language === 'th' ? 'วันที่สิ้นสุด (ประมาณ):' : 'Estimated End:'}</span>
+                          <span>{estimated_end_date}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-        {/* Action Buttons */}
-        <div className="flex justify-end space-x-3 pt-4 bg-gray-50 -mx-6 -mb-6 px-6 py-4 rounded-b-lg">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200"
-          >
-            {language === 'th' ? 'ยกเลิก' : 'Cancel'}
-          </button>
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={!isFormValid || isLoading}
-            className="px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 border border-transparent rounded-lg hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg"
-          >
-            {isLoading ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                {language === 'th' ? 'กำลังสร้าง...' : 'Creating...'}
-              </>
-            ) : (
-              language === 'th' ? 'สร้างตารางเรียน' : 'Create Schedule'
-            )}
-          </button>
+                  {/* Time Slots */}
+                  {(scheduleForm.time_slots || []).length > 0 && (
+                    <div>
+                      <h5 className="font-medium text-gray-900 mb-3">
+                        {language === 'th' ? 'ตารางเวลา' : 'Time Schedule'}
+                      </h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {(scheduleForm.time_slots || []).map((slot, index) => (
+                          <div key={index} className="bg-gray-50 p-3 rounded-lg">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium">
+                                {weekDays.find(d => d.value === slot.day_of_week)?.label}
+                              </span>
+                              <span className="text-sm text-gray-600">
+                                {slot.start_time} - {slot.end_time}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Validation Errors */}
+                  {hasErrors && (
+                    <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                      <h5 className="font-medium text-red-800 mb-2">
+                        {language === 'th' ? 'ข้อมูลที่ต้องแก้ไข:' : 'Issues to Fix:'}
+                      </h5>
+                      <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
+                        {issues.map((issue, index) => (
+                          <li key={index}>{issue.message}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
 
-        {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-600 text-sm flex items-center">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              {error}
-            </p>
+        <DialogFooter className="border-t border-gray-200 pt-4">
+          <div className="flex items-center justify-between w-full">
+            {error && (
+              <p className="text-red-500 text-sm">{error}</p>
+            )}
+            <div className="flex items-center gap-3 ml-auto">
+              <Button onClick={onClose} variant="monthView">
+                {language === 'th' ? 'ยกเลิก' : 'Cancel'}
+              </Button>
+              <Button 
+                onClick={onConfirm} 
+                disabled={hasErrors || isLoading}
+                variant="monthViewClicked"
+                className="px-6 py-2"
+              >
+                {isLoading ? (
+                  <LoadingSpinner size="sm" />
+                ) : (
+                  language === 'th' ? 'สร้างตารางเรียน' : 'Create Schedule'
+                )}
+              </Button>
+            </div>
           </div>
-        )}
-      </div>
-    </ActionModal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

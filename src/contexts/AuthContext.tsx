@@ -1,9 +1,11 @@
 "use client";
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-import { User, LoginRequest, RegisterRequest, AuthResponse, UpdateProfileRequest, ChangePasswordRequest, ProfileResponse } from '../types/auth.types';
+import { User, LoginRequest, RegisterRequest, AuthResponse, UpdateProfileRequest, ChangePasswordRequest } from '../types/auth.types';
 import { authApi } from '../services/api/auth';
-import { removeSecureToken } from '@/utils/secureStorage';
+import { removeSecureToken, getSecureToken } from '@/utils/secureStorage';
 import { useRouter } from 'next/navigation';
+import { ENV_CONFIG } from '@/utils/config';
+import { API_ENDPOINTS } from '../services/api/endpoints';
 
 export type UserRole = 'student' | 'teacher' | 'admin' | 'owner';
 
@@ -107,12 +109,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     try {
       setIsLoading(true);
-      const response: ProfileResponse = await authApi.getProfile();
-      if (response?.success && response.data?.user) {
-        setUser(response.data.user);
+      const token = getSecureToken();
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+      const url = `${ENV_CONFIG.API.BASE_URL}${API_ENDPOINTS.USERS.PROFILE}`;
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+        cache: 'no-store',
+      });
+      if (res.status === 401) {
+        await handleLogout(true);
+        return;
+      }
+      if (!res.ok) {
+        console.warn('Profile fetch failed with status:', res.status);
       } else {
-        // Don't logout on non-401/unknown shapes; keep token and let app continue
-        console.warn('Profile response not in expected shape; skipping logout.');
+        const json = await res.json();
+        const fetchedUser = (json?.user || json?.data?.user || json?.data || json) as User;
+        if (fetchedUser && typeof fetchedUser === 'object' && 'id' in fetchedUser) {
+          setUser(fetchedUser);
+        } else {
+          console.warn('Profile response not in expected shape; skipping user update.');
+        }
       }
     } catch (err: unknown) {
       console.error('Failed to load user profile:', err);
@@ -208,26 +232,72 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Refresh profile function
-  const refreshProfile = async (): Promise<void> => {
+  const refreshProfile = useCallback(async (): Promise<void> => {
     if (!authApi.isAuthenticated()) return;
-    
+
     try {
-      const response = await authApi.getProfile();
-      if (response.success) {
-        setUser(response.data.user);
+      const token = getSecureToken();
+      if (!token) return;
+      const url = `${ENV_CONFIG.API.BASE_URL}${API_ENDPOINTS.USERS.PROFILE}`;
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+        cache: 'no-store',
+      });
+      if (res.status === 401) {
+        await handleLogout(true);
+        return;
+      }
+      if (res.ok) {
+        const json = await res.json();
+        const fetchedUser = (json?.user || json?.data?.user || json?.data || json) as User;
+        if (fetchedUser && typeof fetchedUser === 'object' && 'id' in fetchedUser) {
+          setUser(fetchedUser);
+        }
       }
     } catch (err: unknown) {
       console.error('Failed to refresh profile:', err);
-      if (isApiError(err) && err.response?.status === 401) {
-        await handleLogout(true);
-      }
     }
-  };
+  }, [handleLogout]);
 
   // Initialize auth state on mount
   useEffect(() => {
     loadUserProfile();
   }, [loadUserProfile]);
+
+  // Revalidate profile on focus/visibility/online and periodically (every ~10 minutes)
+  useEffect(() => {
+    if (!authApi.isAuthenticated()) return;
+
+    const revalidate = () => {
+      refreshProfile();
+    };
+
+    // Focus and visibility
+    const onFocus = () => revalidate();
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') revalidate();
+    };
+    const onOnline = () => revalidate();
+
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('online', onOnline);
+
+    // Interval between 5–15 minutes; choose 10 minutes
+    const intervalMs = 10 * 60 * 1000;
+    const intervalId = window.setInterval(revalidate, intervalMs);
+
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('online', onOnline);
+      window.clearInterval(intervalId);
+    };
+  }, [refreshProfile]);
 
   const value: AuthContextType = {
     user,

@@ -8,7 +8,6 @@ import {
   ConfirmScheduleRequest,
   UpdateSessionStatusRequest,
   CreateMakeupSessionRequest,
-  CreateCommentRequest,
   ScheduleResponse,
   CommentListResponse,
   TeachersScheduleResponse
@@ -24,14 +23,205 @@ export const SCHEDULE_ENDPOINTS_EXTENDED = {
   COMMENTS: '/schedules/comments',
   TEACHERS_SCHEDULE: '/schedules/teachers'
 } as const;
-export interface Teacher {
-  teacher_id: number;
-  teacher_name: string;
-  teacher_nickname: string;
-  teacher_avatar: string | null;
-  sessions: Session[];
+// Session detail response interfaces
+export interface SessionDetailUser {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  username: string;
+  email: string;
+  phone: string;
+  line_id: string;
+  role: string;
+  branch_id: number;
+  status: string;
+  avatar: string;
+  branch: {
+    id: number;
+    created_at?: string;
+    updated_at?: string;
+    deleted_at: string | null;
+    name_en: string;
+    name_th: string;
+    code: string;
+    address: string;
+    phone: string;
+    type: string;
+    active: boolean;
+  };
 }
 
+export interface SessionDetailRoom {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  branch_id: number;
+  room_name: string;
+  capacity: number;
+  equipment: string[];
+  status: string;
+  branch: {
+    id: number;
+    deleted_at: string | null;
+    name_en: string;
+    name_th: string;
+    code: string;
+    address: string;
+    phone: string;
+    type: string;
+    active: boolean;
+  };
+}
+
+export interface SessionDetailSchedule {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  schedule_name: string;
+  schedule_type: string;
+  group_id: number;
+  created_by_user_id: number;
+  recurring_pattern: string;
+  total_hours: number;
+  hours_per_session: number;
+  session_per_week: number;
+  start_date: string;
+  estimated_end_date: string;
+  actual_end_date: string | null;
+  default_teacher_id: number;
+  default_room_id: number;
+  status: string;
+  auto_reschedule: boolean;
+  notes: string;
+  admin_assigned: string;
+  default_teacher: SessionDetailUser;
+  default_room: SessionDetailRoom;
+}
+
+export interface SessionDetail {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  schedule_id: number;
+  session_date: string;
+  start_time: string;
+  end_time: string;
+  session_number: number;
+  week_number: number;
+  status: string;
+  cancelling_reason: string;
+  is_makeup: boolean;
+  makeup_for_session_id: number | null;
+  notes: string;
+  assigned_teacher_id: number;
+  room_id: number;
+  confirmed_at: string | null;
+  confirmed_by_user_id: number | null;
+  schedule: SessionDetailSchedule;
+  assigned_teacher: SessionDetailUser;
+  room: SessionDetailRoom;
+  confirmed_by: SessionDetailUser | null;
+}
+
+export interface SessionComment {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  schedule_id: number | null;
+  session_id: number;
+  user_id: number;
+  comment: string;
+  schedule: unknown | null;
+  session: Partial<SessionDetail> | null;
+  user: SessionDetailUser;
+}
+
+export interface SessionDetailResponse {
+  comments: SessionComment[];
+  session: SessionDetail;
+}
+
+export interface SessionCommentsResponse {
+  comments: SessionComment[];
+  count: number;
+}
+
+export interface CreateSessionCommentRequest {
+  session_id: number;
+  comment: string;
+}
+
+export interface TeacherUser {
+  avatar: string;
+  id: number;
+  username: string;
+}
+
+export interface TeacherName {
+  first_en: string;
+  first_th: string;
+  last_en: string;
+  last_th: string;
+  nickname_en: string;
+  nickname_th: string;
+}
+
+export interface TeacherBranch {
+  code?: string;
+  id?: number;
+  name_en?: string;
+  name_th?: string;
+}
+
+export interface TeacherSession {
+  id: number;
+  schedule_id: number;
+  date: string;
+  start_time: string;
+  end_time: string;
+  session_number: number;
+  week_number: number;
+  status: string;
+  is_makeup: boolean;
+  notes: string;
+  room: {
+    id: number | null;
+    name: string;
+  };
+  students?: unknown[];
+  course_name?: string;
+  course_code?: string;
+  branch_name?: string;
+}
+
+export interface Teacher {
+  branch: TeacherBranch;
+  id: number;
+  name: TeacherName;
+  sessions: TeacherSession[];
+  user: TeacherUser;
+  user_id: number;
+}
+
+export interface ScheduleTeachersResponse {
+  success: boolean;
+  data: Teacher[];
+  filters: {
+    branch_id: string;
+    date_filter: 'day' | 'week' | 'month';
+    end_date: string;
+    start_date: string;
+    timezone: string;
+  };
+  total: number;
+}
+
+// Legacy session interface for backward compatibility
 export interface Session {
   session_id: number;
   schedule_id: number;
@@ -51,25 +241,6 @@ export interface Session {
   branch_name_en: string;
   branch_name_th: string;
   notes: string | null;
-}
-
-export interface ScheduleTeachersResponse {
-  success: boolean;
-  data: {
-    teachers: Teacher[];
-    filter_info: {
-      date_filter: 'day' | 'week' | 'month';
-      start_date: string;
-      end_date: string;
-      total_sessions: number;
-    };
-    pagination: {
-      current_page: number;
-      per_page: number;
-      total: number;
-      total_pages: number;
-    };
-  };
 }
 
 export interface Student {
@@ -494,14 +665,23 @@ export const scheduleService = {
       });
     }
     const response = await api.get(`${API_ENDPOINTS.SCHEDULES.TEACHERS(dateFilter)}&${queryParams}`);
-    const data = response?.data?.data ?? {};
-    // Ensure teachers and pagination exist
-    data.teachers = Array.isArray(data.teachers) ? data.teachers : [];
-    data.filter_info = data.filter_info ?? { date_filter: dateFilter, start_date: '', end_date: '', total_sessions: 0 };
-    data.pagination = data.pagination ?? { current_page: 1, per_page: data.teachers.length || 0, total: data.teachers.length || 0, total_pages: 1 };
+    
+    // Handle the new response structure
+    const teachers = Array.isArray(response?.data?.data) ? response.data.data : [];
+    const filters = response?.data?.filters ?? { 
+      branch_id: '', 
+      date_filter: dateFilter, 
+      end_date: '', 
+      start_date: '', 
+      timezone: 'Asia/Bangkok' 
+    };
+    const total = response?.data?.total ?? teachers.length;
+    
     return {
       success: !!(response?.data?.success ?? true),
-      data
+      data: teachers,
+      filters,
+      total
     };
   },
 
@@ -825,19 +1005,53 @@ export const scheduleService = {
   },
 
   /**
-   * Add comment to schedule or session
-   * Permissions: All authenticated users
+   * Get session detail with comments
+   * New API endpoint: GET /api/schedules/sessions/:sessionId
    */
-  addComment: async (commentData: CreateCommentRequest): Promise<{ message: string; comment: ScheduleComment }> => {
-    const response = await api.post(SCHEDULE_ENDPOINTS_EXTENDED.COMMENTS, commentData);
+  getSessionDetail: async (sessionId: string): Promise<SessionDetailResponse> => {
+    const response = await api.get(`/schedules/sessions/${sessionId}`);
     
-    if (response.data.success || response.data.message) {
+    if (response.data) {
       return {
-        message: response.data.message || 'Comment added successfully',
-        comment: response.data.data?.comment || response.data.comment
+        comments: response.data.comments || [],
+        session: response.data.session
       };
     } else {
-      throw new Error(response.data.message || 'Failed to add comment');
+      throw new Error('Failed to fetch session details');
+    }
+  },
+
+  /**
+   * Get session comments
+   * New API endpoint: GET /api/schedules/comments?session_id=:sessionId
+   */
+  getSessionComments: async (sessionId: number): Promise<SessionCommentsResponse> => {
+    const response = await api.get(`/schedules/comments?session_id=${sessionId}`);
+    
+    if (response.data) {
+      return {
+        comments: response.data.comments || [],
+        count: response.data.count || 0
+      };
+    } else {
+      throw new Error('Failed to fetch session comments');
+    }
+  },
+
+  /**
+   * Create session comment
+   * New API endpoint: POST /api/schedules/comments
+   */
+  createSessionComment: async (commentData: CreateSessionCommentRequest): Promise<{ message: string; comment?: SessionComment }> => {
+    const response = await api.post('/schedules/comments', commentData);
+    
+    if (response.data) {
+      return {
+        message: 'Comment added successfully',
+        comment: response.data.comment
+      };
+    } else {
+      throw new Error('Failed to create comment');
     }
   },
 

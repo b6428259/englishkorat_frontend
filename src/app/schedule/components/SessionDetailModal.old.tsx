@@ -135,36 +135,36 @@ export default function SessionDetailModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden bg-white">
-  <DialogHeader className="border-b border-gray-300 pb-4">
+        <DialogHeader className="border-b border-gray-200 pb-4">
           <DialogTitle className="text-2xl font-bold text-gray-900 flex items-center gap-3">
             <Calendar className="h-6 w-6 text-indigo-600" />
             {language === 'th' ? 'รายละเอียดคาบเรียน' : 'Session Details'}
-            <span className="text-lg text-black">#{sessionId}</span>
+            <span className="text-lg text-gray-500">#{sessionId}</span>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden min-h-0">
+        <div className="flex-1 overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
             <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="details" className="flex items-center gap-2 text-black">
-                <FileText className="h-4 w-4 text-black" />
+              <TabsTrigger value="details" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
                 {language === 'th' ? 'รายละเอียด' : 'Details'}
               </TabsTrigger>
-              <TabsTrigger value="comments" className="flex items-center gap-2 text-black">
-                <MessageSquare className="h-4 w-4 text-black" />
+              <TabsTrigger value="comments" className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
                 {language === 'th' ? 'ความคิดเห็น' : 'Comments'} ({sessionComments.length})
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="details" className="flex-1 overflow-hidden min-h-0">
+            <TabsContent value="details" className="flex-1 overflow-y-auto">
               {isLoading ? (
                 <div className="flex justify-center items-center h-64">
                   <LoadingSpinner size="md" />
                 </div>
               ) : sessionDetail ? (
-                <div className="space-y-6 overflow-y-auto max-h-[65vh] p-2">
+                <div className="space-y-6">
                   {/* Session Status & Basic Info */}
-                  <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-xl border border-indigo-200">
+                  <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-xl border border-indigo-100">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-xl font-semibold text-gray-900">
                         {sessionDetail.schedule?.schedule_name}
@@ -176,16 +176,16 @@ export default function SessionDetailModal({
                       <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
                         <Calendar className="h-5 w-5 text-indigo-600" />
                         <div>
-                          <p className="text-sm text-black">{language === 'th' ? 'วันที่' : 'Date'}</p>
-                          <p className="font-medium text-gray-700">{formatDateTime(sessionDetail.session_date).date}</p>
+                          <p className="text-sm text-gray-500">{language === 'th' ? 'วันที่' : 'Date'}</p>
+                          <p className="font-medium">{formatDateTime(sessionDetail.session_date).date}</p>
                         </div>
                       </div>
                       
                       <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
                         <Clock className="h-5 w-5 text-indigo-600" />
                         <div>
-                          <p className="text-sm text-black">{language === 'th' ? 'เวลา' : 'Time'}</p>
-                          <p className="font-medium text-gray-700">
+                          <p className="text-sm text-gray-500">{language === 'th' ? 'เวลา' : 'Time'}</p>
+                          <p className="font-medium">
                             {formatDateTime(sessionDetail.start_time).time} - {formatDateTime(sessionDetail.end_time).time}
                           </p>
                         </div>
@@ -194,16 +194,16 @@ export default function SessionDetailModal({
                       <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
                         <MapPin className="h-5 w-5 text-indigo-600" />
                         <div>
-                          <p className="text-sm text-black">{language === 'th' ? 'ห้องเรียน' : 'Room'}</p>
-                          <p className="font-medium text-gray-700">{sessionDetail.room?.room_name}</p>
+                          <p className="text-sm text-gray-500">{language === 'th' ? 'ห้องเรียน' : 'Room'}</p>
+                          <p className="font-medium">{sessionDetail.room?.room_name}</p>
                         </div>
                       </div>
                       
                       <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
                         <Users className="h-5 w-5 text-indigo-600" />
                         <div>
-                          <p className="text-sm text-black">{language === 'th' ? 'ครั้งที่' : 'Session'}</p>
-                          <p className="font-medium text-gray-700">
+                          <p className="text-sm text-gray-500">{language === 'th' ? 'ครั้งที่' : 'Session'}</p>
+                          <p className="font-medium">
                             {sessionDetail.session_number} / {language === 'th' ? `สัปดาห์ ${sessionDetail.week_number}` : `Week ${sessionDetail.week_number}`}
                           </p>
                         </div>
@@ -214,7 +214,7 @@ export default function SessionDetailModal({
                   {/* Teacher & Room Details */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Teacher Information */}
-                    <div className="bg-white p-6 rounded-xl border border-gray-300 shadow-sm">
+                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                       <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                         <User className="h-5 w-5 text-indigo-600" />
                         {language === 'th' ? 'ข้อมูลอาจารย์' : 'Teacher Information'}
@@ -250,7 +250,7 @@ export default function SessionDetailModal({
                     </div>
 
                     {/* Room Information */}
-                    <div className="bg-white p-6 rounded-xl border border-gray-300 shadow-sm">
+                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                       <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                         <MapPin className="h-5 w-5 text-indigo-600" />
                         {language === 'th' ? 'ข้อมูลห้องเรียน' : 'Room Information'}
@@ -286,7 +286,7 @@ export default function SessionDetailModal({
 
                   {/* Schedule Information */}
                   {sessionDetail.schedule && (
-                    <div className="bg-white p-6 rounded-xl border border-gray-300 shadow-sm">
+                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                       <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                         <FileText className="h-5 w-5 text-indigo-600" />
                         {language === 'th' ? 'ข้อมูลตารางเรียน' : 'Schedule Information'}
@@ -294,39 +294,39 @@ export default function SessionDetailModal({
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
-                          <p className="text-sm text-black">{language === 'th' ? 'ชื่อตารางเรียน' : 'Schedule Name'}</p>
-                          <p className="font-medium text-gray-700">{sessionDetail.schedule.schedule_name}</p>
+                          <p className="text-sm text-gray-500">{language === 'th' ? 'ชื่อตารางเรียน' : 'Schedule Name'}</p>
+                          <p className="font-medium">{sessionDetail.schedule.schedule_name}</p>
                         </div>
                         
                         <div>
-                          <p className="text-sm text-black">{language === 'th' ? 'ประเภท' : 'Type'}</p>
-                          <Badge variant="outline" className="text-gray-700">{sessionDetail.schedule.schedule_type}</Badge>
+                          <p className="text-sm text-gray-500">{language === 'th' ? 'ประเภท' : 'Type'}</p>
+                          <Badge variant="outline">{sessionDetail.schedule.schedule_type}</Badge>
                         </div>
                         
                         <div>
-                          <p className="text-sm text-black">{language === 'th' ? 'รูปแบบ' : 'Pattern'}</p>
-                          <p className="font-medium text-gray-700">{sessionDetail.schedule.recurring_pattern}</p>
+                          <p className="text-sm text-gray-500">{language === 'th' ? 'รูปแบบ' : 'Pattern'}</p>
+                          <p className="font-medium">{sessionDetail.schedule.recurring_pattern}</p>
                         </div>
                         
                         <div>
-                          <p className="text-sm text-black">{language === 'th' ? 'จำนวนชั่วโมงรวม' : 'Total Hours'}</p>
-                          <p className="font-medium text-gray-700">{sessionDetail.schedule.total_hours} {language === 'th' ? 'ชั่วโมง' : 'hours'}</p>
+                          <p className="text-sm text-gray-500">{language === 'th' ? 'จำนวนชั่วโมงรวม' : 'Total Hours'}</p>
+                          <p className="font-medium">{sessionDetail.schedule.total_hours} {language === 'th' ? 'ชั่วโมง' : 'hours'}</p>
                         </div>
                         
                         <div>
-                          <p className="text-sm text-black">{language === 'th' ? 'ชั่วโมงต่อครั้ง' : 'Hours per Session'}</p>
-                          <p className="font-medium text-gray-700">{sessionDetail.schedule.hours_per_session} {language === 'th' ? 'ชั่วโมง' : 'hours'}</p>
+                          <p className="text-sm text-gray-500">{language === 'th' ? 'ชั่วโมงต่อครั้ง' : 'Hours per Session'}</p>
+                          <p className="font-medium">{sessionDetail.schedule.hours_per_session} {language === 'th' ? 'ชั่วโมง' : 'hours'}</p>
                         </div>
                         
                         <div>
-                          <p className="text-sm text-black">{language === 'th' ? 'ครั้งต่อสัปดาห์' : 'Sessions per Week'}</p>
-                          <p className="font-medium text-gray-700">{sessionDetail.schedule.session_per_week}</p>
+                          <p className="text-sm text-gray-500">{language === 'th' ? 'ครั้งต่อสัปดาห์' : 'Sessions per Week'}</p>
+                          <p className="font-medium">{sessionDetail.schedule.session_per_week}</p>
                         </div>
                       </div>
                       
                       {sessionDetail.schedule.notes && (
                         <div className="mt-4">
-                          <p className="text-sm text-black mb-1">{language === 'th' ? 'หมายเหตุ' : 'Notes'}</p>
+                          <p className="text-sm text-gray-500 mb-1">{language === 'th' ? 'หมายเหตุ' : 'Notes'}</p>
                           <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">{sessionDetail.schedule.notes}</p>
                         </div>
                       )}
@@ -335,7 +335,7 @@ export default function SessionDetailModal({
 
                   {/* Confirmation Details */}
                   {sessionDetail.confirmed_by && (
-                    <div className="bg-green-50 p-6 rounded-xl border border-green-300">
+                    <div className="bg-green-50 p-6 rounded-xl border border-green-200">
                       <h4 className="text-lg font-semibold text-green-800 mb-4 flex items-center gap-2">
                         <CheckCircle className="h-5 w-5 text-green-600" />
                         {language === 'th' ? 'ข้อมูลการยืนยัน' : 'Confirmation Details'}
@@ -367,7 +367,7 @@ export default function SessionDetailModal({
 
                   {/* Makeup Session Info */}
                   {sessionDetail.is_makeup && (
-                    <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-300">
+                    <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
                       <p className="text-yellow-800 font-medium flex items-center gap-2">
                         <Clock className="h-4 w-4" />
                         {language === 'th' ? 'นี่คือคาบเรียนชดเชย' : 'This is a makeup session'}
@@ -376,14 +376,14 @@ export default function SessionDetailModal({
                   )}
                 </div>
               ) : (
-                <div className="flex justify-center items-center h-64 text-black">
+                <div className="flex justify-center items-center h-64 text-gray-500">
                   {language === 'th' ? 'ไม่พบข้อมูลคาบเรียน' : 'Session not found'}
                 </div>
               )}
             </TabsContent>
 
-            <TabsContent value="comments" className="flex-1 overflow-hidden min-h-0 flex flex-col">
-              <div className="flex-1 overflow-y-auto min-h-0 p-2">
+            <TabsContent value="comments" className="flex-1 overflow-hidden flex flex-col">
+              <div className="flex-1 overflow-y-auto">
                 <div className="space-y-4 mb-6">
                   {isCommentsLoading ? (
                     <div className="flex justify-center py-8">
@@ -391,7 +391,7 @@ export default function SessionDetailModal({
                     </div>
                   ) : sessionComments.length > 0 ? (
                     sessionComments.map((comment) => (
-                      <div key={comment.id} className="bg-white p-4 rounded-xl border border-gray-300 shadow-sm">
+                      <div key={comment.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                         <div className="flex items-start gap-3">
                           <Avatar className="h-8 w-8">
                             <AvatarImage 
@@ -411,7 +411,7 @@ export default function SessionDetailModal({
                               <span className="font-medium text-gray-900">
                                 {comment.user?.username}
                               </span>
-                              <span className="text-xs text-black">
+                              <span className="text-xs text-gray-500">
                                 {formatDateTime(comment.created_at).date} {formatDateTime(comment.created_at).time}
                               </span>
                             </div>
@@ -423,7 +423,7 @@ export default function SessionDetailModal({
                   ) : (
                     <div className="text-center py-12">
                       <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-black">
+                      <p className="text-gray-500">
                         {language === 'th' ? 'ยังไม่มีความคิดเห็น' : 'No comments yet'}
                       </p>
                     </div>
@@ -434,13 +434,13 @@ export default function SessionDetailModal({
               <Separator className="my-4" />
               
               {/* Add Comment Section */}
-              <div className="bg-gray-100 p-4 rounded-xl">
+              <div className="bg-gray-50 p-4 rounded-xl">
                 <div className="flex gap-3">
                   <textarea
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     placeholder={language === 'th' ? 'เพิ่มความคิดเห็น...' : 'Add a comment...'}
-                    className="flex-1 p-3 border border-gray-300 rounded-lg resize-none h-20 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-black"
+                    className="flex-1 p-3 border border-gray-300 rounded-lg resize-none h-20 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     rows={3}
                   />
                   <Button

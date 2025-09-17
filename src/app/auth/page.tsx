@@ -16,18 +16,18 @@ function AuthPageContent() {
   const [errorMessage, setErrorMessage] = useState('');
   const [redirecting, setRedirecting] = useState(false);
 
-  // // If already authenticated, skip login page
-  // useEffect(() => {
-  //   if (hasValidToken()) {
-  //     setRedirecting(true);
-  //     if (redirectUrl && redirectUrl !== '/auth') {
-  //       router.replace(redirectUrl);
-  //     } else {
-  //       router.replace('/dashboard');
-  //     }
-  //   }
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [redirectUrl]);
+  // If already authenticated, skip login page
+  useEffect(() => {
+    if (hasValidToken()) {
+      setRedirecting(true);
+      if (redirectUrl && redirectUrl !== '/auth') {
+        router.replace(redirectUrl);
+      } else {
+        router.replace('/dashboard');
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [redirectUrl]);
 
   const handleBack = () => {
     router.push('/');
