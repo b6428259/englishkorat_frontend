@@ -10,6 +10,7 @@ type ButtonProps = {
   type?: 'button' | 'submit' | 'reset';
   className?: string;
   style?: React.CSSProperties;
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   variant?: 'primary' | 'secondary' | 'outline' | 'link' | 'monthViewClicked' | 'monthView' 
   | 'weekViewClicked' | 'weekView' | 'dayViewClicked' | 'dayView' | 'common';
 };
@@ -25,29 +26,37 @@ const Button = React.forwardRef<HTMLAnchorElement | HTMLButtonElement, ButtonPro
       type = 'button',
       className = '',
       style,
+      size = 'md',
       variant = 'primary',
     },
     ref
   ) => {
     const baseStyle =
-      "px-4 py-2 rounded-3xl transition-colors shadow-md hover:shadow-lg hover:scale-105 font-semibold cursor-pointer";
+      'rounded-3xl transition-colors shadow-md hover:shadow-lg hover:scale-105 font-semibold cursor-pointer';
 
-    const variants: Record<string, string> = {
-      primary: "bg-[#334293] text-white hover:bg-[#EFE957] hover:text-[#334293]",
-      secondary: "bg-[#EFE957] text-[#334293] hover:bg-[#EFD157]",
-      outline: "border-2 border-[#334293] text-[#334293] hover:bg-white hover:text-[#334293]",
-      link: "text-[#EFE957] hover:text-[#EFD157]",
-      // Selected states: black text for clearer contrast as requested
-      monthViewClicked: "rounded-lg bg-white text-black border-2 border-[#334293]",
-      monthView: "rounded-lg bg-white text-[#334293]",
-      weekViewClicked: "rounded-lg bg-white text-black border-2 border-[#334293]",
-      weekView: "rounded-lg bg-white text-[#334293]",
-      dayViewClicked: "rounded-lg bg-white text-black border-2 border-[#334293]",
-      dayView: "rounded-lg bg-white text-[#334293]",
-      common: "rounded-lg bg-[#334293] text-white hover:bg-white hover:text-[#334293] hover:ring-1 hover:ring-[#334293]",
+    const sizeVariants: Record<string, string> = {
+      xs: 'px-2 py-1 text-xs',
+      sm: 'px-3 py-1.5 text-sm',
+      md: 'px-4 py-2 text-base',
+      lg: 'px-5 py-3 text-lg',
     };
 
-    const combinedClass = `${baseStyle} ${variants[variant]} ${className}`;
+    const variants: Record<string, string> = {
+      primary: 'bg-[#334293] text-white hover:bg-[#EFE957] hover:text-[#334293]',
+      secondary: 'bg-[#EFE957] text-[#334293] hover:bg-[#EFD157]',
+      outline: 'border-2 border-[#334293] text-[#334293] hover:bg-white hover:text-[#334293]',
+      link: 'text-[#EFE957] hover:text-[#EFD157]',
+      monthViewClicked: 'rounded-lg bg-white text-black border-2 border-[#334293]',
+      monthView: 'rounded-lg bg-white text-[#334293]',
+      weekViewClicked: 'rounded-lg bg-white text-black border-2 border-[#334293]',
+      weekView: 'rounded-lg bg-white text-[#334293]',
+      dayViewClicked: 'rounded-lg bg-white text-black border-2 border-[#334293]',
+      dayView: 'rounded-lg bg-white text-[#334293]',
+      common: 'rounded-lg bg-[#334293] text-white hover:bg-white hover:text-[#334293] hover:ring-1 hover:ring-[#334293]',
+    };
+
+    const sizeClass = sizeVariants[size] || sizeVariants.md;
+    const combinedClass = `${baseStyle} ${sizeClass} ${variants[variant]} ${className}`;
 
     if (href) {
       return (

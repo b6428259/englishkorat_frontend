@@ -10,19 +10,19 @@ import {
   DatePicker,
 } from "@heroui/react";
 
-export const studentName = [
+const studentName = [
   { label: "Warissara", key: "Warissara" },
   { label: "Kunlanit ", key: "Kunlanit " },
   { label: "Ronnasit ", key: "Ronnasit " },
 ];
 
-export const invoiceNumber = [
+const invoiceNumber = [
   { label: "0001", key: "0001" },
   { label: "0002", key: "0002" },
   { label: "0003", key: "0003" },
 ];
 
-export const status = [
+const billStatus = [
   { label: "Paid", key: "Paid" },
   { label: "Unpaid", key: "Unpaid" },
   { label: "Overdue", key: "Overdue" },
@@ -115,7 +115,7 @@ export default function StudentsBillsPage() {
           </Autocomplete>
 
           <Autocomplete className="flex-1 min-w-[150px] border border-gray-300 rounded-md">
-            {status.map((item) => (
+            {billStatus.map((item) => (
               <AutocompleteItem key={item.key}>{item.label}</AutocompleteItem>
             ))}
           </Autocomplete>

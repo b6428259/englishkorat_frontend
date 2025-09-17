@@ -1,10 +1,10 @@
 "use client";
 import React from "react";
 
-// type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
-//   label?: string;
-//   error?: string;
-// };
+type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
+  label?: string;
+  error?: string;
+};
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, className = "", ...props }, ref) => {

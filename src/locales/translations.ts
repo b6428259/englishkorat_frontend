@@ -697,6 +697,7 @@ export const translations: Record<Language, Translations> = {
     quantity: 'จำนวน',
     price: 'ราคา',
     amount: 'จำนวนเงิน',
+  actions: 'การดำเนินการ',
 
     // Authentication
     login: 'เข้าสู่ระบบ',
@@ -1259,6 +1260,7 @@ export const translations: Record<Language, Translations> = {
     quantity: 'Quantity',
     price: 'Price',
     amount: 'Amount',
+  actions: 'Actions',
 
     // Authentication
     login: 'Login',
