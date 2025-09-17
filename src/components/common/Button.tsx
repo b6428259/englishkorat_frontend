@@ -10,7 +10,8 @@ type ButtonProps = {
   type?: 'button' | 'submit' | 'reset';
   className?: string;
   style?: React.CSSProperties;
-  variant?: 'primary' | 'secondary' | 'outline' | 'link' | 'monthViewClicked' | 'monthView' | 'weekViewClicked' | 'weekView' | 'dayViewClicked' | 'dayView';
+  variant?: 'primary' | 'secondary' | 'outline' | 'link' | 'monthViewClicked' | 'monthView' 
+  | 'weekViewClicked' | 'weekView' | 'dayViewClicked' | 'dayView' | 'common';
 };
 
 
@@ -29,7 +30,7 @@ const Button = React.forwardRef<HTMLAnchorElement | HTMLButtonElement, ButtonPro
     ref
   ) => {
     const baseStyle =
-      "px-6 py-2 rounded-3xl transition-colors shadow-md hover:shadow-lg hover:scale-105 font-semibold cursor-pointer";
+      "px-4 py-2 rounded-3xl transition-colors shadow-md hover:shadow-lg hover:scale-105 font-semibold cursor-pointer";
 
     const variants: Record<string, string> = {
       primary: "bg-[#334293] text-white hover:bg-[#EFE957] hover:text-[#334293]",
@@ -42,7 +43,8 @@ const Button = React.forwardRef<HTMLAnchorElement | HTMLButtonElement, ButtonPro
       weekViewClicked: "rounded-lg bg-white text-black border-2 border-[#334293]",
       weekView: "rounded-lg bg-white text-[#334293]",
       dayViewClicked: "rounded-lg bg-white text-black border-2 border-[#334293]",
-      dayView: "rounded-lg bg-white text-[#334293]"
+      dayView: "rounded-lg bg-white text-[#334293]",
+      common: "rounded-lg bg-[#334293] text-white hover:bg-white hover:text-[#334293] hover:ring-1 hover:ring-[#334293]",
     };
 
     const combinedClass = `${baseStyle} ${variants[variant]} ${className}`;

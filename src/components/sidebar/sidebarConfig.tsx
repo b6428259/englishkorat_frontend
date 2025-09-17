@@ -10,6 +10,7 @@ import { HiOutlineDocumentReport } from "react-icons/hi";
 import { HiOutlineSquares2X2, HiOutlineChartBar, HiOutlineDocumentText, HiOutlineCog, HiOutlineIdentification, HiOutlineUser, HiOutlineKey, HiOutlineBell } from 'react-icons/hi2';
 import { GrSchedules } from "react-icons/gr";
 import { FaPaperPlane } from "react-icons/fa";
+import { PiCashRegister } from "react-icons/pi";
 
 // Icon props for easy future customization
 const iconProps = {
@@ -77,6 +78,7 @@ export const getSidebarItems = (t: Translations): SidebarItem[] => [
       { id: 'student-new', label: t.studentNew, href: '/students/new', icon: <HiOutlineUser {...iconProps} /> },
       { id: 'student-list', label: t.studentList, href: '/students/list', icon: <HiOutlineDocumentText {...iconProps} /> },
       { id: 'student-groups', label: t.studyGroups, href: '/students/groups', icon: <HiOutlineUser {...iconProps} /> },
+      { id: 'student-bills', label: t.studentBill, href: '/students/bills', icon: <PiCashRegister {...iconProps} /> },
     ],
   },
   {
