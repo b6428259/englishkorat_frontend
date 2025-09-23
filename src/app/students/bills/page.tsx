@@ -29,7 +29,18 @@ const billStatus = [
   { label: "Partially", key: "Partially Paid" },
 ];
 
-const invoices = [
+type InvoiceStatus = "Paid" | "Unpaid" | "Overdue" | "Partially";
+
+type Invoice = {
+  status: InvoiceStatus;
+  date: string;
+  number: string;
+  customer: string;
+  total: string;
+  due: string;
+};
+
+const invoices: Invoice[] = [
   {
     status: "Paid",
     date: "15/09/2025",
@@ -64,7 +75,7 @@ const invoices = [
   },
 ];
 
-const statusColors = {
+const statusColors: Record<InvoiceStatus, string> = {
   Paid: "bg-green-100 text-green-800",
   Unpaid: "bg-gray-200 text-gray-700",
   Overdue: "bg-red-100 text-red-800",

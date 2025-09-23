@@ -17,9 +17,6 @@ export default function ErrorModal({
   onClose,
   title = "เกิดข้อผิดพลาด",
   message = "เกิดข้อผิดพลาด",
-  showRetryButton = false,
-  onRetry,
-  retryText = "ลองใหม่",
 }: ErrorModalProps) {
   // The new ErrorDialog handles the UI and close behavior. For retry button support
   // we still render the ErrorDialog but the retry action is handled outside when

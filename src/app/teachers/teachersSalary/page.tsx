@@ -6,13 +6,19 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import Button from "@/components/common/Button";
 import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
 
-const teachers = [
-    { id: 1, name: "Alec", type: "weekly", rate: 500, socialSecurity: true },
-    { id: 2, name: "Angie", type: "weekly", rate: 500, socialSecurity: false },
-    { id: 3, name: "Skye", type: "monthly", salary: 30000, socialSecurity: true },
-  ];
+type PaymentType = "weekly" | "monthly";
 
-const paymentTypeColors = {
+type Teacher =
+  | { id: number; name: string; type: "weekly"; rate: number; socialSecurity: boolean }
+  | { id: number; name: string; type: "monthly"; salary: number; socialSecurity: boolean };
+
+const teachers: Teacher[] = [
+  { id: 1, name: "Alec", type: "weekly", rate: 500, socialSecurity: true },
+  { id: 2, name: "Angie", type: "weekly", rate: 500, socialSecurity: false },
+  { id: 3, name: "Skye", type: "monthly", salary: 30000, socialSecurity: true },
+];
+
+const paymentTypeColors: Record<PaymentType, string> = {
   weekly: "bg-blue-200 text-blue-800",
   monthly: "bg-yellow-200 text-yellow-700",
 };
@@ -20,7 +26,7 @@ const paymentTypeColors = {
 export default function TeachersSalaryPage() {
   const { t } = useLanguage();
   const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState("all");
+  const [filterType, setFilterType] = useState<"all" | PaymentType>("all");
 
   // Filter data
   const filteredTeachers = teachers.filter((teacher) => {
@@ -47,7 +53,7 @@ export default function TeachersSalaryPage() {
           />
           <select
             value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
+            onChange={(e) => setFilterType(e.target.value as "all" | PaymentType)}
             className="border border-gray-300 rounded-md px-3 py-2 w-full sm:w-40"
           >
             <option value="all">{t.all}</option>
