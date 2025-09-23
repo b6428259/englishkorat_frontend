@@ -678,7 +678,38 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       }
 
       // Initialize WebSocket connection
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3000/ws";
+      let wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3000/ws";
+
+      try {
+        // If the page is loaded over HTTPS, ensure we use secure WebSocket (wss)
+        const isPageSecure = typeof window !== "undefined" && window.location.protocol === "https:";
+
+        // If env provides ws:// but page is secure, upgrade to wss://
+        if (isPageSecure && wsUrl.startsWith("ws://")) {
+          wsUrl = wsUrl.replace(/^ws:\/\//i, "wss://");
+        }
+
+        // If no explicit WS URL and page is secure, construct a sensible default using the API host
+        if (!process.env.NEXT_PUBLIC_WS_URL && isPageSecure) {
+          // If API host is provided via NEXT_PUBLIC_API_BASE_URL, try to derive a wss URL
+          const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || undefined;
+          if (apiBase) {
+            try {
+              const parsed = new URL(apiBase);
+              // prefer api host, replace http(s) with wss
+              wsUrl = `${parsed.protocol === "https:" ? "wss:" : "ws:"}//${parsed.host}/ws`;
+            } catch {
+              // fallback to wildcard domain
+              wsUrl = `wss://${window.location.hostname}/ws`;
+            }
+          } else {
+            wsUrl = `wss://${window.location.hostname}/ws`;
+          }
+        }
+      } catch (err) {
+        // If anything goes wrong, fall back to the env-provided or default ws URL
+        console.warn("Failed to normalize WS URL, using default:", err);
+      }
 
       webSocketService.connect(
         {
