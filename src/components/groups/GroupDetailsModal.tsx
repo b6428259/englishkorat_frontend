@@ -1,11 +1,18 @@
-import { useState, useEffect, useCallback } from "react";
-import { useLanguage } from "@/contexts/LanguageContext";
 import Button from "@/components/common/Button";
 import ModernInput from "@/components/common/forms/ModernInput";
-import EnhancedSelect from "@/components/common/forms/EnhancedSelect";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
-import { Group, GroupMember } from "@/types/group.types";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { groupService } from "@/services/api/groups";
+import { Group, GroupMember } from "@/types/group.types";
+import { useCallback, useEffect, useState } from "react";
 
 interface GroupDetailsModalProps {
   isOpen: boolean;
@@ -18,10 +25,10 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
   isOpen,
   onClose,
   group,
-  onGroupUpdated
+  onGroupUpdated,
 }) => {
   const { language } = useLanguage();
-  
+
   // State
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [loading, setLoading] = useState(false);
@@ -30,7 +37,7 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
   const [editData, setEditData] = useState({
     group_name: group.group_name,
     max_students: group.max_students,
-    description: group.description || ''
+    description: group.description || "",
   });
 
   // Load group members
@@ -38,11 +45,17 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
     try {
       setLoading(true);
       setError(null);
-      const membersList = await groupService.getGroupMembers(group.id.toString());
+      const membersList = await groupService.getGroupMembers(
+        group.id.toString()
+      );
       setMembers(membersList);
     } catch (err) {
-      setError(language === 'th' ? 'ไม่สามารถโหลดรายชื่อสมาชิกได้' : 'Failed to load members');
-      console.error('Error loading members:', err);
+      setError(
+        language === "th"
+          ? "ไม่สามารถโหลดรายชื่อสมาชิกได้"
+          : "Failed to load members"
+      );
+      console.error("Error loading members:", err);
     } finally {
       setLoading(false);
     }
@@ -61,113 +74,148 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
       setEditMode(false);
       onGroupUpdated(); // Refresh parent data
     } catch (err) {
-      console.error('Error updating group:', err);
+      console.error("Error updating group:", err);
     }
   };
 
   const handleRemoveMember = async (studentId: number) => {
-    if (!confirm(language === 'th' ? 'คุณแน่ใจหรือไม่ที่จะลบสมาชิกนี้?' : 'Are you sure you want to remove this member?')) {
+    if (
+      !confirm(
+        language === "th"
+          ? "คุณแน่ใจหรือไม่ที่จะลบสมาชิกนี้?"
+          : "Are you sure you want to remove this member?"
+      )
+    ) {
       return;
     }
 
     try {
-      await groupService.removeMember(group.id.toString(), studentId.toString());
+      await groupService.removeMember(
+        group.id.toString(),
+        studentId.toString()
+      );
       await loadMembers(); // Refresh the list
     } catch (err) {
-      console.error('Error removing member:', err);
-      alert(language === 'th' ? 'เกิดข้อผิดพลาดในการลบสมาชิก' : 'Error removing member');
+      console.error("Error removing member:", err);
+      alert(
+        language === "th"
+          ? "เกิดข้อผิดพลาดในการลบสมาชิก"
+          : "Error removing member"
+      );
     }
   };
 
-  const handleUpdatePaymentStatus = async (studentId: number, paymentStatus: 'pending' | 'deposit_paid' | 'fully_paid') => {
+  const handleUpdatePaymentStatus = async (
+    studentId: number,
+    paymentStatus: "pending" | "deposit_paid" | "fully_paid"
+  ) => {
     try {
       await groupService.updatePaymentStatus(group.id.toString(), {
         payment_status: paymentStatus,
-        student_id: studentId
+        student_id: studentId,
       });
       await loadMembers(); // Refresh the list
     } catch (err) {
-      console.error('Error updating payment status:', err);
-      alert(language === 'th' ? 'เกิดข้อผิดพลาดในการอัปเดตสถานะการชำระเงิน' : 'Error updating payment status');
+      console.error("Error updating payment status:", err);
+      alert(
+        language === "th"
+          ? "เกิดข้อผิดพลาดในการอัปเดตสถานะการชำระเงิน"
+          : "Error updating payment status"
+      );
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'full': return 'bg-blue-100 text-blue-800';
-      case 'empty': return 'bg-gray-100 text-gray-800';
-      case 'need-feeling': return 'bg-yellow-100 text-yellow-800';
-      case 'inactive': return 'bg-red-100 text-red-800';
-      case 'suspended': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "active":
+        return "bg-green-100 text-green-800";
+      case "full":
+        return "bg-blue-100 text-blue-800";
+      case "empty":
+        return "bg-gray-100 text-gray-800";
+      case "need-feeling":
+        return "bg-yellow-100 text-yellow-800";
+      case "inactive":
+        return "bg-red-100 text-red-800";
+      case "suspended":
+        return "bg-orange-100 text-orange-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
-      case 'fully_paid': return 'bg-green-100 text-green-800';
-      case 'deposit_paid': return 'bg-yellow-100 text-yellow-800';
-      case 'pending': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "fully_paid":
+        return "bg-green-100 text-green-800";
+      case "deposit_paid":
+        return "bg-yellow-100 text-yellow-800";
+      case "pending":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 rounded-t-xl">
-          <div className="flex justify-between items-start">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="flex flex-col max-w-4xl max-h-[90vh] overflow-y-auto bg-white">
+        <DialogHeader className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 rounded-t-xl -m-6 mb-6">
+          <DialogTitle className="text-2xl font-bold text-white flex items-start justify-between">
             <div>
               {editMode ? (
                 <ModernInput
                   value={editData.group_name}
-                  onChange={(e) => setEditData(prev => ({ ...prev, group_name: e.target.value }))}
-                  className="text-2xl font-bold bg-transparent border-b border-white/50 focus:outline-none focus:border-white"
+                  onChange={(e) =>
+                    setEditData((prev) => ({
+                      ...prev,
+                      group_name: e.target.value,
+                    }))
+                  }
+                  className="text-2xl font-bold bg-transparent border-b border-white/50 focus:outline-none focus:border-white text-white"
                 />
               ) : (
-                <h2 className="text-2xl font-bold">{group.group_name}</h2>
+                <span>{group.group_name}</span>
               )}
-              <p className="opacity-90">{group.course?.name} - {group.level}</p>
+              <p className="opacity-90 text-base mt-1">
+                {group.course?.name} - {group.level}
+              </p>
             </div>
-            <Button
-              onClick={onClose}
-              variant="monthView"
-              className="text-white hover:bg-white/20"
-            >
-              ✕
-            </Button>
-          </div>
-        </div>
+          </DialogTitle>
+        </DialogHeader>
 
-        {/* Content */}
-        <div className="p-6">
+        <div className="flex-1 overflow-y-auto">
           {/* Group Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="text-sm font-medium text-gray-600">
-                {language === 'th' ? 'สถานะ' : 'Status'}
+                {language === "th" ? "สถานะ" : "Status"}
               </h3>
-              <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium mt-1 ${getStatusColor(group.status)}`}>
+              <span
+                className={`inline-block px-2 py-1 rounded-full text-xs font-medium mt-1 ${getStatusColor(
+                  group.status
+                )}`}
+              >
                 {group.status}
               </span>
             </div>
 
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="text-sm font-medium text-gray-600">
-                {language === 'th' ? 'การชำระเงิน' : 'Payment'}
+                {language === "th" ? "การชำระเงิน" : "Payment"}
               </h3>
-              <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium mt-1 ${getPaymentStatusColor(group.payment_status)}`}>
+              <span
+                className={`inline-block px-2 py-1 rounded-full text-xs font-medium mt-1 ${getPaymentStatusColor(
+                  group.payment_status
+                )}`}
+              >
                 {group.payment_status}
               </span>
             </div>
 
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="text-sm font-medium text-gray-600">
-                {language === 'th' ? 'นักเรียน' : 'Students'}
+                {language === "th" ? "นักเรียน" : "Students"}
               </h3>
               <div className="text-lg font-bold text-indigo-600 mt-1">
                 {members.length}
@@ -177,7 +225,15 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
                     <ModernInput
                       type="number"
                       value={editData.max_students}
-                      onChange={(e) => setEditData(prev => ({ ...prev, max_students: parseInt(e.target.value as unknown as string, 10) }))}
+                      onChange={(e) =>
+                        setEditData((prev) => ({
+                          ...prev,
+                          max_students: parseInt(
+                            e.target.value as unknown as string,
+                            10
+                          ),
+                        }))
+                      }
                       className="w-16 ml-1 text-center"
                     />
                   </span>
@@ -189,11 +245,15 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
 
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="text-sm font-medium text-gray-600">
-                {language === 'th' ? 'ที่ว่าง' : 'Available'}
+                {language === "th" ? "ที่ว่าง" : "Available"}
               </h3>
-              <div className={`text-lg font-bold mt-1 ${
-                (group.max_students - members.length) > 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
+              <div
+                className={`text-lg font-bold mt-1 ${
+                  group.max_students - members.length > 0
+                    ? "text-green-600"
+                    : "text-red-600"
+                }`}
+              >
                 {group.max_students - members.length}
               </div>
             </div>
@@ -202,19 +262,29 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
           {/* Description */}
           <div className="mb-6">
             <h3 className="text-md font-semibold text-gray-700 mb-2">
-              {language === 'th' ? 'คำอธิบาย' : 'Description'}
+              {language === "th" ? "คำอธิบาย" : "Description"}
             </h3>
             {editMode ? (
               <textarea
                 value={editData.description}
-                onChange={(e) => setEditData(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(e) =>
+                  setEditData((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
                 rows={3}
                 className="w-full p-3 border border-gray-300 text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder={language === 'th' ? 'คำอธิบายเกี่ยวกับกลุ่ม...' : 'Description about the group...'}
+                placeholder={
+                  language === "th"
+                    ? "คำอธิบายเกี่ยวกับกลุ่ม..."
+                    : "Description about the group..."
+                }
               />
             ) : (
               <p className="p-3 bg-gray-50 text-black rounded-lg">
-                {group.description || (language === 'th' ? 'ไม่มีคำอธิบาย' : 'No description')}
+                {group.description ||
+                  (language === "th" ? "ไม่มีคำอธิบาย" : "No description")}
               </p>
             )}
           </div>
@@ -222,7 +292,7 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
           {/* Edit Controls */}
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-md font-semibold text-gray-700">
-              {language === 'th' ? 'รายชื่อสมาชิก' : 'Members List'}
+              {language === "th" ? "รายชื่อสมาชิก" : "Members List"}
             </h3>
             <div className="flex gap-2">
               {editMode ? (
@@ -232,14 +302,14 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
                     variant="monthView"
                     className="px-4 py-2 text-sm"
                   >
-                    {language === 'th' ? 'ยกเลิก' : 'Cancel'}
+                    {language === "th" ? "ยกเลิก" : "Cancel"}
                   </Button>
                   <Button
                     onClick={handleSaveEdit}
                     variant="monthViewClicked"
                     className="px-4 py-2 text-sm"
                   >
-                    {language === 'th' ? 'บันทึก' : 'Save'}
+                    {language === "th" ? "บันทึก" : "Save"}
                   </Button>
                 </>
               ) : (
@@ -248,7 +318,7 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
                   variant="monthViewClicked"
                   className="px-4 py-2 text-sm"
                 >
-                  {language === 'th' ? 'แก้ไข' : 'Edit'}
+                  {language === "th" ? "แก้ไข" : "Edit"}
                 </Button>
               )}
             </div>
@@ -260,12 +330,12 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
               <LoadingSpinner />
             </div>
           ) : error ? (
-            <div className="text-center py-8 text-red-600">
-              {error}
-            </div>
+            <div className="text-center py-8 text-red-600">{error}</div>
           ) : members.length === 0 ? (
             <div className="text-center py-8 text-black">
-              {language === 'th' ? 'ยังไม่มีสมาชิกในกลุ่ม' : 'No members in this group yet'}
+              {language === "th"
+                ? "ยังไม่มีสมาชิกในกลุ่ม"
+                : "No members in this group yet"}
             </div>
           ) : (
             <div className="space-y-3">
@@ -276,46 +346,66 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
                 >
                   <div className="flex-1">
                     <div className="font-medium">
-                      {language === 'th' 
+                      {language === "th"
                         ? `${member.student?.first_name_th} ${member.student?.last_name_th}`
-                        : `${member.student?.first_name_en} ${member.student?.last_name_en}`
-                      }
+                        : `${member.student?.first_name_en} ${member.student?.last_name_en}`}
                       {member.student?.nickname_en && (
                         <span className="text-gray-500 ml-2">
-                          ({language === 'th' ? member.student.nickname_th : member.student.nickname_en})
+                          (
+                          {language === "th"
+                            ? member.student.nickname_th
+                            : member.student.nickname_en}
+                          )
                         </span>
                       )}
                     </div>
                     <div className="text-sm text-gray-600">
-                      {member.student?.email} {member.student?.phone && `| ${member.student.phone}`}
+                      {member.student?.email}{" "}
+                      {member.student?.phone && `| ${member.student.phone}`}
                     </div>
                     {member.joined_at && (
                       <div className="text-xs text-gray-500">
-                        {language === 'th' ? 'เข้าร่วมเมื่อ:' : 'Joined:'} {new Date(member.joined_at).toLocaleDateString()}
+                        {language === "th" ? "เข้าร่วมเมื่อ:" : "Joined:"}{" "}
+                        {new Date(member.joined_at).toLocaleDateString()}
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
                     {/* Payment Status */}
-                    <EnhancedSelect
+                    <SearchableSelect
                       value={member.payment_status}
-                      onChange={(val) => handleUpdatePaymentStatus(member.student_id, val as 'pending' | 'deposit_paid' | 'fully_paid')}
+                      onValueChange={(value) =>
+                        handleUpdatePaymentStatus(
+                          member.student_id,
+                          value as "pending" | "deposit_paid" | "fully_paid"
+                        )
+                      }
                       options={[
-                        { value: 'pending', label: language === 'th' ? 'รอชำระ' : 'Pending' },
-                        { value: 'deposit_paid', label: language === 'th' ? 'ชำระมัดจำ' : 'Deposit Paid' },
-                        { value: 'fully_paid', label: language === 'th' ? 'ชำระครบ' : 'Fully Paid' },
+                        {
+                          value: "pending",
+                          label: language === "th" ? "รอชำระ" : "Pending",
+                        },
+                        {
+                          value: "deposit_paid",
+                          label:
+                            language === "th" ? "ชำระมัดจำ" : "Deposit Paid",
+                        },
+                        {
+                          value: "fully_paid",
+                          label: language === "th" ? "ชำระครบ" : "Fully Paid",
+                        },
                       ]}
                       className="min-w-[180px]"
                     />
-                    
+
                     {/* Remove Button */}
                     <Button
                       onClick={() => handleRemoveMember(member.student_id)}
                       variant="monthView"
                       className="px-3 py-1 text-xs text-red-600 hover:bg-red-50"
                     >
-                      {language === 'th' ? 'ลบ' : 'Remove'}
+                      {language === "th" ? "ลบ" : "Remove"}
                     </Button>
                   </div>
                 </div>
@@ -324,18 +414,19 @@ export const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="bg-gray-50 px-6 py-4 border-t rounded-b-xl">
-          <div className="flex justify-between items-center text-sm text-gray-600">
+        <DialogFooter className="bg-gray-50 px-6 py-4 border-t rounded-b-xl">
+          <div className="flex justify-between items-center text-sm text-gray-600 w-full">
             <div>
-              {language === 'th' ? 'สร้างเมื่อ:' : 'Created:'} {new Date(group.created_at).toLocaleDateString()}
+              {language === "th" ? "สร้างเมื่อ:" : "Created:"}{" "}
+              {new Date(group.created_at).toLocaleDateString()}
             </div>
             <div>
-              {language === 'th' ? 'แก้ไขล่าสุด:' : 'Last updated:'} {new Date(group.updated_at).toLocaleDateString()}
+              {language === "th" ? "แก้ไขล่าสุด:" : "Last updated:"}{" "}
+              {new Date(group.updated_at).toLocaleDateString()}
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import AuthForm from '../../components/forms/AuthForm';
 import Button from '../../components/common/Button';
-import { SuccessModal, ErrorModal } from '../../components/common';
+import { ErrorModal, SuccessModal } from '../../components/common';
 import { hasValidToken } from '@/utils/secureStorage';
 
 function AuthPageContent() {
@@ -57,7 +57,7 @@ function AuthPageContent() {
       </div>
     ) : (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
-      {/* Success Modal */}
+      {/* Success Modal (shared) */}
       <SuccessModal
         isOpen={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}

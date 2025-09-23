@@ -16,13 +16,13 @@ export interface Branch {
 }
 
 export interface Sender {
-  type: 'system' | 'user';
+  type: "system" | "user";
   id?: number;
   name: string;
 }
 
 export interface Recipient {
-  type: 'user';
+  type: "user";
   id: number;
 }
 
@@ -37,41 +37,75 @@ export interface Notification {
   message: string;
   message_th?: string; // optional Thai message
   type: NotificationType; // Use the full NotificationType enum
+  channels: NotificationChannel[]; // Delivery channels (defaults to ["normal"] if missing)
   read: boolean;
   read_at?: string; // ISO timestamp, optional
   user: User; // recipient user details
   branch: Branch; // branch information
   sender: Sender; // who sent the notification
   recipient: Recipient; // recipient details
-  
+
+  // Actionable notification data - updated to match new WebSocket patterns
+  data?: {
+    // Link for API calls (required for actionable notifications)
+    link?: {
+      method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+      href: string; // e.g., "/api/schedules/sessions/2051"
+    };
+    // Action type for UI routing and button display
+    action?:
+      | "confirm-session" // New session created - show confirm/decline
+      | "open-session" // Upcoming session reminder - show open button
+      | "review-missed-session" // Missed session alert - show review button
+      | "confirm-participation" // Schedule invitation - show confirm/decline participation
+      | "review-schedule" // Teacher assigned to new class - show review sessions
+      | "open-today-schedule" // Daily schedule reminder - show today view
+      | string; // Allow other custom actions
+    // Session/Schedule IDs for direct reference
+    session_id?: number;
+    schedule_id?: number;
+    // Reminder timing (for upcoming session reminders)
+    reminder_before_minutes?: number; // 5, 30, 60 minutes before start
+    // Legacy support
+    resource?: {
+      type: string; // e.g., "session"
+      id: number;
+    };
+  };
+
   // Legacy fields for backward compatibility
   isRead?: boolean; // maps to `read`
   metadata?: { [key: string]: string | number | boolean };
 }
 
-export type NotificationType = 
+export type NotificationType =
   // Backend core types
-  | 'info'
-  | 'warning' 
-  | 'error'
-  | 'success'
+  | "info"
+  | "warning"
+  | "error"
+  | "success"
   // Extended types for UI categorization
-  | 'class_confirmation'
-  | 'leave_approval'
-  | 'class_cancellation'
-  | 'schedule_change'
-  | 'payment_reminder'
-  | 'report_deadline'
-  | 'room_conflict'
-  | 'general'
-  | 'student_registration'
-  | 'appointment_reminder'
-  | 'class_reminder'
-  | 'system_maintenance';
+  | "class_confirmation"
+  | "leave_approval"
+  | "class_cancellation"
+  | "schedule_change"
+  | "payment_reminder"
+  | "report_deadline"
+  | "room_conflict"
+  | "general"
+  | "student_registration"
+  | "appointment_reminder"
+  | "class_reminder"
+  | "system_maintenance";
 
-export type NotificationPriority = 'high' | 'medium' | 'low';
+export type NotificationChannel =
+  | "normal" // Add to notifications list and increment unread count
+  | "popup" // Show immediate modal/dialog with Accept/Decline buttons
+  | "line"; // LINE delivery hint (server-side only)
 
-export type UserRole = 'owner' | 'admin' | 'teacher' | 'student';
+export type NotificationPriority = "high" | "medium" | "low";
+
+export type UserRole = "owner" | "admin" | "teacher" | "student";
 
 export interface NotificationConfig {
   type: NotificationType;
@@ -97,7 +131,7 @@ export interface NotificationFilters {
   page?: number;
   limit?: number;
   read?: boolean;
-  type?: 'info' | 'warning' | 'error' | 'success';
+  type?: "info" | "warning" | "error" | "success";
 }
 
 // Backend notification creation request
@@ -114,7 +148,7 @@ export interface SendNotificationRequest {
   title_th?: string;
   message: string;
   message_th?: string;
-  type: 'info' | 'warning' | 'error' | 'success';
+  type: "info" | "warning" | "error" | "success";
 }
 
 export interface NotificationIconConfig {
@@ -134,4 +168,16 @@ export interface UINotification {
   icon: React.ReactNode;
   type: NotificationType;
   metadata?: { [key: string]: string | number | boolean };
+}
+
+// WebSocket message envelope from backend
+export interface WebSocketNotificationMessage {
+  type: "notification";
+  data: Notification;
+}
+
+// Accepted popup notification for history tracking
+export interface AcceptedPopupNotification extends Notification {
+  acceptedAt: string; // ISO timestamp when user accepted
+  popupStatus: "accepted" | "declined";
 }
