@@ -449,6 +449,14 @@ export interface Translations {
   //Teachers
   teachingReport: string;
 
+  //Teachers Salary
+  teachersSalary: string;
+  paymentType: string;
+  rateOrSalary: string;
+  socialSecurity: string;
+  searchTeacher: string;
+  all: string;
+
   // Placeholders
   pleaseEnterName: string;
   pleaseEnterLastName: string;
@@ -1013,6 +1021,14 @@ export const translations: Record<Language, Translations> = {
     //Teachers
     teachingReport: 'รายงานการสอน',
 
+    //Teachers Salary
+    teachersSalary: 'เงินเดือนครู',
+    paymentType: 'ประเภทการจ่าย',
+    rateOrSalary: 'เรต / เงินเดือน',
+    socialSecurity: 'ประกันสังคม',
+    searchTeacher: 'ค้นหาครู',
+    all: 'ทั้งหมด',
+
     // Placeholders
     pleaseEnterName: 'กรุณากรอกชื่อ',
     pleaseEnterLastName: 'กรุณากรอกนามสกุล',
@@ -1575,6 +1591,14 @@ export const translations: Record<Language, Translations> = {
 
     //Teachers
     teachingReport: 'Teaching Report',
+
+    //Teachers Salary
+    teachersSalary: 'Teachers Salary',
+    paymentType: 'Payment Type',
+    rateOrSalary: 'Rate / Salary',
+    socialSecurity: 'Social Security',
+    searchTeacher: 'Search Teacher',
+    all: 'All',
 
     // Placeholders
     pleaseEnterName: 'Please enter name',
