@@ -1574,10 +1574,17 @@ export const scheduleService = {
     baseUrl?: string
   ): Promise<unknown> => {
     const method = (link?.method || "GET").toUpperCase() as Method;
-    const href = link?.href || "";
+    let href = link?.href || "";
 
     if (!href) {
       throw new Error("Missing link.href");
+    }
+
+    // Normalize href: strip leading '/api' if present (e.g., '/api/schedules/..' -> '/schedules/..')
+    if (href.startsWith("/api/")) {
+      href = href.replace(/^\/api\//, "/");
+    } else if (href === "/api") {
+      href = "/";
     }
 
     // Use href directly if it's already absolute, otherwise prefix with base URL
@@ -1609,7 +1616,13 @@ export const scheduleService = {
     method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" = "GET"
   ): Promise<unknown> => {
     // Ensure href doesn't include base URL (client adds it)
-    const cleanHref = href.startsWith("/") ? href : `/${href}`;
+    let cleanHref = href.startsWith("/") ? href : `/${href}`;
+    // Normalize: strip leading '/api' if present
+    if (cleanHref.startsWith("/api/")) {
+      cleanHref = cleanHref.replace(/^\/api\//, "/");
+    } else if (cleanHref === "/api") {
+      cleanHref = "/";
+    }
 
     const response = await api.request({
       method: method.toLowerCase() as Method,
