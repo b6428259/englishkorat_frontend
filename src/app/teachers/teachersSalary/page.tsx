@@ -1,16 +1,28 @@
 "use client";
 
-import React, { useState } from "react";
+import Button from "@/components/common/Button";
 import SidebarLayout from "@/components/common/SidebarLayout";
 import { useLanguage } from "@/contexts/LanguageContext";
-import Button from "@/components/common/Button";
 import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
+import { useState } from "react";
 
 type PaymentType = "weekly" | "monthly";
 
 type Teacher =
-  | { id: number; name: string; type: "weekly"; rate: number; socialSecurity: boolean }
-  | { id: number; name: string; type: "monthly"; salary: number; socialSecurity: boolean };
+  | {
+      id: number;
+      name: string;
+      type: "weekly";
+      rate: number;
+      socialSecurity: boolean;
+    }
+  | {
+      id: number;
+      name: string;
+      type: "monthly";
+      salary: number;
+      socialSecurity: boolean;
+    };
 
 const teachers: Teacher[] = [
   { id: 1, name: "Alec", type: "weekly", rate: 500, socialSecurity: true },
@@ -53,7 +65,9 @@ export default function TeachersSalaryPage() {
           />
           <select
             value={filterType}
-            onChange={(e) => setFilterType(e.target.value as "all" | PaymentType)}
+            onChange={(e) =>
+              setFilterType(e.target.value as "all" | PaymentType)
+            }
             className="border border-gray-300 rounded-md px-3 py-2 w-full sm:w-40"
           >
             <option value="all">{t.all}</option>
@@ -62,7 +76,7 @@ export default function TeachersSalaryPage() {
           </select>
         </div>
 
-            {/* 📊 Table */}
+        {/* 📊 Table */}
         <table className="min-w-full border border-gray-200 rounded-lg">
           <thead className="bg-gray-100 text-sm font-normal">
             <tr>
@@ -102,15 +116,18 @@ export default function TeachersSalaryPage() {
                 </td>
                 <td className="px-2 py-1 w-auto whitespace-nowrap">
                   <div className="flex justify-center items-center gap-2">
-                    <Button size="xs" variant="common">View</Button>
-                    <Button size="xs" variant="common">Bill</Button>
+                    <Button size="xs" variant="common">
+                      View
+                    </Button>
+                    <Button size="xs" variant="common">
+                      Bill
+                    </Button>
                   </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-
       </div>
     </SidebarLayout>
   );

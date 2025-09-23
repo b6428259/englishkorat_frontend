@@ -1,14 +1,9 @@
 "use client";
 
-import React from "react";
+import Button from "@/components/common/Button";
 import SidebarLayout from "@/components/common/SidebarLayout";
 import { useLanguage } from "@/contexts/LanguageContext";
-import Button from "@/components/common/Button";
-import {
-  Autocomplete,
-  AutocompleteItem,
-  DatePicker,
-} from "@heroui/react";
+import { Autocomplete, AutocompleteItem, DatePicker } from "@heroui/react";
 
 const studentName = [
   { label: "Warissara", key: "Warissara" },
@@ -90,7 +85,9 @@ export default function StudentsBillsPage() {
       <div className="space-y-2 p-6 bg-white rounded-lg shadow-md w-full">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-black">{t.invoice}</h1>
-          <Button variant="common" href="/students/bills/createInvoice">{t.createInvoice}</Button>
+          <Button variant="common" href="/students/bills/createInvoice">
+            {t.createInvoice}
+          </Button>
         </div>
 
         <div className="flex w-full flex-wrap md:flex-nowrap gap-4">
@@ -160,13 +157,13 @@ export default function StudentsBillsPage() {
                 <tr key={idx} className="border-t hover:bg-gray-50">
                   {/* Status */}
                   <td className="px-4 py-2">
-                     <span
-                        className={`inline-flex items-center justify-center px-2 py-1 text-xs font-medium rounded-sm min-w-[80px] text-center ${
-                          statusColors[inv.status] || "bg-gray-100 text-gray-500"
-                        }`}
-                      >
-                        {inv.status}
-                      </span>
+                    <span
+                      className={`inline-flex items-center justify-center px-2 py-1 text-xs font-medium rounded-sm min-w-[80px] text-center ${
+                        statusColors[inv.status] || "bg-gray-100 text-gray-500"
+                      }`}
+                    >
+                      {inv.status}
+                    </span>
                   </td>
 
                   <td className="px-4 py-2">{inv.date}</td>
