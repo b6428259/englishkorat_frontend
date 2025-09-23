@@ -682,7 +682,9 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
       try {
         // If the page is loaded over HTTPS, ensure we use secure WebSocket (wss)
-        const isPageSecure = typeof window !== "undefined" && window.location.protocol === "https:";
+        const isPageSecure =
+          typeof window !== "undefined" &&
+          window.location.protocol === "https:";
 
         // If env provides ws:// but page is secure, upgrade to wss://
         if (isPageSecure && wsUrl.startsWith("ws://")) {
@@ -697,7 +699,9 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
             try {
               const parsed = new URL(apiBase);
               // prefer api host, replace http(s) with wss
-              wsUrl = `${parsed.protocol === "https:" ? "wss:" : "ws:"}//${parsed.host}/ws`;
+              wsUrl = `${parsed.protocol === "https:" ? "wss:" : "ws:"}//${
+                parsed.host
+              }/ws`;
             } catch {
               // fallback to wildcard domain
               wsUrl = `wss://${window.location.hostname}/ws`;
