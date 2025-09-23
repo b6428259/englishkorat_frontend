@@ -88,6 +88,7 @@ export const getSidebarItems = (t: Translations): SidebarItem[] => [
     children: [
       { id: 'teacher-list', label: t.teacherList, href: '/teachers/list', icon: <HiOutlineDocumentText {...iconProps} /> },
       { id: 'teacher-new', label: t.teacherNew, href: '/teachers/new', icon: <HiOutlineUser {...iconProps} /> },
+      { id: 'teacher-teachersSalary', label: t.teachersSalary, href: '/teachers/teachersSalary', icon: <PiCashRegister {...iconProps} /> },
     ],
   },
   {

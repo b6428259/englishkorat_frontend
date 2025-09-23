@@ -64,7 +64,7 @@ const invoices = [
   },
 ];
 
-const statusColors: Record<string, string> = {
+const statusColors = {
   Paid: "bg-green-100 text-green-800",
   Unpaid: "bg-gray-200 text-gray-700",
   Overdue: "bg-red-100 text-red-800",
