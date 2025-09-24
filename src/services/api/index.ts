@@ -9,6 +9,7 @@ export { coursesApi } from './courses';
 export { teachersApi } from './teachers';
 export { groupService } from './groups';
 export { scheduleService } from './schedules';
+export { billsApi } from './bills';
 
 // Type exports
 export type { 
@@ -33,6 +34,21 @@ export type {
   TeachersListResponse, 
   TeacherResponse 
 } from './teachers';
+
+export type {
+  Bill,
+  BillListParams,
+  BillListResponse,
+  CreateBillRequest,
+  CreateBillResponse,
+  UpdateBillRequest,
+  ImportBillsResponse,
+  BillType,
+  BillStatus,
+  PaymentMethod,
+  BillSource,
+  BillLine
+} from './bills';
 
 // Group-based scheduling types
 export type {
