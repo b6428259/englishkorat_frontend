@@ -93,6 +93,18 @@ export const API_ENDPOINTS = {
     CLEANUP_STATUS: '/notifications/cleanup/status',
     CLEANUP_TRIGGER: '/notifications/cleanup/trigger',
     LOGS_ARCHIVE: '/notifications/logs/archive'
+  },
+
+  // Bills management endpoints (based on Bills System Documentation)
+  BILLS: {
+    LIST: '/bills',
+    CREATE: '/bills',
+    GET_BY_ID: (id: string) => `/bills/${id}`,
+    UPDATE: (id: string) => `/bills/${id}`,
+    DELETE: (id: string) => `/bills/${id}`,
+    BY_TRANSACTION: (transactionId: string) => `/bills/by-transaction/${transactionId}`,
+    BY_INVOICE: (invoice: string) => `/bills/by-invoice/${invoice}`,
+    IMPORT: '/import/bills'
   }
 } as const;
 
