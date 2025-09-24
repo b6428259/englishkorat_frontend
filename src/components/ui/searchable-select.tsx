@@ -155,7 +155,7 @@ export function SearchableSelect({
     : placeholder;
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={false}>
       <PopoverTrigger asChild>
         <Button
           ref={triggerRef}
@@ -184,6 +184,8 @@ export function SearchableSelect({
       <PopoverContent
         className="w-full p-0"
         style={{ width: triggerRef.current?.offsetWidth || 240, minWidth: 200 }}
+        onClick={(e) => e.stopPropagation()}
+        onPointerDownOutside={(e) => e.preventDefault()}
       >
         <Command>
           <div className="flex items-center border-b px-3">
@@ -195,7 +197,10 @@ export function SearchableSelect({
               className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
-          <CommandList className="max-h-64 overflow-auto">
+          <CommandList
+            className="max-h-64 overflow-auto"
+            style={{ zIndex: 10000 }}
+          >
             <CommandEmpty>{emptyText}</CommandEmpty>
 
             {loading || remoteLoading ? (

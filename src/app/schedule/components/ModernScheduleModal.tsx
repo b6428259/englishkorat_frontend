@@ -1,6 +1,7 @@
 import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Badge } from "@/components/ui/badge";
+import { Combobox } from "@/components/ui/combobox";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -30,10 +30,11 @@ import {
 import {
   BookOpenIcon,
   CalendarIcon,
+  CheckCircleIcon,
   ClockIcon,
   MapPinIcon,
   PlusIcon,
-  UsersIcon,
+  UsersIcon
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiDocumentText } from "react-icons/hi2";
@@ -76,6 +77,22 @@ export default function ModernScheduleModal({
 }: ModernScheduleModalProps) {
   const { language } = useLanguage();
   const [activeTab, setActiveTab] = useState(initialTab);
+
+  // Debug logging
+  console.log("ModernScheduleModal render - props:", {
+    courses: courses?.length || 0,
+    rooms: rooms?.length || 0,
+    teachers: teachers?.length || 0,
+    groups: groups?.length || 0,
+    isOpen,
+  });
+
+  console.log("ModernScheduleModal - actual data:", {
+    courses: courses,
+    rooms: rooms,
+    teachers: teachers,
+    groups: groups,
+  });
 
   // Internal form state
   const [internalForm, setInternalForm] = useState<
@@ -712,11 +729,19 @@ export default function ModernScheduleModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       {isOpen && (
         <DialogContent className="flex flex-col max-w-4xl max-h-[90vh] bg-white">
-          <DialogHeader className="border-b border-gray-200 pb-4">
-            <DialogTitle className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-              <CalendarIcon className="h-6 w-6 text-indigo-600" />
+          <DialogHeader className="border-b border-gray-200 pb-6 bg-gradient-to-r from-indigo-50 to-purple-50 -m-6 mb-6 px-6 pt-6">
+            <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl">
+                <CalendarIcon className="h-8 w-8 text-white" />
+              </div>
               {language === "th" ? "สร้างตารางใหม่" : "Create New Schedule"}
             </DialogTitle>
+            <p className="text-gray-600 mt-2">
+              {language === "th"
+                ? "กำหนดตารางเรียน การประชุม หรืออีเวนต์ต่าง ๆ ได้อย่างง่ายดาย"
+                : "Easily create schedules for classes, meetings, or events"
+              }
+            </p>
           </DialogHeader>
 
           <div className="flex-1 min-h-0 overflow-y-auto">
@@ -727,23 +752,26 @@ export default function ModernScheduleModal({
               }
               className="h-full flex flex-col text-gray-700"
             >
-              <TabsList className="grid w-full grid-cols-3 mb-6">
-                <TabsTrigger value="basic" className="flex items-center gap-2">
+              <TabsList className="grid w-full grid-cols-3 mb-6 bg-gray-100 p-1 rounded-xl">
+                <TabsTrigger
+                  value="basic"
+                  className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200"
+                >
                   <BookOpenIcon className="h-4 w-4" />
                   {language === "th" ? "ข้อมูลพื้นฐาน" : "Basic Info"}
                 </TabsTrigger>
                 <TabsTrigger
                   value="schedule"
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200"
                 >
                   <ClockIcon className="h-4 w-4" />
                   {language === "th" ? "ตารางเวลา" : "Time Schedule"}
                 </TabsTrigger>
                 <TabsTrigger
                   value="preview"
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200"
                 >
-                  <HiDocumentText className="h-4 w-4" />
+                  <CheckCircleIcon className="h-4 w-4" />
                   {language === "th" ? "พรีวิว" : "Preview"}
                 </TabsTrigger>
               </TabsList>
@@ -753,34 +781,41 @@ export default function ModernScheduleModal({
                 className="flex-1 overflow-y-auto space-y-6"
               >
                 {/* Schedule Name */}
-                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200">
                   {/* One-off event helper */}
                   {scheduleForm.schedule_type === "event" && (
-                    <div className="mb-4 p-3 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm flex items-start gap-2">
-                      <span className="mt-0.5">🗓️</span>
-                      <div>
-                        <div className="font-medium">
-                          {language === "th"
-                            ? "อีเวนต์ครั้งเดียว (One-off)"
-                            : "One-off Event"}
+                    <div className="mb-6 p-4 rounded-xl border-2 border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-800">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                          <span className="text-emerald-600 font-bold">!</span>
                         </div>
-                        <ul className="list-disc list-inside mt-1 space-y-0.5">
-                          <li>
+                        <div>
+                          <div className="font-semibold text-emerald-900 mb-2">
                             {language === "th"
-                              ? "ตั้ง Recurring เป็น 'ไม่มี'"
-                              : "Set Recurring to 'None'"}
-                          </li>
-                          <li>
-                            {language === "th"
-                              ? "เลือกเวลาเริ่ม และกำหนดวันเริ่ม = วันสิ้นสุด"
-                              : "Pick start time, and set start date = end date"}
-                          </li>
-                          <li>
-                            {language === "th"
-                              ? "ระบุผู้เข้าร่วม (ถ้ามี) และบันทึก"
-                              : "Add participants (optional) and save"}
-                          </li>
-                        </ul>
+                              ? "อีเวนต์ครั้งเดียว (One-off)"
+                              : "One-off Event"}
+                          </div>
+                          <ul className="space-y-1 text-sm">
+                            <li className="flex items-center gap-2">
+                              <CheckCircleIcon className="h-4 w-4 text-emerald-600" />
+                              {language === "th"
+                                ? "ตั้ง Recurring เป็น 'ไม่มี'"
+                                : "Set Recurring to 'None'"}
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <CheckCircleIcon className="h-4 w-4 text-emerald-600" />
+                              {language === "th"
+                                ? "เลือกเวลาเริ่ม และกำหนดวันเริ่ม = วันสิ้นสุด"
+                                : "Pick start time, and set start date = end date"}
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <CheckCircleIcon className="h-4 w-4 text-emerald-600" />
+                              {language === "th"
+                                ? "ระบุผู้เข้าร่วม (ถ้ามี) และบันทึก"
+                                : "Add participants (optional) and save"}
+                            </li>
+                          </ul>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -790,9 +825,13 @@ export default function ModernScheduleModal({
                     {language === "th" ? "ข้อมูลพื้นฐาน" : "Basic Information"}
                   </h3>
 
-                  <div className="space-y-4">
+                  <div className="space-y-6">
+                    {/* Schedule Name */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="flex items-center gap-2 text-lg font-semibold text-gray-800 mb-3">
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">1</span>
+                        </div>
                         {language === "th" ? "ชื่อตารางเรียน" : "Schedule Name"}
                       </label>
                       <input
@@ -801,22 +840,29 @@ export default function ModernScheduleModal({
                         onChange={(e) =>
                           updateForm({ schedule_name: e.target.value })
                         }
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        className="w-full h-12 px-4 text-base border border-gray-300 hover:border-blue-400 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl transition-colors bg-white"
                         placeholder={
                           language === "th"
-                            ? "ใส่ชื่อตารางเรียน"
-                            : "Enter schedule name"
+                            ? "เช่น: English Conversation Class"
+                            : "e.g., English Conversation Class"
                         }
                       />
                       {getFieldError("schedule_name") && (
-                        <p className="text-red-500 text-sm mt-1">
+                        <p className="text-red-500 text-sm mt-2 flex items-center gap-2">
+                          <div className="w-4 h-4 rounded-full bg-red-100 flex items-center justify-center">
+                            <span className="text-red-600 text-xs">!</span>
+                          </div>
                           {getFieldError("schedule_name")}
                         </p>
                       )}
                     </div>
 
+                    {/* Schedule Type */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="flex items-center gap-2 text-lg font-semibold text-gray-800 mb-3">
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">2</span>
+                        </div>
                         {language === "th"
                           ? "ประเภทตารางเรียน"
                           : "Schedule Type"}
@@ -824,6 +870,7 @@ export default function ModernScheduleModal({
                       <div className="grid grid-cols-3 gap-3">
                         {scheduleTypes.map((type) => {
                           const IconComponent = type.icon;
+                          const isSelected = scheduleForm.schedule_type === type.value;
                           return (
                             <button
                               key={type.value}
@@ -845,14 +892,18 @@ export default function ModernScheduleModal({
                                   });
                                 }
                               }}
-                              className={`p-4 rounded-lg border text-center transition-all ${
-                                scheduleForm.schedule_type === type.value
-                                  ? "border-indigo-500 bg-indigo-50 text-indigo-700"
-                                  : "border-gray-300 hover:border-gray-400"
+                              className={`p-5 rounded-xl border-2 text-center transition-all duration-200 ${
+                                isSelected
+                                  ? "border-indigo-500 bg-gradient-to-br from-indigo-50 to-purple-50 text-indigo-700 shadow-md transform scale-105"
+                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
                               }`}
                             >
-                              <IconComponent className="h-6 w-6 mx-auto mb-2" />
-                              <p className="font-medium">{type.label}</p>
+                              <IconComponent className={`h-7 w-7 mx-auto mb-3 ${
+                                isSelected ? "text-indigo-600" : "text-gray-600"
+                              }`} />
+                              <p className={`font-semibold ${
+                                isSelected ? "text-indigo-900" : "text-gray-800"
+                              }`}>{type.label}</p>
                             </button>
                           );
                         })}
@@ -862,14 +913,17 @@ export default function ModernScheduleModal({
                     {/* Conditional fields based on schedule type */}
                     {isClassSchedule ? (
                       /* Class schedule fields - Group required, course optional (derived from group) */
-                      <div className="space-y-4">
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                          <h4 className="font-medium text-blue-900 mb-2">
+                      <div className="space-y-6">
+                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-5">
+                          <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">!</span>
+                            </div>
                             {language === "th"
                               ? "ตั้งค่าคลาสเรียน"
                               : "Class Schedule Settings"}
                           </h4>
-                          <p className="text-sm text-blue-700">
+                          <p className="text-sm text-blue-800 leading-relaxed">
                             {language === "th"
                               ? "คลาสเรียนต้องมีกลุ่มนักเรียน คุณสามารถเลือกกลุ่มที่มีอยู่แล้วหรือสร้างใหม่"
                               : "Class schedules require a student group. You can select an existing group or create a new one."}
@@ -877,23 +931,35 @@ export default function ModernScheduleModal({
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="flex items-center gap-2 text-lg font-semibold text-gray-800 mb-3">
+                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">3</span>
+                            </div>
                             {language === "th"
                               ? "กลุ่มนักเรียน"
                               : "Student Group"}
                           </label>
-                          <div className="flex gap-2">
-                            <SearchableSelect
+                          <div className="flex gap-3">
+                            <Combobox
                               value={
-                                typeof scheduleForm.group_id === "number"
-                                  ? scheduleForm.group_id
+                                scheduleForm.group_id &&
+                                scheduleForm.group_id > 0
+                                  ? scheduleForm.group_id.toString()
                                   : ""
                               }
-                              onValueChange={(value) =>
+                              onValueChange={(value) => {
+                                console.log(
+                                  "Group selection changed to:",
+                                  value
+                                );
+                                const groupId = value
+                                  ? parseInt(String(value)) || 0
+                                  : 0;
+                                console.log("Parsed group_id:", groupId);
                                 updateForm({
-                                  group_id: (value as number) || 0,
-                                })
-                              }
+                                  group_id: groupId,
+                                });
+                              }}
                               placeholder={
                                 language === "th"
                                   ? "เลือกกลุ่ม"
@@ -919,7 +985,7 @@ export default function ModernScheduleModal({
                             <button
                               type="button"
                               onClick={() => setShowCreateGroup(true)}
-                              className="px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 flex items-center gap-2"
+                              className="px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 focus:ring-2 focus:ring-indigo-500/20 flex items-center gap-2 font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
                             >
                               <PlusIcon className="h-4 w-4" />
                               {language === "th" ? "สร้างใหม่" : "Create New"}
@@ -927,17 +993,21 @@ export default function ModernScheduleModal({
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="flex items-center gap-2 text-base font-semibold text-gray-800 mb-3">
+                              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">4</span>
+                              </div>
                               {language === "th"
                                 ? "ครูประจำ (ไม่บังคับ)"
                                 : "Default Teacher (optional)"}
                             </label>
-                            <SearchableSelect
+                            <Combobox
                               value={
-                                typeof scheduleForm.teacher_id === "number"
-                                  ? scheduleForm.teacher_id
+                                scheduleForm.teacher_id &&
+                                scheduleForm.teacher_id > 0
+                                  ? scheduleForm.teacher_id.toString()
                                   : ""
                               }
                               onValueChange={(value) => {
@@ -945,7 +1015,9 @@ export default function ModernScheduleModal({
                                   "Teacher selection changed to:",
                                   value
                                 );
-                                const teacherId = (value as number) || 0;
+                                const teacherId = value
+                                  ? parseInt(String(value)) || 0
+                                  : 0;
                                 console.log("Parsed teacher_id:", teacherId);
                                 updateForm({
                                   teacher_id: teacherId,
@@ -975,22 +1047,33 @@ export default function ModernScheduleModal({
                           </div>
 
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="flex items-center gap-2 text-base font-semibold text-gray-800 mb-3">
+                              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">5</span>
+                              </div>
                               {language === "th"
                                 ? "ห้องเรียนประจำ (ไม่บังคับ)"
                                 : "Default Room (optional)"}
                             </label>
-                            <SearchableSelect
+                            <Combobox
                               value={
-                                typeof scheduleForm.room_id === "number"
-                                  ? scheduleForm.room_id
+                                scheduleForm.room_id && scheduleForm.room_id > 0
+                                  ? scheduleForm.room_id.toString()
                                   : ""
                               }
-                              onValueChange={(value) =>
+                              onValueChange={(value) => {
+                                console.log(
+                                  "Room selection changed to:",
+                                  value
+                                );
+                                const roomId = value
+                                  ? parseInt(String(value)) || 0
+                                  : 0;
+                                console.log("Parsed room_id:", roomId);
                                 updateForm({
-                                  room_id: (value as number) || 0,
-                                })
-                              }
+                                  room_id: roomId,
+                                });
+                              }}
                               placeholder={
                                 language === "th"
                                   ? "เลือกห้องเรียน"
@@ -1017,22 +1100,28 @@ export default function ModernScheduleModal({
                       </div>
                     ) : (
                       /* Event/Appointment/Meeting/Personal schedule fields - Participants */
-                      <div className="space-y-4">
-                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                          <h4 className="font-medium text-purple-900 mb-2">
+                      <div className="space-y-6">
+                        <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-5">
+                          <h4 className="font-semibold text-purple-900 mb-3 flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-full bg-purple-600 flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">!</span>
+                            </div>
                             {language === "th"
                               ? "ตั้งค่าการประชุม/อีเวนต์"
                               : "Meeting/Event Settings"}
                           </h4>
-                          <p className="text-sm text-purple-700">
+                          <p className="text-sm text-purple-800 leading-relaxed">
                             {language === "th"
                               ? "เลือกผู้เข้าร่วมการประชุมหรืออีเวนต์ ไม่จำเป็นต้องระบุกลุ่มหรือคอร์ส"
                               : "Select participants for this meeting or event. No course or group required."}
                           </p>
                         </div>
 
-                        <div className="bg-white p-4 rounded-lg border border-gray-200">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                          <label className="flex items-center gap-2 text-lg font-semibold text-gray-800 mb-3">
+                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">3</span>
+                            </div>
                             {language === "th"
                               ? "ผู้เข้าร่วม (ไม่บังคับ)"
                               : "Participants (optional)"}
@@ -1052,7 +1141,7 @@ export default function ModernScheduleModal({
                               }
                               className="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                             />
-                            <SearchableSelect
+                            <Combobox
                               value={participantRole}
                               onValueChange={(value) =>
                                 setParticipantRole(
@@ -1129,18 +1218,30 @@ export default function ModernScheduleModal({
                                 ? "ครูผู้ดำเนินการ (ไม่บังคับ)"
                                 : "Facilitator (optional)"}
                             </label>
-                            <SearchableSelect
+                            <Combobox
                               value={
-                                typeof scheduleForm.teacher_id === "number"
-                                  ? scheduleForm.teacher_id
+                                scheduleForm.teacher_id &&
+                                scheduleForm.teacher_id > 0
+                                  ? scheduleForm.teacher_id.toString()
                                   : ""
                               }
-                              onValueChange={(value) =>
+                              onValueChange={(value) => {
+                                console.log(
+                                  "Facilitator selection changed to:",
+                                  value
+                                );
+                                const teacherId = value
+                                  ? parseInt(String(value)) || 0
+                                  : 0;
+                                console.log(
+                                  "Parsed facilitator teacher_id:",
+                                  teacherId
+                                );
                                 updateForm({
-                                  teacher_id: (value as number) || 0,
-                                  default_teacher_id: (value as number) || 0,
-                                })
-                              }
+                                  teacher_id: teacherId,
+                                  default_teacher_id: teacherId,
+                                });
+                              }}
                               placeholder={
                                 language === "th"
                                   ? "เลือกครูผู้ดำเนินการ"
@@ -1169,17 +1270,25 @@ export default function ModernScheduleModal({
                                 ? "ห้องประชุม (ไม่บังคับ)"
                                 : "Meeting Room (optional)"}
                             </label>
-                            <SearchableSelect
+                            <Combobox
                               value={
-                                typeof scheduleForm.room_id === "number"
-                                  ? scheduleForm.room_id
+                                scheduleForm.room_id && scheduleForm.room_id > 0
+                                  ? scheduleForm.room_id.toString()
                                   : ""
                               }
-                              onValueChange={(value) =>
+                              onValueChange={(value) => {
+                                console.log(
+                                  "Meeting room selection changed to:",
+                                  value
+                                );
+                                const roomId = value
+                                  ? parseInt(String(value)) || 0
+                                  : 0;
+                                console.log("Parsed meeting room_id:", roomId);
                                 updateForm({
-                                  room_id: (value as number) || 0,
-                                })
-                              }
+                                  room_id: roomId,
+                                });
+                              }}
                               placeholder={
                                 language === "th"
                                   ? "เลือกห้องประชุม"
@@ -1997,7 +2106,7 @@ export default function ModernScheduleModal({
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {language === "th" ? "คอร์ส" : "Course"}
                   </label>
-                  <SearchableSelect
+                  <Combobox
                     value={groupForm.course_id.toString()}
                     onValueChange={(value) =>
                       setGroupForm((prev) => ({
