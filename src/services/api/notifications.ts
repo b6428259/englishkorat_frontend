@@ -1,8 +1,8 @@
 import api from './base';
 import { API_ENDPOINTS } from './endpoints';
-import type { 
-  NotificationApiResponse, 
-  NotificationFilters, 
+import type {
+  NotificationApiResponse,
+  NotificationFilters,
   SendNotificationRequest,
   Notification
 } from '../../types/notification';
@@ -14,15 +14,15 @@ export const notificationApi = {
    */
   getNotifications: async (filters: NotificationFilters = {}): Promise<NotificationApiResponse> => {
     const params = new URLSearchParams();
-    
+
     if (filters.page) params.append('page', filters.page.toString());
     if (filters.limit) params.append('limit', filters.limit.toString());
     if (filters.type) params.append('type', filters.type);
     if (filters.read !== undefined) params.append('read', filters.read.toString());
-    
+
     const queryString = params.toString();
     const url = queryString ? `${API_ENDPOINTS.NOTIFICATIONS.LIST}?${queryString}` : API_ENDPOINTS.NOTIFICATIONS.LIST;
-    
+
     const response = await api.get<NotificationApiResponse>(url);
     return response.data;
   },
@@ -41,7 +41,7 @@ export const notificationApi = {
    * Backend: POST /api/notifications/:id/mark-read
    */
   markAsRead: async (notificationId: number): Promise<{ success: boolean }> => {
-    const response = await api.post<{ success: boolean }>(
+    const response = await api.patch<{ success: boolean }>(
       API_ENDPOINTS.NOTIFICATIONS.MARK_READ(notificationId.toString())
     );
     return response.data;
@@ -60,10 +60,10 @@ export const notificationApi = {
 
   /**
    * Get unread notification count
-   * Backend: GET /api/notifications/unread-count
+   * Backend: GET /notifications/unread-count
    */
   getUnreadCount: async (): Promise<{ unread_count: number }> => {
-    const response = await api.get<{ unread_count: number }>('/api/notifications/unread-count');
+    const response = await api.get<{ unread_count: number }>('/notifications/unread-count');
     return response.data;
   },
 

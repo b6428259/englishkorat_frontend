@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import ClientProvider from "../components/common/ClientProvider";
+import { Analytics } from '@vercel/analytics/next';
+
 
 export const metadata: Metadata = {
   title: "EnglishKorat",
@@ -18,6 +20,7 @@ export default function RootLayout({
         <ClientProvider>
           {children}
         </ClientProvider>
+        <Analytics />
       </body>
     </html>
   );

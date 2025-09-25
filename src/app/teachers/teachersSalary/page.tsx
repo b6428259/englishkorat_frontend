@@ -1,33 +1,44 @@
 "use client";
 
-import React, { useState } from "react";
+import Button from "@/components/common/Button";
 import SidebarLayout from "@/components/common/SidebarLayout";
 import { useLanguage } from "@/contexts/LanguageContext";
-import Button from "@/components/common/Button";
 import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
+import { useState } from "react";
 
-const teachers = [
+type PaymentType = "weekly" | "monthly";
+
+type Teacher =
+  | {
+      id: number;
+      name: string;
+      type: "weekly";
+      rate: number;
+      socialSecurity: boolean;
+    }
+  | {
+      id: number;
+      name: string;
+      type: "monthly";
+      salary: number;
+      socialSecurity: boolean;
+    };
+
+const teachers: Teacher[] = [
   { id: 1, name: "Alec", type: "weekly", rate: 500, socialSecurity: true },
   { id: 2, name: "Angie", type: "weekly", rate: 500, socialSecurity: false },
   { id: 3, name: "Skye", type: "monthly", salary: 30000, socialSecurity: true },
 ];
 
-const paymentTypeColors = {
-  weekly: "bg-blue-100 text-blue-800",
-  monthly: "bg-purple-100 text-purple-800",
-};
-
-const statusColors = {
-  Paid: "bg-green-100 text-green-800",
-  Unpaid: "bg-yellow-100 text-yellow-800",
-  Overdue: "bg-red-100 text-red-800",
-  Partially: "bg-blue-100 text-blue-800",
+const paymentTypeColors: Record<PaymentType, string> = {
+  weekly: "bg-blue-200 text-blue-800",
+  monthly: "bg-yellow-200 text-yellow-700",
 };
 
 export default function TeachersSalaryPage() {
   const { t } = useLanguage();
   const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState("all");
+  const [filterType, setFilterType] = useState<"all" | PaymentType>("all");
 
   // Filter data
   const filteredTeachers = teachers.filter((teacher) => {
@@ -54,7 +65,9 @@ export default function TeachersSalaryPage() {
           />
           <select
             value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
+            onChange={(e) =>
+              setFilterType(e.target.value as "all" | PaymentType)
+            }
             className="border border-gray-300 rounded-md px-3 py-2 w-full sm:w-40"
           >
             <option value="all">{t.all}</option>
