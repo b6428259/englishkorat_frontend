@@ -9,7 +9,7 @@ import { Translations } from '@/locales/translations';
 import { HiOutlineDocumentReport } from "react-icons/hi";
 import { HiOutlineSquares2X2, HiOutlineChartBar, HiOutlineDocumentText, HiOutlineCog, HiOutlineIdentification, HiOutlineUser, HiOutlineKey, HiOutlineBell } from 'react-icons/hi2';
 import { GrSchedules } from "react-icons/gr";
-import { FaPaperPlane } from "react-icons/fa";
+import { FaPaperPlane , FaUserSlash } from "react-icons/fa";
 import { PiCashRegister } from "react-icons/pi";
 
 // Icon props for easy future customization
@@ -79,6 +79,7 @@ export const getSidebarItems = (t: Translations): SidebarItem[] => [
       { id: 'student-list', label: t.studentList, href: '/students/list', icon: <HiOutlineDocumentText {...iconProps} /> },
       { id: 'student-groups', label: t.studyGroups, href: '/students/groups', icon: <HiOutlineUser {...iconProps} /> },
       { id: 'student-bills', label: t.studentBill, href: '/students/bills', icon: <PiCashRegister {...iconProps} /> },
+      { id: 'student-absence', label: t.studentAbsence, href: '/students/absence', icon: <FaUserSlash  {...iconProps} /> },
     ],
   },
   {

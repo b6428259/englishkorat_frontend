@@ -446,6 +446,20 @@ export interface Translations {
   amount: string;
   actions: string;
 
+  //student Absence
+  studentAbsence: string;
+  absenceRequestForm: string;
+  reason: string;
+  dateOfAbsence: string;
+  selectDate: string;
+  timeOfClass: string;
+  selectTime: string;
+  sick: string;
+  personal: string;
+  travel: string;
+  emergency: string;
+  other: string;
+
   //Teachers
   teachingReport: string;
 
@@ -1018,6 +1032,20 @@ export const translations: Record<Language, Translations> = {
     currentEducation: 'ระดับการศึกษาปัจจุบัน',
     recentCEFR: 'ระดับ CEFR ล่าสุด',
 
+    //student absence
+    studentAbsence: 'แจ้งลาเรียน',
+    absenceRequestForm: 'ฟอร์มแจ้งลาเรียน',
+    reason: 'เหตุผล',
+    dateOfAbsence: 'วันที่ลา',
+    selectDate: 'เลือกวันที่',
+    timeOfClass: 'เวลาของคลาส',
+    selectTime: 'เลือกเวลา',
+    sick: 'ลาป่วย',
+    personal: 'ธุระส่วนตัว',
+    travel: 'เดินทาง',
+    emergency: 'เหตุฉุกเฉิน',
+    other: 'อื่นๆ',
+
     //Teachers
     teachingReport: 'รายงานการสอน',
 
@@ -1588,6 +1616,20 @@ export const translations: Record<Language, Translations> = {
     learningNeeds: 'Learning Needs',
     currentEducation: 'Current Education Level',
     recentCEFR: 'Recent CEFR Level',
+
+    //student absence
+    studentAbsence: 'Absence Request',
+    absenceRequestForm: 'Absence Request Form',
+    reason: 'Reason',
+    dateOfAbsence: 'Date of Absence',
+    selectDate: 'Select Date',
+    timeOfClass: 'Time of Class',
+    selectTime: 'Select Time',
+    sick: 'Sick',
+    personal: 'Personal',
+    travel: 'Travel',
+    emergency: 'Emergency',
+    other: 'Other',
 
     //Teachers
     teachingReport: 'Teaching Report',

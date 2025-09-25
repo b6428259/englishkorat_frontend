@@ -7,14 +7,21 @@ import Button from "@/components/common/Button";
 import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
 
 const teachers = [
-    { id: 1, name: "Alec", type: "weekly", rate: 500, socialSecurity: true },
-    { id: 2, name: "Angie", type: "weekly", rate: 500, socialSecurity: false },
-    { id: 3, name: "Skye", type: "monthly", salary: 30000, socialSecurity: true },
-  ];
+  { id: 1, name: "Alec", type: "weekly", rate: 500, socialSecurity: true },
+  { id: 2, name: "Angie", type: "weekly", rate: 500, socialSecurity: false },
+  { id: 3, name: "Skye", type: "monthly", salary: 30000, socialSecurity: true },
+];
 
 const paymentTypeColors = {
-  weekly: "bg-blue-200 text-blue-800",
-  monthly: "bg-yellow-200 text-yellow-700",
+  weekly: "bg-blue-100 text-blue-800",
+  monthly: "bg-purple-100 text-purple-800",
+};
+
+const statusColors = {
+  Paid: "bg-green-100 text-green-800",
+  Unpaid: "bg-yellow-100 text-yellow-800",
+  Overdue: "bg-red-100 text-red-800",
+  Partially: "bg-blue-100 text-blue-800",
 };
 
 export default function TeachersSalaryPage() {
@@ -56,7 +63,7 @@ export default function TeachersSalaryPage() {
           </select>
         </div>
 
-            {/* 📊 Table */}
+        {/* 📊 Table */}
         <table className="min-w-full border border-gray-200 rounded-lg">
           <thead className="bg-gray-100 text-sm font-normal">
             <tr>
@@ -96,15 +103,18 @@ export default function TeachersSalaryPage() {
                 </td>
                 <td className="px-2 py-1 w-auto whitespace-nowrap">
                   <div className="flex justify-center items-center gap-2">
-                    <Button size="xs" variant="common">View</Button>
-                    <Button size="xs" variant="common">Bill</Button>
+                    <Button size="xs" variant="common">
+                      View
+                    </Button>
+                    <Button size="xs" variant="common">
+                      Bill
+                    </Button>
                   </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-
       </div>
     </SidebarLayout>
   );

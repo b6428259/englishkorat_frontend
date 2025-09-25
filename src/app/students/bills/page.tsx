@@ -29,42 +29,25 @@ const billStatus = [
   { label: "Partially", key: "Partially Paid" },
 ];
 
-const invoices = [
-  {
-    status: "Paid",
-    date: "15/09/2025",
-    number: "2580",
-    customer: "นัท/A2/สาขา1",
-    total: "฿12,000.00",
-    due: "฿0.00",
-  },
-  {
-    status: "Unpaid",
-    date: "14/09/2025",
-    number: "2579",
-    customer: "พลอย/B1/สาขา2",
-    total: "฿18,500.00",
-    due: "฿18,500.00",
-  },
-  {
-    status: "Overdue",
-    date: "10/09/2025",
-    number: "2578",
-    customer: "ต้น/A1/สาขา3",
-    total: "฿20,000.00",
-    due: "฿20,000.00",
-  },
-  {
-    status: "Partially",
-    date: "08/09/2025",
-    number: "2577",
-    customer: "ฝน/C1/สาขา1",
-    total: "฿15,000.00",
-    due: "฿5,000.00",
-  },
+const invoices: Invoice[] = [
+  { status: "Paid", date: "15/09/2025", number: "2580", customer: "นัท/A2/สาขา1", total: "฿12,000.00", due: "฿0.00" },
+  { status: "Unpaid", date: "14/09/2025", number: "2579", customer: "พลอย/B1/สาขา2", total: "฿18,500.00", due: "฿18,500.00" },
+  { status: "Overdue", date: "10/09/2025", number: "2578", customer: "ต้น/A1/สาขา3", total: "฿20,000.00", due: "฿20,000.00" },
+  { status: "Partially", date: "08/09/2025", number: "2577", customer: "ฝน/C1/สาขา1", total: "฿15,000.00", due: "฿5,000.00" },
 ];
 
-const statusColors = {
+interface Invoice {
+  status: InvoiceStatus;
+  date: string;
+  number: string;
+  customer: string;
+  total: string;
+  due: string;
+}
+
+type InvoiceStatus = "Paid" | "Unpaid" | "Overdue" | "Partially";
+
+const statusColors: Record<InvoiceStatus, string> = {
   Paid: "bg-green-100 text-green-800",
   Unpaid: "bg-gray-200 text-gray-700",
   Overdue: "bg-red-100 text-red-800",
@@ -151,7 +134,7 @@ export default function StudentsBillsPage() {
                   <td className="px-4 py-2">
                      <span
                         className={`inline-flex items-center justify-center px-2 py-1 text-xs font-medium rounded-sm min-w-[80px] text-center ${
-                          statusColors[inv.status] || "bg-gray-100 text-gray-500"
+                          statusColors[inv.status]
                         }`}
                       >
                         {inv.status}
