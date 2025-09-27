@@ -16,7 +16,7 @@ export interface Translations {
   studentManagement: string;
   studentNew: string;
   studentList: string;
-  
+
   // Groups Management
   groupManagement: string;
   groups: string;
@@ -107,7 +107,7 @@ export interface Translations {
   notifications: string;
   newStudentDesc: string;
   systemSettings: string;
-  
+
   // Navigation
   dashboard: string;
   profile: string;
@@ -120,7 +120,7 @@ export interface Translations {
   contact: string;
   privacy: string;
   terms: string;
-  
+
 
   // Authentication
   login: string;
@@ -459,6 +459,9 @@ export interface Translations {
   travel: string;
   emergency: string;
   other: string;
+  absenceHistory: string;
+  class: string;
+  noAbsenceRecord: string;
 
   //Teachers
   teachingReport: string;
@@ -475,7 +478,7 @@ export interface Translations {
   pleaseEnterName: string;
   pleaseEnterLastName: string;
   pleaseEnterAddress: string;
-  
+
   // CTA Section - Additional
   readyToTransform: string;
   withEnglish: string;
@@ -488,7 +491,7 @@ export interface Translations {
   consultFree: string;
   monthsResults: string;
   reviewScore: string;
-  
+
   // Footer
   footerDescription: string;
   mainMenu: string;
@@ -498,7 +501,7 @@ export interface Translations {
   weekendHours: string;
   allRightsReserved: string;
   developedBy: string;
-  
+
   // Courses Page
   coursesPageTitle: string;
   coursesPageSubtitle: string;
@@ -511,11 +514,11 @@ export interface Translations {
   readyToStartLearning: string;
   readyToStartLearningDesc: string;
   contactForInfo: string;
-  
+
   // About Page
   aboutPageTitle: string;
   aboutPageSubtitle: string;
-  contactUs: string;     
+  contactUs: string;
   missionStatement: string;
   ourStory: string;
   storyParagraph1: string;
@@ -542,7 +545,7 @@ export interface Translations {
   readyToJoin: string;
   readyToJoinDescription: string;
   startToday: string;
-  
+
   // Contact Page
   contactPageTitle: string;
   contactPageSubtitle: string;
@@ -575,11 +578,11 @@ export interface Translations {
   faqDesc: string;
   readyToTalk: string;
   readyToTalkDesc: string;
-  
+
   // Privacy Policy Page
   privacyPolicyTitle: string;
   privacyPolicyDescription: string;
-  
+
   // Terms of Service Page
   termsOfServiceTitle: string;
   termsOfServiceDescription: string;
@@ -616,7 +619,7 @@ export const translations: Record<Language, Translations> = {
     studentManagement: 'การจัดการนักเรียน',
     studentNew: 'นักเรียนใหม่',
     studentList: 'รายชื่อนักเรียน',
-    
+
     // Groups Management
     groupManagement: 'การจัดการกลุ่มเรียน',
     groups: 'กลุ่มเรียน',
@@ -1045,6 +1048,9 @@ export const translations: Record<Language, Translations> = {
     travel: 'เดินทาง',
     emergency: 'เหตุฉุกเฉิน',
     other: 'อื่นๆ',
+    absenceHistory: 'ประวัติการลา',
+    class: 'คลาส',
+    noAbsenceRecord: 'ยังไม่มีประวัติการลา',
 
     //Teachers
     teachingReport: 'รายงานการสอน',
@@ -1061,7 +1067,7 @@ export const translations: Record<Language, Translations> = {
     pleaseEnterName: 'กรุณากรอกชื่อ',
     pleaseEnterLastName: 'กรุณากรอกนามสกุล',
     pleaseEnterAddress: 'กรุณากรอกที่อยู่',
-    
+
     // CTA Section - Additional
     readyToTransform: 'พร้อมเปลี่ยนชีวิต',
     withEnglish: 'ด้วยภาษาอังกฤษ',
@@ -1074,7 +1080,7 @@ export const translations: Record<Language, Translations> = {
     consultFree: 'ปรึกษาฟรี',
     monthsResults: 'เดือนเห็นผล',
     reviewScore: 'คะแนนรีวิว',
-    
+
     // Footer
     footerDescription: 'เราทำให้คุณพูดได้ - สถาบันสอนภาษาอังกฤษที่ดีที่สุดในโคราช พร้อมเปลี่ยนชีวิตคุณใน 3 เดือน',
     mainMenu: 'เมนูหลัก',
@@ -1084,7 +1090,7 @@ export const translations: Record<Language, Translations> = {
     weekendHours: 'เสาร์-อาทิต์ 9:00-18:00',
     allRightsReserved: 'สงวนลิขสิทธิ์.',
     developedBy: 'พัฒนาโดย English Korat Team',
-    
+
     // Courses Page
     coursesPageTitle: 'คอร์สเรียนภาษาอังกฤษ',
     coursesPageSubtitle: 'เลือกคอร์สที่เหมาะกับคุณ เรียนกับเราแล้วพูดได้จริงใน 3 เดือน',
@@ -1097,7 +1103,7 @@ export const translations: Record<Language, Translations> = {
     readyToStartLearning: 'พร้อมเริ่มเรียนแล้วหรือยัง?',
     readyToStartLearningDesc: 'เข้าร่วมกับเราวันนี้ และเริ่มต้นการเปลี่ยนแปลงชีวิตของคุณ',
     contactForInfo: 'ติดต่อสอบถาม',
-    
+
     // About Page
     aboutPageTitle: 'เกี่ยวกับเรา',
     aboutPageSubtitle: 'English Korat - สถาบันสอนภาษาอังกฤษที่ทำให้คุณพูดได้จริง',
@@ -1128,7 +1134,7 @@ export const translations: Record<Language, Translations> = {
     readyToJoin: 'พร้อมเข้าร่วมกับเรา?',
     readyToJoinDescription: 'เริ่มต้นเปลี่ยนแปลงชีวิตของคุณวันนี้ เรียนกับเราและพูดภาษาอังกฤษได้ใน 3 เดือน',
     startToday: 'เริ่มต้นวันนี้',
-    
+
     // Contact Page
     contactPageTitle: 'ติดต่อเรา',
     contactPageSubtitle: 'พร้อมให้คำปรึกษาและตอบทุกคำถามของคุณ ติดต่อเราได้ทุกช่องทาง',
@@ -1161,11 +1167,11 @@ export const translations: Record<Language, Translations> = {
     faqDesc: 'คำตอบสำหรับคำถามที่นักเรียนถามบ่อย ๆ',
     readyToTalk: 'พร้อมพูดคุยกับเรา?',
     readyToTalkDesc: 'ติดต่อเราเพื่อเริ่มต้นเปลี่ยนแปลงชีวิตของคุณไปกับภาষาอังกฤษ',
-    
+
     // Privacy Policy Page
     privacyPolicyTitle: 'นโยบายความเป็นส่วนตัว',
     privacyPolicyDescription: 'เราให้ความสำคัญกับความเป็นส่วนตัวและการปกป้องข้อมูลส่วนบุคคลของคุณ',
-    
+
     // Terms of Service Page
     termsOfServiceTitle: 'ข้อกำหนดการใช้งาน',
     termsOfServiceDescription: 'ข้อกำหนดและเงื่อนไขการใช้บริการของ English Korat',
@@ -1203,7 +1209,7 @@ export const translations: Record<Language, Translations> = {
     studentManagement: 'Student Management',
     settings: 'Settings',
     studentList: 'Student List',
-    
+
     // Groups Management
     groupManagement: 'Group Management',
     groups: 'Groups',
@@ -1560,7 +1566,7 @@ export const translations: Record<Language, Translations> = {
     errorCreatingSchedule: 'Error creating schedule',
     errorUpdatingSchedule: 'Error updating schedule',
     errorCreatingSession: 'Error creating session',
-    
+
     // New session creation functionality
     createSessionMode: 'Session Creation Mode',
     singleSession: 'Single Session',
@@ -1630,6 +1636,9 @@ export const translations: Record<Language, Translations> = {
     travel: 'Travel',
     emergency: 'Emergency',
     other: 'Other',
+    absenceHistory: 'Absence History',     // ✅ เพิ่ม
+    class: 'Class',                         // ✅ เพิ่ม
+    noAbsenceRecord: 'No absence records',
 
     //Teachers
     teachingReport: 'Teaching Report',
@@ -1646,7 +1655,7 @@ export const translations: Record<Language, Translations> = {
     pleaseEnterName: 'Please enter name',
     pleaseEnterLastName: 'Please enter last name',
     pleaseEnterAddress: 'Please enter address',
-    
+
     // CTA Section - Additional
     readyToTransform: 'Ready to Transform Your Life',
     withEnglish: 'with English',
@@ -1659,7 +1668,7 @@ export const translations: Record<Language, Translations> = {
     consultFree: 'Free Consultation',
     monthsResults: 'Months to Results',
     reviewScore: 'Review Score',
-    
+
     // Footer
     footerDescription: 'We make you speak - The best English institute in Korat, ready to transform your life in 3 months',
     mainMenu: 'Main Menu',
@@ -1669,7 +1678,7 @@ export const translations: Record<Language, Translations> = {
     weekendHours: 'Sat-Sun 9:00-18:00',
     allRightsReserved: 'All rights reserved.',
     developedBy: 'Developed by English Korat Team',
-    
+
     // Courses Page
     coursesPageTitle: 'English Courses',
     coursesPageSubtitle: 'Choose the course that\'s right for you. Learn with us and speak fluently in 3 months',
@@ -1682,7 +1691,7 @@ export const translations: Record<Language, Translations> = {
     readyToStartLearning: 'Ready to Start Learning?',
     readyToStartLearningDesc: 'Join us today and start transforming your life',
     contactForInfo: 'Contact for Info',
-    
+
     // About Page
     aboutPageTitle: 'About Us',
     aboutPageSubtitle: 'English Korat - The institute that makes you really speak English',
@@ -1713,7 +1722,7 @@ export const translations: Record<Language, Translations> = {
     readyToJoin: 'Ready to Join Us?',
     readyToJoinDescription: 'Start transforming your life today. Learn with us and speak English in 3 months',
     startToday: 'Start Today',
-    
+
     // Contact Page
     contactPageTitle: 'Contact Us',
     contactPageSubtitle: 'Ready to provide consultation and answer all your questions. Contact us through any channel',
@@ -1746,11 +1755,11 @@ export const translations: Record<Language, Translations> = {
     faqDesc: 'Answers to questions students ask frequently',
     readyToTalk: 'Ready to Talk to Us?',
     readyToTalkDesc: 'Contact us to start transforming your life with English',
-    
+
     // Privacy Policy Page
     privacyPolicyTitle: 'Privacy Policy',
     privacyPolicyDescription: 'We value your privacy and protecting your personal information',
-    
+
     // Terms of Service Page
     termsOfServiceTitle: 'Terms of Service',
     termsOfServiceDescription: 'Terms and conditions for using English Korat services',
