@@ -34,7 +34,15 @@ interface ComboboxProps {
   maxDisplayLength?: number;
 }
 
-export function Combobox({
+function normalizePrimitive(
+  input: string | number | undefined
+): string | undefined {
+  if (input === undefined || input === null) return undefined;
+  const normalized = String(input);
+  return normalized.length === 0 ? undefined : normalized;
+}
+
+function ComboboxComponent({
   options = [],
   value,
   onValueChange,
@@ -49,37 +57,30 @@ export function Combobox({
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
   const [searchValue, setSearchValue] = React.useState("");
+  const optionsListRef = React.useRef<HTMLDivElement>(null);
 
-  // Debug logging
-  console.log("Combobox render:", {
-    optionsLength: options?.length || 0,
-    options: options,
-    value: value,
-    placeholder: placeholder,
-  });
-
-  const selectedOption = React.useMemo(
-    () => options.find((option) => option.value === value),
-    [options, value]
+  const normalizedValue = React.useMemo(
+    () => normalizePrimitive(value),
+    [value]
   );
 
+  const selectedOption = React.useMemo(() => {
+    if (normalizedValue === undefined) return undefined;
+    return options.find(
+      (option) => normalizePrimitive(option.value) === normalizedValue
+    );
+  }, [options, normalizedValue]);
+
   const filteredOptions = React.useMemo(() => {
-    const result = !searchValue
-      ? options
-      : options.filter(
-          (option) =>
-            option.label.toLowerCase().includes(searchValue.toLowerCase()) ||
-            option.description
-              ?.toLowerCase()
-              .includes(searchValue.toLowerCase())
-        );
-    console.log("Combobox filteredOptions:", {
-      searchValue,
-      filteredCount: result.length,
-      totalOptions: options.length,
-      firstOption: result[0],
+    if (!searchValue) return options;
+    const query = searchValue.toLowerCase();
+    return options.filter((option) => {
+      const labelMatch = option.label.toLowerCase().includes(query);
+      const descriptionMatch = option.description
+        ?.toLowerCase()
+        .includes(query);
+      return labelMatch || descriptionMatch;
     });
-    return result;
   }, [options, searchValue]);
 
   const displayText = selectedOption?.label || placeholder;
@@ -98,6 +99,25 @@ export function Combobox({
     e.stopPropagation();
     onValueChange("");
   };
+
+  const handleOptionsWheel = React.useCallback(
+    (event: React.WheelEvent<HTMLDivElement>) => {
+      const container = optionsListRef.current;
+      if (!container) return;
+
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const isAtTop = scrollTop === 0;
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight;
+      const isScrollingUp = event.deltaY < 0;
+
+      if ((isScrollingUp && isAtTop) || (!isScrollingUp && isAtBottom)) {
+        return;
+      }
+
+      event.stopPropagation();
+    },
+    []
+  );
 
   // Reset search when closing
   React.useEffect(() => {
@@ -133,14 +153,14 @@ export function Combobox({
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            "w-full justify-between text-left font-normal",
+            "w-full justify-between text-left font-normal transition-colors duration-200",
             !selectedOption && "text-muted-foreground",
             className
           )}
         >
           <span className="truncate">
             {displayText.length > maxDisplayLength
-              ? displayText.substring(0, maxDisplayLength) + "..."
+              ? `${displayText.substring(0, maxDisplayLength)}...`
               : displayText}
           </span>
           <div className="flex items-center gap-1">
@@ -157,14 +177,18 @@ export function Combobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-full p-0 z-[10000] max-h-[300px] overflow-hidden"
+        className={cn(
+          "z-[10000] w-full max-h-[300px] overflow-hidden rounded-md border bg-popover p-0 text-popover-foreground shadow-lg outline-none",
+          "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-top-2",
+          "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=closed]:slide-out-to-top-2"
+        )}
         style={{
           minWidth: "var(--radix-popover-trigger-width)",
           zIndex: 10000,
         }}
         sideOffset={4}
       >
-        <div className="overflow-hidden rounded-md border bg-white">
+        <div className="overflow-hidden rounded-md bg-white">
           {/* Search Input */}
           <div className="border-b px-3 py-2">
             <input
@@ -172,14 +196,18 @@ export function Combobox({
               placeholder={searchPlaceholder}
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
-              className="w-full h-7 bg-transparent border-none outline-none text-sm placeholder:text-muted-foreground"
+              className="text-gray-700 w-full h-7 bg-transparent border-none outline-none text-sm placeholder:text-muted-foreground"
             />
           </div>
 
           {/* Options List */}
-          <div className="max-h-[200px] overflow-y-auto">
+          <div
+            ref={optionsListRef}
+            className="max-h-[200px] overflow-y-auto scroll-smooth"
+            onWheel={handleOptionsWheel}
+          >
             {filteredOptions.length === 0 ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
+              <div className="py-6 text-center text-sm text-muted-foreground text-gray-700">
                 {emptyText}
               </div>
             ) : (
@@ -187,16 +215,13 @@ export function Combobox({
                 {filteredOptions.map((option) => (
                   <div
                     key={option.value}
-                    onClick={() => {
-                      console.log("Option clicked:", option.value);
-                      handleSelect(option.value);
-                    }}
+                    onClick={() => handleSelect(option.value)}
                     className={cn(
-                      "flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-accent hover:text-accent-foreground",
+                      "text-gray-700 flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-accent hover:text-accent-foreground",
                       option.disabled && "opacity-50 cursor-not-allowed"
                     )}
                   >
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 text-gray-700">
                       <div className="truncate font-medium text-sm">
                         {option.label}
                       </div>
@@ -222,3 +247,5 @@ export function Combobox({
     </Popover>
   );
 }
+
+export const Combobox = React.memo(ComboboxComponent);

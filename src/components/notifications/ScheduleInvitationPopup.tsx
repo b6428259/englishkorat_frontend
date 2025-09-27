@@ -111,7 +111,19 @@ export default function ScheduleInvitationPopup({
   const handleParticipationResponse = async (
     status: "confirmed" | "declined" | "tentative"
   ) => {
-    if (!scheduleId) return;
+    if (!scheduleId) {
+      toast.error(
+        language === "th"
+          ? "ไม่พบข้อมูลตาราง จึงไม่สามารถส่งคำตอบได้"
+          : "Missing schedule information. Your response can't be sent.",
+        { position: "top-center" }
+      );
+
+      // Still notify parent so the blocking popup can be dismissed
+      onConfirm(status);
+      onClose();
+      return;
+    }
 
     setActionLoading(true);
     try {
@@ -338,7 +350,7 @@ export default function ScheduleInvitationPopup({
           <Button
             variant="outline"
             onClick={() => handleParticipationResponse("declined")}
-            disabled={actionLoading || loading || !scheduleDetails}
+            disabled={actionLoading || loading}
             className="w-full sm:w-auto border-red-300 text-red-600 hover:bg-red-50"
           >
             {actionLoading ? (
@@ -353,7 +365,7 @@ export default function ScheduleInvitationPopup({
           <Button
             variant="outline"
             onClick={() => handleParticipationResponse("tentative")}
-            disabled={actionLoading || loading || !scheduleDetails}
+            disabled={actionLoading || loading}
             className="w-full sm:w-auto border-yellow-300 text-yellow-600 hover:bg-yellow-50"
           >
             {actionLoading ? (
@@ -367,7 +379,7 @@ export default function ScheduleInvitationPopup({
 
           <Button
             onClick={() => handleParticipationResponse("confirmed")}
-            disabled={actionLoading || loading || !scheduleDetails}
+            disabled={actionLoading || loading}
             className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
           >
             {actionLoading ? (

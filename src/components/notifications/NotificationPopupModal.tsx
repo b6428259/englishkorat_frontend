@@ -94,6 +94,30 @@ export default function NotificationPopupModal({
     : false;
   const hasResourceLink = currentNotification.data?.link?.href;
 
+  const resolveSessionId = () => {
+    const data = currentNotification.data;
+    if (!data) return undefined;
+    if (typeof data.session_id === "number") return data.session_id;
+    if (typeof data.resource?.id === "number") {
+      if (!data.resource.type || data.resource.type === "session") {
+        return data.resource.id;
+      }
+    }
+    return undefined;
+  };
+
+  const resolveScheduleId = () => {
+    const data = currentNotification.data;
+    if (!data) return undefined;
+    if (typeof data.schedule_id === "number") return data.schedule_id;
+    if (typeof data.resource?.id === "number") {
+      if (!data.resource.type || data.resource.type === "schedule") {
+        return data.resource.id;
+      }
+    }
+    return undefined;
+  };
+
   // Fetch session details if resource link is available
   const fetchSessionDetails = async () => {
     if (!hasResourceLink || !currentNotification.data?.link) return;
@@ -123,14 +147,58 @@ export default function NotificationPopupModal({
   // Handle session confirmation (updated for new patterns)
   const handleSessionConfirm = async () => {
     const action = currentNotification.data?.action;
+    if (action === "confirm-participation") {
+      const scheduleId = resolveScheduleId();
+      if (!scheduleId) {
+        toast.error(
+          language === "th"
+            ? "ไม่พบข้อมูลตาราง จึงไม่สามารถยืนยันได้"
+            : "Missing schedule information, confirmation cannot be sent.",
+          { icon: "❌", position: "top-center" }
+        );
+        return;
+      }
 
-    // For session actions, use session_id directly or fall back to resource.id
-    const sessionId =
-      currentNotification.data?.session_id ||
-      currentNotification.data?.resource?.id;
+      setIsLoading(true);
+      try {
+        await scheduleService.updateParticipationStatus(
+          scheduleId.toString(),
+          "confirmed"
+        );
+        toast.success(
+          language === "th"
+            ? "ยืนยันการเข้าร่วมสำเร็จ"
+            : "Participation confirmed successfully",
+          {
+            icon: "✅",
+            position: "top-center",
+          }
+        );
+        await onAccept();
+      } catch (error) {
+        console.error("Failed to confirm participation:", error);
+        toast.error(
+          language === "th" ? "ไม่สามารถยืนยันได้" : "Failed to confirm",
+          {
+            icon: "❌",
+            position: "top-center",
+          }
+        );
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    const sessionId = resolveSessionId();
 
     if (!sessionId) {
-      console.error("No session ID found for confirmation");
+      toast.error(
+        language === "th"
+          ? "ไม่พบข้อมูลเซสชัน จึงไม่สามารถยืนยันได้"
+          : "Missing session information, confirmation cannot be sent.",
+        { icon: "❌", position: "top-center" }
+      );
       return;
     }
 
@@ -149,26 +217,6 @@ export default function NotificationPopupModal({
               position: "top-center",
             }
           );
-          break;
-
-        case "confirm-participation":
-          // Use scheduleId for participation confirmation
-          const scheduleId = currentNotification.data?.schedule_id;
-          if (scheduleId) {
-            await scheduleService.updateParticipationStatus(
-              scheduleId.toString(),
-              "confirmed"
-            );
-            toast.success(
-              language === "th"
-                ? "ยืนยันการเข้าร่วมสำเร็จ"
-                : "Participation confirmed successfully",
-              {
-                icon: "✅",
-                position: "top-center",
-              }
-            );
-          }
           break;
 
         default:
@@ -204,13 +252,60 @@ export default function NotificationPopupModal({
   const handleSessionDecline = async () => {
     const action = currentNotification.data?.action;
 
-    // For session actions, use session_id directly or fall back to resource.id
-    const sessionId =
-      currentNotification.data?.session_id ||
-      currentNotification.data?.resource?.id;
+    if (action === "confirm-participation") {
+      const scheduleId = resolveScheduleId();
+      if (!scheduleId) {
+        toast.error(
+          language === "th"
+            ? "ไม่พบข้อมูลตาราง จึงไม่สามารถปฏิเสธได้"
+            : "Missing schedule information, decline cannot be sent.",
+          { icon: "❌", position: "top-center" }
+        );
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        await scheduleService.updateParticipationStatus(
+          scheduleId.toString(),
+          "declined"
+        );
+        toast.success(
+          language === "th"
+            ? "ปฏิเสธการเข้าร่วมสำเร็จ"
+            : "Participation declined successfully",
+          {
+            icon: "❌",
+            position: "top-center",
+          }
+        );
+
+        // Call the original decline handler
+        await onDecline();
+      } catch (error) {
+        console.error("Failed to decline participation:", error);
+        toast.error(
+          language === "th" ? "ไม่สามารถปฏิเสธได้" : "Failed to decline",
+          {
+            icon: "❌",
+            position: "top-center",
+          }
+        );
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    const sessionId = resolveSessionId();
 
     if (!sessionId) {
-      console.error("No session ID found for decline");
+      toast.error(
+        language === "th"
+          ? "ไม่พบข้อมูลเซสชัน จึงไม่สามารถปฏิเสธได้"
+          : "Missing session information, decline cannot be sent.",
+        { icon: "❌", position: "top-center" }
+      );
       return;
     }
 
@@ -229,26 +324,6 @@ export default function NotificationPopupModal({
               position: "top-center",
             }
           );
-          break;
-
-        case "confirm-participation":
-          // Use scheduleId for participation decline
-          const scheduleId = currentNotification.data?.schedule_id;
-          if (scheduleId) {
-            await scheduleService.updateParticipationStatus(
-              scheduleId.toString(),
-              "declined"
-            );
-            toast.success(
-              language === "th"
-                ? "ปฏิเสธการเข้าร่วมสำเร็จ"
-                : "Participation declined successfully",
-              {
-                icon: "❌",
-                position: "top-center",
-              }
-            );
-          }
           break;
 
         default:
@@ -645,7 +720,10 @@ export default function NotificationPopupModal({
           {/* Metadata */}
           <div className="mt-4 pt-4 border-t border-gray-100">
             <div className="flex items-center justify-between text-xs text-gray-500">
-              <span>{currentNotification.sender.name}</span>
+              <span>
+                {currentNotification.sender?.name ??
+                  (language === "th" ? "ระบบ" : "System")}
+              </span>
               <span>
                 {new Date(currentNotification.created_at).toLocaleString(
                   language === "th" ? "th-TH" : "en-US"

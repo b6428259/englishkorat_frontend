@@ -2,7 +2,7 @@
 
 import SidebarLayout from '../../components/common/SidebarLayout';
 import { ProtectedRoute } from '../../components/common/ProtectedRoute';
-import { RoleGuard } from '../../components/common/RoleGuard';
+import { RoleGuard } from '@/components/common/RoleGuard';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getAvatarUrl } from '@/utils/config';
@@ -34,12 +34,12 @@ export default function DashboardPage() {
         <div className="space-y-6">
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h1 className="text-3xl font-bold text-gray-900 mb-6">{t.dashboard}</h1>
-            
+
             <div className="bg-gradient-to-r from-[#334293] via-[#4a5cb8] to-[#5d6cc9] text-white rounded-2xl p-8 mb-8 shadow-lg relative overflow-hidden">
               {/* Background decoration */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full -ml-12 -mb-12"></div>
-              
+
               <div className="flex items-start justify-between relative z-10">
                 <div>
                   <h2 className="text-3xl font-bold mb-3">
@@ -88,13 +88,13 @@ export default function DashboardPage() {
                 )}
               </div>
             </div>
-            
+
             {/* Quick Actions - Enhanced with better animations */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Students - Available to all roles */}
               <RoleGuard requireAuth={true}>
-                <Link 
-                  href="/students" 
+                <Link
+                  href="/students"
                   className="group relative bg-white border border-gray-200 rounded-2xl p-6 hover:border-[#334293] hover:shadow-xl transition-all duration-300 ease-out hover:-translate-y-1"
                 >
                   <div className="flex items-center mb-4">
@@ -114,8 +114,8 @@ export default function DashboardPage() {
 
               {/* Teachers - Admin and Owner only */}
               <RoleGuard roles={['admin', 'owner']}>
-                <Link 
-                  href="/teachers" 
+                <Link
+                  href="/teachers"
                   className="group relative bg-white border border-gray-200 rounded-2xl p-6 hover:border-emerald-500 hover:shadow-xl transition-all duration-300 ease-out hover:-translate-y-1"
                 >
                   <div className="flex items-center mb-4">
@@ -132,10 +132,10 @@ export default function DashboardPage() {
                   <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </Link>
               </RoleGuard>
-              
+
               {/* Schedule */}
-              <Link 
-                href="/schedule" 
+              <Link
+                href="/schedule"
                 className="group relative bg-white border border-gray-200 rounded-2xl p-6 hover:border-purple-500 hover:shadow-xl transition-all duration-300 ease-out hover:-translate-y-1"
               >
                 <div className="flex items-center mb-4">
@@ -154,8 +154,8 @@ export default function DashboardPage() {
 
               {/* System Settings - Owner only */}
               <RoleGuard roles={['owner']}>
-                <Link 
-                  href="/systemSettings" 
+                <Link
+                  href="/systemSettings"
                   className="group relative bg-white border border-gray-200 rounded-2xl p-6 hover:border-red-500 hover:shadow-xl transition-all duration-300 ease-out hover:-translate-y-1"
                 >
                   <div className="flex items-center mb-4">
@@ -175,8 +175,8 @@ export default function DashboardPage() {
               </RoleGuard>
 
               {/* Profile Settings */}
-              <Link 
-                href="/settings/profile" 
+              <Link
+                href="/settings/profile"
                 className="group relative bg-white border border-gray-200 rounded-2xl p-6 hover:border-orange-500 hover:shadow-xl transition-all duration-300 ease-out hover:-translate-y-1"
               >
                 <div className="flex items-center mb-4">

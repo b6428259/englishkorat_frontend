@@ -78,22 +78,6 @@ export default function ModernScheduleModal({
   const { language } = useLanguage();
   const [activeTab, setActiveTab] = useState(initialTab);
 
-  // Debug logging
-  console.log("ModernScheduleModal render - props:", {
-    courses: courses?.length || 0,
-    rooms: rooms?.length || 0,
-    teachers: teachers?.length || 0,
-    groups: groups?.length || 0,
-    isOpen,
-  });
-
-  console.log("ModernScheduleModal - actual data:", {
-    courses: courses,
-    rooms: rooms,
-    teachers: teachers,
-    groups: groups,
-  });
-
   // Internal form state
   const [internalForm, setInternalForm] = useState<
     Partial<CreateScheduleRequest>
@@ -120,16 +104,11 @@ export default function ModernScheduleModal({
 
   const updateForm = useCallback(
     (updates: Partial<CreateScheduleRequest>) => {
-      console.log("updateForm called with:", updates);
       if (externalUpdate) {
-        console.log("Using externalUpdate");
         externalUpdate(updates);
       } else {
-        console.log("Using internal setInternalForm");
         setInternalForm((prev) => {
-          console.log("Previous internal form:", prev);
           const updated = { ...prev, ...updates };
-          console.log("Updated internal form:", updated);
           return updated;
         });
       }
@@ -304,6 +283,115 @@ export default function ModernScheduleModal({
   const [participantLoading, setParticipantLoading] = useState(false);
   const [participantMap, setParticipantMap] = useState<Record<number, User>>(
     {}
+  );
+
+  // Helper: format teacher label as "First Last (Nickname)" according to language with fallbacks
+  const formatTeacherLabel = useCallback(
+    (teacher: TeacherOption) => {
+      if (!teacher) return "";
+      if (language === "th") {
+        const first = teacher.first_th || teacher.first_en || "";
+        const last = teacher.last_th || teacher.last_en || "";
+        const nick =
+          teacher.nickname_th ||
+          teacher.nickname_en ||
+          teacher.teacher_nickname ||
+          "";
+        const name =
+          `${first}${last ? " " + last : ""}`.trim() ||
+          teacher.teacher_name ||
+          teacher.username ||
+          "";
+        return nick ? `${name} (${nick})` : name;
+      }
+      // default to English
+      const first = teacher.first_en || teacher.first_th || "";
+      const last = teacher.last_en || teacher.last_th || "";
+      const nick =
+        teacher.nickname_en ||
+        teacher.nickname_th ||
+        teacher.teacher_nickname ||
+        "";
+      const name =
+        `${first}${last ? " " + last : ""}`.trim() ||
+        teacher.teacher_name ||
+        teacher.username ||
+        "";
+      return nick ? `${name} (${nick})` : name;
+    },
+    [language]
+  );
+
+  const groupOptions = useMemo(
+    () =>
+      (groups ?? [])
+        .filter(
+          (group): group is GroupOption & { id: number } =>
+            !!group && typeof group.id === "number"
+        )
+        .map((group) => ({
+          value: group.id.toString(),
+          label: group.group_name,
+          description: `${group.course_name} (${group.current_students}/${group.max_students})`,
+        })),
+    [groups]
+  );
+
+  const teacherOptionsMemo = useMemo(
+    () =>
+      (teachers ?? [])
+        .filter(
+          (teacher): teacher is TeacherOption & { id: number } =>
+            !!teacher && typeof teacher.id === "number"
+        )
+        .map((teacher) => ({
+          value: teacher.id.toString(),
+          label: formatTeacherLabel(teacher),
+        })),
+    [teachers, formatTeacherLabel]
+  );
+
+  const roomOptions = useMemo(
+    () =>
+      (rooms ?? [])
+        .filter(
+          (room): room is Room & { id: number } =>
+            !!room && typeof room.id === "number"
+        )
+        .map((room) => ({
+          value: room.id.toString(),
+          label: room.room_name,
+          description: `${language === "th" ? "ความจุ" : "Capacity"}: ${
+            room.capacity
+          }`,
+        })),
+    [rooms, language]
+  );
+
+  const participantRoleOptions = useMemo(
+    () => [
+      {
+        value: "all",
+        label: language === "th" ? "ทุกบทบาท" : "All roles",
+      },
+      {
+        value: "student",
+        label: language === "th" ? "นักเรียน" : "Student",
+      },
+      {
+        value: "teacher",
+        label: language === "th" ? "ครู" : "Teacher",
+      },
+      {
+        value: "admin",
+        label: "Admin",
+      },
+      {
+        value: "owner",
+        label: "Owner",
+      },
+    ],
+    [language]
   );
 
   // Debounced search
@@ -501,43 +589,6 @@ export default function ModernScheduleModal({
     }
   }, [showCreateGroup]);
 
-  // Helper: format teacher label as "First Last (Nickname)" according to language with fallbacks
-  const formatTeacherLabel = useCallback(
-    (teacher: TeacherOption) => {
-      if (!teacher) return "";
-      if (language === "th") {
-        const first = teacher.first_th || teacher.first_en || "";
-        const last = teacher.last_th || teacher.last_en || "";
-        const nick =
-          teacher.nickname_th ||
-          teacher.nickname_en ||
-          teacher.teacher_nickname ||
-          "";
-        const name =
-          `${first}${last ? " " + last : ""}`.trim() ||
-          teacher.teacher_name ||
-          teacher.username ||
-          "";
-        return nick ? `${name} (${nick})` : name;
-      }
-      // default to English
-      const first = teacher.first_en || teacher.first_th || "";
-      const last = teacher.last_en || teacher.last_th || "";
-      const nick =
-        teacher.nickname_en ||
-        teacher.nickname_th ||
-        teacher.teacher_nickname ||
-        "";
-      const name =
-        `${first}${last ? " " + last : ""}`.trim() ||
-        teacher.teacher_name ||
-        teacher.username ||
-        "";
-      return nick ? `${name} (${nick})` : name;
-    },
-    [language]
-  );
-
   const weekDays = useMemo(
     () => [
       { value: "sunday", label: language === "th" ? "อาทิตย์" : "Sunday" },
@@ -617,9 +668,6 @@ export default function ModernScheduleModal({
     const payload: MutablePayload = {
       ...(scheduleForm as Partial<CreateScheduleRequest>),
     } as MutablePayload;
-
-    console.log("Modal handleConfirm - scheduleForm:", scheduleForm);
-    console.log("Modal handleConfirm - payload before API call:", payload);
 
     // Normalize common date fields if present
     if (payload.start_date != null && typeof payload.start_date === "string") {
@@ -966,19 +1014,19 @@ export default function ModernScheduleModal({
                                 scheduleForm.group_id &&
                                 scheduleForm.group_id > 0
                                   ? scheduleForm.group_id.toString()
-                                  : ""
+                                  : undefined
                               }
-                              onValueChange={(value) => {
-                                console.log(
-                                  "Group selection changed to:",
-                                  value
-                                );
-                                const groupId = value
-                                  ? parseInt(String(value)) || 0
-                                  : 0;
-                                console.log("Parsed group_id:", groupId);
+                              onValueChange={(selected) => {
+                                const parsed =
+                                  typeof selected === "number"
+                                    ? selected
+                                    : parseInt(String(selected), 10);
+                                const normalized =
+                                  Number.isFinite(parsed) && parsed > 0
+                                    ? parsed
+                                    : undefined;
                                 updateForm({
-                                  group_id: groupId,
+                                  group_id: normalized,
                                 });
                               }}
                               placeholder={
@@ -996,11 +1044,7 @@ export default function ModernScheduleModal({
                                   ? "ค้นหากลุ่ม..."
                                   : "Search groups..."
                               }
-                              options={groups.map((group) => ({
-                                value: group.id,
-                                label: group.group_name,
-                                description: `${group.course_name} (${group.current_students}/${group.max_students})`,
-                              }))}
+                              options={groupOptions}
                               className="flex-1"
                             />
                             <button
@@ -1031,20 +1075,20 @@ export default function ModernScheduleModal({
                                 scheduleForm.teacher_id &&
                                 scheduleForm.teacher_id > 0
                                   ? scheduleForm.teacher_id.toString()
-                                  : ""
+                                  : undefined
                               }
-                              onValueChange={(value) => {
-                                console.log(
-                                  "Teacher selection changed to:",
-                                  value
-                                );
-                                const teacherId = value
-                                  ? parseInt(String(value)) || 0
-                                  : 0;
-                                console.log("Parsed teacher_id:", teacherId);
+                              onValueChange={(selected) => {
+                                const parsed =
+                                  typeof selected === "number"
+                                    ? selected
+                                    : parseInt(String(selected), 10);
+                                const normalized =
+                                  Number.isFinite(parsed) && parsed > 0
+                                    ? parsed
+                                    : undefined;
                                 updateForm({
-                                  teacher_id: teacherId,
-                                  default_teacher_id: teacherId,
+                                  teacher_id: normalized,
+                                  default_teacher_id: normalized,
                                 });
                               }}
                               placeholder={
@@ -1062,10 +1106,7 @@ export default function ModernScheduleModal({
                                   ? "ค้นหาครู..."
                                   : "Search teachers..."
                               }
-                              options={teachers.map((teacher) => ({
-                                value: teacher.id,
-                                label: formatTeacherLabel(teacher),
-                              }))}
+                              options={teacherOptionsMemo}
                             />
                           </div>
 
@@ -1084,19 +1125,19 @@ export default function ModernScheduleModal({
                               value={
                                 scheduleForm.room_id && scheduleForm.room_id > 0
                                   ? scheduleForm.room_id.toString()
-                                  : ""
+                                  : undefined
                               }
-                              onValueChange={(value) => {
-                                console.log(
-                                  "Room selection changed to:",
-                                  value
-                                );
-                                const roomId = value
-                                  ? parseInt(String(value)) || 0
-                                  : 0;
-                                console.log("Parsed room_id:", roomId);
+                              onValueChange={(selected) => {
+                                const parsed =
+                                  typeof selected === "number"
+                                    ? selected
+                                    : parseInt(String(selected), 10);
+                                const normalized =
+                                  Number.isFinite(parsed) && parsed > 0
+                                    ? parsed
+                                    : undefined;
                                 updateForm({
-                                  room_id: roomId,
+                                  room_id: normalized,
                                 });
                               }}
                               placeholder={
@@ -1114,11 +1155,7 @@ export default function ModernScheduleModal({
                                   ? "ค้นหาห้องเรียน..."
                                   : "Search rooms..."
                               }
-                              options={rooms.map((room) => ({
-                                value: room.id,
-                                label: room.room_name,
-                                description: `ความจุ: ${room.capacity}`,
-                              }))}
+                              options={roomOptions}
                             />
                           </div>
                         </div>
@@ -1172,40 +1209,15 @@ export default function ModernScheduleModal({
                             />
                             <Combobox
                               value={participantRole}
-                              onValueChange={(value) =>
+                              onValueChange={(selected) =>
                                 setParticipantRole(
-                                  value as User["role"] | "all"
+                                  selected as User["role"] | "all"
                                 )
                               }
                               placeholder={
                                 language === "th" ? "ทุกบทบาท" : "All roles"
                               }
-                              options={[
-                                {
-                                  value: "all",
-                                  label:
-                                    language === "th"
-                                      ? "ทุกบทบาท"
-                                      : "All roles",
-                                },
-                                {
-                                  value: "student",
-                                  label:
-                                    language === "th" ? "นักเรียน" : "Student",
-                                },
-                                {
-                                  value: "teacher",
-                                  label: language === "th" ? "ครู" : "Teacher",
-                                },
-                                {
-                                  value: "admin",
-                                  label: "Admin",
-                                },
-                                {
-                                  value: "owner",
-                                  label: "Owner",
-                                },
-                              ]}
+                              options={participantRoleOptions}
                               className="w-40"
                             />
                           </div>
@@ -1252,23 +1264,20 @@ export default function ModernScheduleModal({
                                 scheduleForm.teacher_id &&
                                 scheduleForm.teacher_id > 0
                                   ? scheduleForm.teacher_id.toString()
-                                  : ""
+                                  : undefined
                               }
-                              onValueChange={(value) => {
-                                console.log(
-                                  "Facilitator selection changed to:",
-                                  value
-                                );
-                                const teacherId = value
-                                  ? parseInt(String(value)) || 0
-                                  : 0;
-                                console.log(
-                                  "Parsed facilitator teacher_id:",
-                                  teacherId
-                                );
+                              onValueChange={(selected) => {
+                                const parsed =
+                                  typeof selected === "number"
+                                    ? selected
+                                    : parseInt(String(selected), 10);
+                                const normalized =
+                                  Number.isFinite(parsed) && parsed > 0
+                                    ? parsed
+                                    : undefined;
                                 updateForm({
-                                  teacher_id: teacherId,
-                                  default_teacher_id: teacherId,
+                                  teacher_id: normalized,
+                                  default_teacher_id: normalized,
                                 });
                               }}
                               placeholder={
@@ -1286,10 +1295,7 @@ export default function ModernScheduleModal({
                                   ? "ค้นหาครู..."
                                   : "Search teachers..."
                               }
-                              options={teachers.map((teacher) => ({
-                                value: teacher.id,
-                                label: formatTeacherLabel(teacher),
-                              }))}
+                              options={teacherOptionsMemo}
                             />
                           </div>
 
@@ -1303,19 +1309,19 @@ export default function ModernScheduleModal({
                               value={
                                 scheduleForm.room_id && scheduleForm.room_id > 0
                                   ? scheduleForm.room_id.toString()
-                                  : ""
+                                  : undefined
                               }
-                              onValueChange={(value) => {
-                                console.log(
-                                  "Meeting room selection changed to:",
-                                  value
-                                );
-                                const roomId = value
-                                  ? parseInt(String(value)) || 0
-                                  : 0;
-                                console.log("Parsed meeting room_id:", roomId);
+                              onValueChange={(selected) => {
+                                const parsed =
+                                  typeof selected === "number"
+                                    ? selected
+                                    : parseInt(String(selected), 10);
+                                const normalized =
+                                  Number.isFinite(parsed) && parsed > 0
+                                    ? parsed
+                                    : undefined;
                                 updateForm({
-                                  room_id: roomId,
+                                  room_id: normalized,
                                 });
                               }}
                               placeholder={
@@ -1333,11 +1339,7 @@ export default function ModernScheduleModal({
                                   ? "ค้นหาห้องประชุม..."
                                   : "Search meeting rooms..."
                               }
-                              options={rooms.map((room) => ({
-                                value: room.id,
-                                label: room.room_name,
-                                description: `ความจุ: ${room.capacity}`,
-                              }))}
+                              options={roomOptions}
                             />
                           </div>
                         </div>
@@ -2136,12 +2138,23 @@ export default function ModernScheduleModal({
                     {language === "th" ? "คอร์ส" : "Course"}
                   </label>
                   <Combobox
-                    value={groupForm.course_id.toString()}
-                    onValueChange={(value) =>
-                      setGroupForm((prev) => ({
-                        ...prev,
-                        course_id: parseInt(String(value)) || 0,
-                      }))
+                    value={
+                      groupForm.course_id && groupForm.course_id > 0
+                        ? groupForm.course_id.toString()
+                        : undefined
+                    }
+                    onValueChange={(selected) =>
+                      setGroupForm((prev) => {
+                        const parsed =
+                          typeof selected === "number"
+                            ? selected
+                            : parseInt(String(selected), 10);
+                        return {
+                          ...prev,
+                          course_id:
+                            Number.isFinite(parsed) && parsed > 0 ? parsed : 0,
+                        };
+                      })
                     }
                     placeholder={
                       language === "th" ? "เลือกคอร์ส" : "Select Course"

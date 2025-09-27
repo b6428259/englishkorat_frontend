@@ -14,7 +14,7 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
   children,
   roles,
   minRole,
-  fallback = <div className="text-red-500 p-4">คุณไม่มีสิทธิ์เข้าถึงหน้านี้</div>,
+  fallback = null,
   requireAuth = true,
 }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -54,7 +54,7 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
       admin: 3,
       owner: 4,
     };
-    
+
     if (!user || roleHierarchy[user.role] < roleHierarchy[minRole]) {
       return <>{fallback}</>;
     }

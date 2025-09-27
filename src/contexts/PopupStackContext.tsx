@@ -188,9 +188,9 @@ export function PopupStackProvider({ children }: PopupStackProviderProps) {
         >
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <div className="flex -space-x-1">
-              {popups.slice(0, 3).map((_, index) => (
+              {popups.slice(0, 3).map((popup) => (
                 <div
-                  key={index}
+                  key={popup.id}
                   className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white"
                 />
               ))}

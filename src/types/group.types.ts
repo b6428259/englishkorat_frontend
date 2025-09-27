@@ -387,6 +387,7 @@ export interface CalendarViewResponse {
 export interface GroupOption {
   id: number;
   group_name: string;
+  course_id: number;
   course_name: string;
   level: string;
   current_students: number;
