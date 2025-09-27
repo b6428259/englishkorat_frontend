@@ -34,7 +34,7 @@ import {
   ClockIcon,
   MapPinIcon,
   PlusIcon,
-  UsersIcon
+  UsersIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiDocumentText } from "react-icons/hi2";
@@ -739,8 +739,7 @@ export default function ModernScheduleModal({
             <p className="text-gray-600 mt-2">
               {language === "th"
                 ? "กำหนดตารางเรียน การประชุม หรืออีเวนต์ต่าง ๆ ได้อย่างง่ายดาย"
-                : "Easily create schedules for classes, meetings, or events"
-              }
+                : "Easily create schedules for classes, meetings, or events"}
             </p>
           </DialogHeader>
 
@@ -830,7 +829,9 @@ export default function ModernScheduleModal({
                     <div>
                       <label className="flex items-center gap-2 text-lg font-semibold text-gray-800 mb-3">
                         <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                          <span className="text-white text-xs font-bold">1</span>
+                          <span className="text-white text-xs font-bold">
+                            1
+                          </span>
                         </div>
                         {language === "th" ? "ชื่อตารางเรียน" : "Schedule Name"}
                       </label>
@@ -848,12 +849,15 @@ export default function ModernScheduleModal({
                         }
                       />
                       {getFieldError("schedule_name") && (
-                        <p className="text-red-500 text-sm mt-2 flex items-center gap-2">
+                        <div
+                          role="alert"
+                          className="text-red-500 text-sm mt-2 flex items-center gap-2"
+                        >
                           <div className="w-4 h-4 rounded-full bg-red-100 flex items-center justify-center">
                             <span className="text-red-600 text-xs">!</span>
                           </div>
-                          {getFieldError("schedule_name")}
-                        </p>
+                          <span>{getFieldError("schedule_name")}</span>
+                        </div>
                       )}
                     </div>
 
@@ -861,7 +865,9 @@ export default function ModernScheduleModal({
                     <div>
                       <label className="flex items-center gap-2 text-lg font-semibold text-gray-800 mb-3">
                         <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center">
-                          <span className="text-white text-xs font-bold">2</span>
+                          <span className="text-white text-xs font-bold">
+                            2
+                          </span>
                         </div>
                         {language === "th"
                           ? "ประเภทตารางเรียน"
@@ -870,7 +876,8 @@ export default function ModernScheduleModal({
                       <div className="grid grid-cols-3 gap-3">
                         {scheduleTypes.map((type) => {
                           const IconComponent = type.icon;
-                          const isSelected = scheduleForm.schedule_type === type.value;
+                          const isSelected =
+                            scheduleForm.schedule_type === type.value;
                           return (
                             <button
                               key={type.value}
@@ -898,12 +905,22 @@ export default function ModernScheduleModal({
                                   : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
                               }`}
                             >
-                              <IconComponent className={`h-7 w-7 mx-auto mb-3 ${
-                                isSelected ? "text-indigo-600" : "text-gray-600"
-                              }`} />
-                              <p className={`font-semibold ${
-                                isSelected ? "text-indigo-900" : "text-gray-800"
-                              }`}>{type.label}</p>
+                              <IconComponent
+                                className={`h-7 w-7 mx-auto mb-3 ${
+                                  isSelected
+                                    ? "text-indigo-600"
+                                    : "text-gray-600"
+                                }`}
+                              />
+                              <p
+                                className={`font-semibold ${
+                                  isSelected
+                                    ? "text-indigo-900"
+                                    : "text-gray-800"
+                                }`}
+                              >
+                                {type.label}
+                              </p>
                             </button>
                           );
                         })}
@@ -917,7 +934,9 @@ export default function ModernScheduleModal({
                         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-5">
                           <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
                             <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center">
-                              <span className="text-white text-xs font-bold">!</span>
+                              <span className="text-white text-xs font-bold">
+                                !
+                              </span>
                             </div>
                             {language === "th"
                               ? "ตั้งค่าคลาสเรียน"
@@ -933,7 +952,9 @@ export default function ModernScheduleModal({
                         <div>
                           <label className="flex items-center gap-2 text-lg font-semibold text-gray-800 mb-3">
                             <div className="w-6 h-6 rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
-                              <span className="text-white text-xs font-bold">3</span>
+                              <span className="text-white text-xs font-bold">
+                                3
+                              </span>
                             </div>
                             {language === "th"
                               ? "กลุ่มนักเรียน"
@@ -997,7 +1018,9 @@ export default function ModernScheduleModal({
                           <div>
                             <label className="flex items-center gap-2 text-base font-semibold text-gray-800 mb-3">
                               <div className="w-5 h-5 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-                                <span className="text-white text-xs font-bold">4</span>
+                                <span className="text-white text-xs font-bold">
+                                  4
+                                </span>
                               </div>
                               {language === "th"
                                 ? "ครูประจำ (ไม่บังคับ)"
@@ -1049,7 +1072,9 @@ export default function ModernScheduleModal({
                           <div>
                             <label className="flex items-center gap-2 text-base font-semibold text-gray-800 mb-3">
                               <div className="w-5 h-5 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-                                <span className="text-white text-xs font-bold">5</span>
+                                <span className="text-white text-xs font-bold">
+                                  5
+                                </span>
                               </div>
                               {language === "th"
                                 ? "ห้องเรียนประจำ (ไม่บังคับ)"
@@ -1104,7 +1129,9 @@ export default function ModernScheduleModal({
                         <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-5">
                           <h4 className="font-semibold text-purple-900 mb-3 flex items-center gap-2">
                             <div className="w-5 h-5 rounded-full bg-purple-600 flex items-center justify-center">
-                              <span className="text-white text-xs font-bold">!</span>
+                              <span className="text-white text-xs font-bold">
+                                !
+                              </span>
                             </div>
                             {language === "th"
                               ? "ตั้งค่าการประชุม/อีเวนต์"
@@ -1120,7 +1147,9 @@ export default function ModernScheduleModal({
                         <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                           <label className="flex items-center gap-2 text-lg font-semibold text-gray-800 mb-3">
                             <div className="w-6 h-6 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
-                              <span className="text-white text-xs font-bold">3</span>
+                              <span className="text-white text-xs font-bold">
+                                3
+                              </span>
                             </div>
                             {language === "th"
                               ? "ผู้เข้าร่วม (ไม่บังคับ)"

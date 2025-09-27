@@ -1,14 +1,22 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
 import Button from "@/components/common/Button";
-import SidebarLayout from "@/components/common/SidebarLayout";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import ErrorMessage from "@/components/common/ErrorMessage";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
+import SidebarLayout from "@/components/common/SidebarLayout";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Autocomplete, AutocompleteItem, DatePicker } from "@heroui/react";
-import { billsApi, Bill, BillStatus, BillListParams, formatBillAmount, getBillStatusColor, calculateDueAmount } from "@/services/api/bills";
+import {
+  Bill,
+  BillListParams,
+  billsApi,
+  BillStatus,
+  calculateDueAmount,
+  formatBillAmount,
+  getBillStatusColor,
+} from "@/services/api/bills";
 import { formatDateShort } from "@/utils/dateUtils";
+import { Autocomplete, AutocompleteItem, DatePicker } from "@heroui/react";
+import { useCallback, useEffect, useState } from "react";
 
 // Available filter options
 const billStatusOptions = [
@@ -26,14 +34,14 @@ export default function StudentsBillsPage() {
   const [bills, setBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Filter state
   const [customerFilter, setCustomerFilter] = useState<string>("");
   const [invoiceFilter, setInvoiceFilter] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateFromFilter, setDateFromFilter] = useState<string>("");
   const [dateToFilter, setDateToFilter] = useState<string>("");
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -43,7 +51,9 @@ export default function StudentsBillsPage() {
   // Helper: convert filter status to API parameter
   const toStatusParam = (value: string): BillStatus | undefined => {
     if (value === "all") return undefined;
-    return billStatusOptions.find(option => option.key === value)?.key as BillStatus | undefined;
+    return billStatusOptions.find((option) => option.key === value)?.key as
+      | BillStatus
+      | undefined;
   };
 
   // Fetch bills data
@@ -51,7 +61,7 @@ export default function StudentsBillsPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const params: BillListParams = {
         page: currentPage,
         page_size: pageSize,
@@ -63,19 +73,31 @@ export default function StudentsBillsPage() {
       if (statusFilter !== "all") params.status = toStatusParam(statusFilter);
       if (dateFromFilter) params.date_from = dateFromFilter;
       if (dateToFilter) params.date_to = dateToFilter;
-      
+
       const response = await billsApi.getBills(params);
-      setBills(response.bills);
-      setTotalPages(response.total_pages);
-      setTotal(response.total);
+      // Defensive defaults in case API returns undefined or malformed data
+      setBills(response?.bills ?? []);
+      setTotalPages(response?.total_pages ?? 1);
+      setTotal(response?.total ?? 0);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch bills';
-      setError(language === 'th' ? 'ไม่สามารถโหลดข้อมูลใบแจ้งหนี้ได้' : errorMessage);
-      console.error('Error fetching bills:', err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to fetch bills";
+      setError(
+        language === "th" ? "ไม่สามารถโหลดข้อมูลใบแจ้งหนี้ได้" : errorMessage
+      );
+      console.error("Error fetching bills:", err);
     } finally {
       setLoading(false);
     }
-  }, [currentPage, customerFilter, invoiceFilter, statusFilter, dateFromFilter, dateToFilter, language]);
+  }, [
+    currentPage,
+    customerFilter,
+    invoiceFilter,
+    statusFilter,
+    dateFromFilter,
+    dateToFilter,
+    language,
+  ]);
 
   // Load bills on mount and when filters change
   useEffect(() => {
@@ -92,12 +114,14 @@ export default function StudentsBillsPage() {
   };
 
   // Get unique customer names for autocomplete (from current bills)
-  const customerOptions = Array.from(new Set(bills.map(bill => bill.customer).filter(Boolean)))
-    .map(customer => ({ label: customer!, key: customer! }));
+  const customerOptions = Array.from(
+    new Set(bills.map((bill) => bill.customer).filter(Boolean))
+  ).map((customer) => ({ label: customer!, key: customer! }));
 
   // Get unique invoice numbers for autocomplete (from current bills)
-  const invoiceOptions = Array.from(new Set(bills.map(bill => bill.invoice_number).filter(Boolean)))
-    .map(invoice => ({ label: invoice!, key: invoice! }));
+  const invoiceOptions = Array.from(
+    new Set(bills.map((bill) => bill.invoice_number).filter(Boolean))
+  ).map((invoice) => ({ label: invoice!, key: invoice! }));
 
   return (
     <SidebarLayout breadcrumbItems={[{ label: t.studentBill }]}>
@@ -107,8 +131,9 @@ export default function StudentsBillsPage() {
             <h1 className="text-3xl font-bold text-black">{t.invoice}</h1>
             {!loading && (
               <p className="text-sm text-gray-600 mt-1">
-                {language === 'th' ? `แสดง ${bills.length} รายการจากทั้งหมด ${total} รายการ` : 
-                `Showing ${bills.length} of ${total} bills`}
+                {language === "th"
+                  ? `แสดง ${bills.length} รายการจากทั้งหมด ${total} รายการ`
+                  : `Showing ${bills.length} of ${total} bills`}
               </p>
             )}
           </div>
@@ -120,26 +145,26 @@ export default function StudentsBillsPage() {
         {/* Filter Section */}
         <div className="flex w-full flex-wrap md:flex-nowrap gap-4">
           <label className="text-gray-500 font-medium flex-1 min-w-[180px]">
-            {language === 'th' ? 'ชื่อลูกค้า' : 'Customer Name'}
+            {language === "th" ? "ชื่อลูกค้า" : "Customer Name"}
           </label>
           <label className="text-gray-500 font-medium flex-1 min-w-[150px]">
-            {language === 'th' ? 'หมายเลขใบแจ้งหนี้' : 'Invoice Number'}
+            {language === "th" ? "หมายเลขใบแจ้งหนี้" : "Invoice Number"}
           </label>
           <label className="text-gray-500 font-medium flex-1 min-w-[150px]">
-            {language === 'th' ? 'สถานะ' : 'Status'}
+            {language === "th" ? "สถานะ" : "Status"}
           </label>
           <label className="text-gray-500 font-medium flex-1 min-w-[150px]">
-            {language === 'th' ? 'จากวันที่' : 'From Date'}
+            {language === "th" ? "จากวันที่" : "From Date"}
           </label>
           <label className="text-gray-500 font-medium flex-1 min-w-[150px]">
-            {language === 'th' ? 'ถึงวันที่' : 'To Date'}
+            {language === "th" ? "ถึงวันที่" : "To Date"}
           </label>
         </div>
 
         <div className="flex w-full flex-wrap md:flex-nowrap gap-4">
-          <Autocomplete 
+          <Autocomplete
             className="flex-1 min-w-[180px] border border-gray-300 rounded-md"
-            placeholder={language === 'th' ? 'เลือกลูกค้า' : 'Select customer'}
+            placeholder={language === "th" ? "เลือกลูกค้า" : "Select customer"}
             onInputChange={setCustomerFilter}
           >
             {customerOptions.map((item) => (
@@ -147,9 +172,11 @@ export default function StudentsBillsPage() {
             ))}
           </Autocomplete>
 
-          <Autocomplete 
+          <Autocomplete
             className="flex-1 min-w-[150px] border border-gray-300 rounded-md"
-            placeholder={language === 'th' ? 'เลือกหมายเลขใบแจ้งหนี้' : 'Select invoice'}
+            placeholder={
+              language === "th" ? "เลือกหมายเลขใบแจ้งหนี้" : "Select invoice"
+            }
             onInputChange={setInvoiceFilter}
           >
             {invoiceOptions.map((item) => (
@@ -157,7 +184,7 @@ export default function StudentsBillsPage() {
             ))}
           </Autocomplete>
 
-          <Autocomplete 
+          <Autocomplete
             className="flex-1 min-w-[150px] border border-gray-300 rounded-md"
             selectedKey={statusFilter}
             onSelectionChange={(key) => setStatusFilter(key as string)}
@@ -169,25 +196,25 @@ export default function StudentsBillsPage() {
 
           <DatePicker
             className="flex-1 min-w-[150px] border border-gray-300 rounded-md"
-            aria-label={language === 'th' ? 'จากวันที่' : 'from date'}
+            aria-label={language === "th" ? "จากวันที่" : "from date"}
             onChange={(date) => setDateFromFilter(date ? date.toString() : "")}
           />
           <DatePicker
             className="flex-1 min-w-[150px] border border-gray-300 rounded-md"
-            aria-label={language === 'th' ? 'ถึงวันที่' : 'to date'}
+            aria-label={language === "th" ? "ถึงวันที่" : "to date"}
             onChange={(date) => setDateToFilter(date ? date.toString() : "")}
           />
         </div>
 
         {/* Apply Filters Button */}
         <div className="flex justify-end mt-4">
-          <Button 
-            variant="common" 
+          <Button
+            variant="common"
             onClick={handleFilterChange}
             disabled={loading}
             size="sm"
           >
-            {language === 'th' ? 'ค้นหา' : 'Search'}
+            {language === "th" ? "ค้นหา" : "Search"}
           </Button>
         </div>
 
@@ -211,41 +238,81 @@ export default function StudentsBillsPage() {
             <table className="w-full text-left border-collapse border-gray-300">
               <thead className="bg-gray-100 text-sm">
                 <tr>
-                  <th className="px-4 py-2">{language === 'th' ? 'สถานะ' : 'Status'}</th>
-                  <th className="px-4 py-2">{language === 'th' ? 'วันที่สร้าง' : 'Transaction Date'}</th>
-                  <th className="px-4 py-2">{language === 'th' ? 'หมายเลข' : 'Invoice Number'}</th>
-                  <th className="px-4 py-2">{language === 'th' ? 'ลูกค้า' : 'Customer'}</th>
-                  <th className="px-4 py-2">{language === 'th' ? 'จำนวนเงิน' : 'Amount'}</th>
-                  <th className="px-4 py-2">{language === 'th' ? 'ยอดค้างชำระ' : 'Amount Due'}</th>
-                  <th className="px-4 py-2">{language === 'th' ? 'ประเภท' : 'Type'}</th>
-                  <th className="px-4 py-2">{language === 'th' ? 'การดำเนินการ' : 'Actions'}</th>
+                  <th className="px-4 py-2">
+                    {language === "th" ? "สถานะ" : "Status"}
+                  </th>
+                  <th className="px-4 py-2">
+                    {language === "th" ? "วันที่สร้าง" : "Transaction Date"}
+                  </th>
+                  <th className="px-4 py-2">
+                    {language === "th" ? "หมายเลข" : "Invoice Number"}
+                  </th>
+                  <th className="px-4 py-2">
+                    {language === "th" ? "ลูกค้า" : "Customer"}
+                  </th>
+                  <th className="px-4 py-2">
+                    {language === "th" ? "จำนวนเงิน" : "Amount"}
+                  </th>
+                  <th className="px-4 py-2">
+                    {language === "th" ? "ยอดค้างชำระ" : "Amount Due"}
+                  </th>
+                  <th className="px-4 py-2">
+                    {language === "th" ? "ประเภท" : "Type"}
+                  </th>
+                  <th className="px-4 py-2">
+                    {language === "th" ? "การดำเนินการ" : "Actions"}
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
                 {bills.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
-                      {language === 'th' ? 'ไม่พบข้อมูลใบแจ้งหนี้' : 'No bills found'}
+                    <td
+                      colSpan={8}
+                      className="px-4 py-8 text-center text-gray-500"
+                    >
+                      {language === "th"
+                        ? "ไม่พบข้อมูลใบแจ้งหนี้"
+                        : "No bills found"}
                     </td>
                   </tr>
                 ) : (
                   bills.map((bill) => (
-                    <tr key={bill.id || bill.row_uid} className="border-t hover:bg-gray-50">
+                    <tr
+                      key={bill.id || bill.row_uid}
+                      className="border-t hover:bg-gray-50"
+                    >
                       {/* Status */}
                       <td className="px-4 py-2">
                         <span
-                          className={`inline-flex items-center justify-center px-2 py-1 text-xs font-medium rounded-sm min-w-[80px] text-center ${getBillStatusColor(bill.status)}`}
+                          className={`inline-flex items-center justify-center px-2 py-1 text-xs font-medium rounded-sm min-w-[80px] text-center ${getBillStatusColor(
+                            bill.status
+                          )}`}
                         >
                           {bill.status}
                         </span>
                       </td>
 
-                      <td className="px-4 py-2">{formatDateShort(bill.transaction_date)}</td>
-                      <td className="px-4 py-2">{bill.invoice_number || '-'}</td>
-                      <td className="px-4 py-2">{bill.customer || '-'}</td>
-                      <td className="px-4 py-2">{formatBillAmount(bill.amount, bill.currency)}</td>
-                      <td className="px-4 py-2">{formatBillAmount(calculateDueAmount(bill), bill.currency)}</td>
+                      <td className="px-4 py-2">
+                        {formatDateShort(bill.transaction_date ?? undefined)}
+                      </td>
+                      <td className="px-4 py-2">
+                        {bill.invoice_number || "-"}
+                      </td>
+                      <td className="px-4 py-2">{bill.customer || "-"}</td>
+                      <td className="px-4 py-2">
+                        {formatBillAmount(
+                          bill.amount,
+                          bill.currency ?? undefined
+                        )}
+                      </td>
+                      <td className="px-4 py-2">
+                        {formatBillAmount(
+                          calculateDueAmount(bill),
+                          bill.currency ?? undefined
+                        )}
+                      </td>
                       <td className="px-4 py-2">
                         <span className="capitalize text-sm text-gray-600">
                           {bill.bill_type}
@@ -255,26 +322,23 @@ export default function StudentsBillsPage() {
                       {/* Actions */}
                       <td className="px-4 py-2 text-sm">
                         <div className="flex gap-2">
-                          <Button 
-                            size="xs" 
+                          <Button
+                            size="xs"
                             variant="common"
-                            onClick={() => {
-                              // TODO: Implement view bill details
-                              console.log('View bill:', bill.id);
-                            }}
+                            href={`/students/bills/${bill.id}`}
                           >
-                            {language === 'th' ? 'ดู' : 'View'}
+                            {language === "th" ? "ดู" : "View"}
                           </Button>
-                          {bill.status !== 'Paid' && (
-                            <Button 
-                              size="xs" 
+                          {bill.status !== "Paid" && (
+                            <Button
+                              size="xs"
                               variant="secondary"
                               onClick={() => {
                                 // TODO: Implement edit bill
-                                console.log('Edit bill:', bill.id);
+                                console.log("Edit bill:", bill.id);
                               }}
                             >
-                              {language === 'th' ? 'แก้ไข' : 'Edit'}
+                              {language === "th" ? "แก้ไข" : "Edit"}
                             </Button>
                           )}
                         </div>
@@ -292,25 +356,28 @@ export default function StudentsBillsPage() {
                   size="sm"
                   variant="secondary"
                   disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                >
-                  {language === 'th' ? 'ก่อนหน้า' : 'Previous'}
-                </Button>
-                
-                <span className="px-4 py-2 text-sm text-gray-600">
-                  {language === 'th' ? 
-                    `หน้า ${currentPage} จาก ${totalPages}` : 
-                    `Page ${currentPage} of ${totalPages}`
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(1, prev - 1))
                   }
+                >
+                  {language === "th" ? "ก่อนหน้า" : "Previous"}
+                </Button>
+
+                <span className="px-4 py-2 text-sm text-gray-600">
+                  {language === "th"
+                    ? `หน้า ${currentPage} จาก ${totalPages}`
+                    : `Page ${currentPage} of ${totalPages}`}
                 </span>
-                
+
                 <Button
                   size="sm"
                   variant="secondary"
                   disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                  }
                 >
-                  {language === 'th' ? 'ถัดไป' : 'Next'}
+                  {language === "th" ? "ถัดไป" : "Next"}
                 </Button>
               </div>
             )}

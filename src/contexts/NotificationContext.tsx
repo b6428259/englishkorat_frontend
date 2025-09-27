@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -59,37 +60,40 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const [acceptedNotifications, setAcceptedNotifications] = useState<
     AcceptedPopupNotification[]
   >([]);
-  const [lastOpenedNotificationId, setLastOpenedNotificationId] = useState<
-    number | null
-  >(null);
+  const lastOpenedNotificationIdRef = useRef<number | null>(null);
 
   // Ref to track if initial data has been loaded to avoid dependency issues
   const hasLoadedInitialDataRef = useRef(false);
 
   // Track persistent invitation notifications
-  const [persistentInvitations, setPersistentInvitations] = useState<
-    Map<number, Notification>
-  >(new Map());
+  const persistentInvitationsRef = useRef<Map<number, Notification>>(new Map());
+  const addPersistentInvitation = useCallback((notification: Notification) => {
+    persistentInvitationsRef.current.set(notification.id, notification);
+  }, []);
+
+  const removePersistentInvitation = useCallback((notificationId: number) => {
+    persistentInvitationsRef.current.delete(notificationId);
+  }, []);
+
+  const clearPersistentInvitations = useCallback(() => {
+    persistentInvitationsRef.current.clear();
+  }, []);
 
   // Re-show persistent invitations on connection
   const reshowPersistentInvitations = useCallback(() => {
-    persistentInvitations.forEach((notification: Notification) => {
+    persistentInvitationsRef.current.forEach((notification: Notification) => {
       addPopup({
         type: "schedule-invitation",
         notification,
         priority: 100,
         persistent: true,
         onConfirm: (status) => {
-          setPersistentInvitations((prev) => {
-            const next = new Map(prev);
-            next.delete(notification.id);
-            return next;
-          });
+          removePersistentInvitation(notification.id);
           console.log("Reshown invitation response:", status);
         },
       });
     });
-  }, [persistentInvitations, addPopup, setPersistentInvitations]);
+  }, [addPopup, removePersistentInvitation]);
   const getNotificationIcon = (type: string): string => {
     const icons: Record<string, string> = {
       info: "📢",
@@ -211,19 +215,13 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
               persistent: true, // Cannot be dismissed without response
               onConfirm: (status) => {
                 // Remove from persistent tracking when user responds
-                setPersistentInvitations((prev) => {
-                  const next = new Map(prev);
-                  next.delete(notification.id);
-                  return next;
-                });
+                removePersistentInvitation(notification.id);
                 console.log("Schedule invitation response:", status);
               },
             });
 
             // Track as persistent invitation
-            setPersistentInvitations(
-              (prev) => new Map(prev.set(notification.id, enhancedNotification))
-            );
+            addPersistentInvitation(enhancedNotification);
           } else {
             // Show regular toast for other schedule actions
             toast(message, {
@@ -245,18 +243,12 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
               priority: 100,
               persistent: true,
               onConfirm: (status) => {
-                setPersistentInvitations((prev) => {
-                  const next = new Map(prev);
-                  next.delete(notification.id);
-                  return next;
-                });
+                removePersistentInvitation(notification.id);
                 console.log("Schedule invitation response:", status);
               },
             });
 
-            setPersistentInvitations(
-              (prev) => new Map(prev.set(notification.id, notification))
-            );
+            addPersistentInvitation(notification);
           } else {
             toast(fallbackMessage, {
               icon: "📚",
@@ -274,7 +266,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         });
       }
     },
-    [addPopup, setPersistentInvitations]
+    [addPopup, addPersistentInvitation, removePersistentInvitation]
   );
 
   const handleScheduleNavigation = useCallback(
@@ -319,38 +311,42 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     []
   );
 
-  const markAsRead = useCallback(
-    async (id: number) => {
-      // Optimistic update: mark locally first so UI responds instantly
-      const wasAlreadyRead = notifications.find((n) => n.id === id)?.read;
-      if (!wasAlreadyRead) {
-        setNotifications((prev) =>
-          prev.map((notif) =>
-            notif.id === id ? { ...notif, read: true } : notif
-          )
-        );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
-      }
+  const markAsRead = useCallback(async (id: number) => {
+    let wasAlreadyRead = false;
+    let previousNotifications: Notification[] = [];
 
-      try {
-        await notificationApi.markAsRead(id);
-      } catch (error) {
-        console.error("Failed to mark notification as read:", error);
-        // Revert optimistic update on failure
-        setNotifications((prev) =>
-          prev.map((notif) =>
-            notif.id === id ? { ...notif, read: false } : notif
-          )
-        );
-        setUnreadCount((prev) => prev + (wasAlreadyRead ? 0 : 1));
-        toast.error("ไม่สามารถทำเครื่องหมายว่าอ่านแล้วได้", {
-          icon: "❌",
-          position: "top-center",
-        });
+    setNotifications((prev) => {
+      previousNotifications = prev;
+      return prev.map((notif) => {
+        if (notif.id === id) {
+          if (notif.read) {
+            wasAlreadyRead = true;
+            return notif;
+          }
+          return { ...notif, read: true };
+        }
+        return notif;
+      });
+    });
+
+    if (!wasAlreadyRead) {
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    }
+
+    try {
+      await notificationApi.markAsRead(id);
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+      setNotifications(previousNotifications);
+      if (!wasAlreadyRead) {
+        setUnreadCount((prev) => prev + 1);
       }
-    },
-    [notifications]
-  );
+      toast.error("ไม่สามารถทำเครื่องหมายว่าอ่านแล้วได้", {
+        icon: "❌",
+        position: "top-center",
+      });
+    }
+  }, []);
 
   // Manual refresh function for user-triggered refresh only
   const refreshNotifications = useCallback(async () => {
@@ -491,12 +487,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
   // Initialize WebSocket connection when user is authenticated
   useEffect(() => {
-    console.log("🔄 NotificationContext useEffect triggered:", {
-      isAuthenticated,
-      userId: user?.id,
-      timestamp: new Date().toISOString(),
-    });
-
     const setupWebSocketListeners = () => {
       // Connection status updates
       webSocketService.on("connection-status", (data: unknown) => {
@@ -557,7 +547,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         const popupNotif = notification as Notification;
 
         // Prevent duplicate notifications
-        if (lastOpenedNotificationId === popupNotif.id) {
+        if (lastOpenedNotificationIdRef.current === popupNotif.id) {
           console.log("Duplicate popup notification prevented:", popupNotif.id);
           return;
         }
@@ -571,23 +561,17 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
             priority: 100,
             persistent: true,
             onConfirm: (status) => {
-              setPersistentInvitations((prev) => {
-                const next = new Map(prev);
-                next.delete(popupNotif.id);
-                return next;
-              });
+              removePersistentInvitation(popupNotif.id);
               console.log("Popup invitation response:", status);
             },
           });
 
-          setPersistentInvitations(
-            (prev) => new Map(prev.set(popupNotif.id, popupNotif))
-          );
+          addPersistentInvitation(popupNotif);
         } else {
           setPopupNotification(popupNotif);
         }
 
-        setLastOpenedNotificationId(popupNotif.id);
+        lastOpenedNotificationIdRef.current = popupNotif.id;
 
         // Auto-mark as read when popup is shown
         markAsRead(popupNotif.id).catch((error) => {
@@ -767,14 +751,14 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     handleScheduleAction,
     handleScheduleNavigation,
     handleGenericAction,
-    lastOpenedNotificationId,
     loadInitialData,
     addPopup,
-    setPersistentInvitations,
     reshowPersistentInvitations,
+    addPersistentInvitation,
+    removePersistentInvitation,
   ]);
 
-  const acceptPopupNotification = async () => {
+  const acceptPopupNotification = useCallback(async () => {
     if (!popupNotification) return;
 
     try {
@@ -803,9 +787,9 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         position: "top-center",
       });
     }
-  };
+  }, [popupNotification, markAsRead]);
 
-  const declinePopupNotification = async () => {
+  const declinePopupNotification = useCallback(async () => {
     if (!popupNotification) return;
 
     try {
@@ -826,41 +810,59 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         position: "top-center",
       });
     }
-  };
+  }, [popupNotification, markAsRead]);
 
-  const dismissPopupNotification = () => {
+  const dismissPopupNotification = useCallback(() => {
     setPopupNotification(null);
-  };
+  }, []);
 
-  const value: NotificationContextType = {
-    notifications,
-    unreadCount,
-    isLoading,
-    isConnected,
-    popupNotification,
-    acceptedNotifications,
-    refreshNotifications,
-    markAsRead,
-    markAllAsRead,
-    loadMore,
-    hasMore,
-    acceptPopupNotification,
-    declinePopupNotification,
-    dismissPopupNotification,
-  };
+  const contextValue = useMemo<NotificationContextType>(
+    () => ({
+      notifications,
+      unreadCount,
+      isLoading,
+      isConnected,
+      popupNotification,
+      acceptedNotifications,
+      refreshNotifications,
+      markAsRead,
+      markAllAsRead,
+      loadMore,
+      hasMore,
+      acceptPopupNotification,
+      declinePopupNotification,
+      dismissPopupNotification,
+    }),
+    [
+      notifications,
+      unreadCount,
+      isLoading,
+      isConnected,
+      popupNotification,
+      acceptedNotifications,
+      refreshNotifications,
+      markAsRead,
+      markAllAsRead,
+      loadMore,
+      hasMore,
+      acceptPopupNotification,
+      declinePopupNotification,
+      dismissPopupNotification,
+    ]
+  );
 
   // Update the useEffect dependency array to include addPopup
   useEffect(() => {
     return () => {
       // Clean up persistent invitations on logout
       if (!isAuthenticated) {
-        setPersistentInvitations(new Map());
+        clearPersistentInvitations();
       }
     };
-  }, [isAuthenticated, setPersistentInvitations]);
+  }, [isAuthenticated, clearPersistentInvitations]);
 
   return (
-    <NotificationContext.Provider value={value}>
+    <NotificationContext.Provider value={contextValue}>
       {children}
 
       {/* Popup notification modal */}
