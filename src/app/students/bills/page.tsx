@@ -131,9 +131,8 @@ export default function StudentsBillsPage() {
             <h1 className="text-3xl font-bold text-black">{t.invoice}</h1>
             {!loading && (
               <p className="text-sm text-gray-600 mt-1">
-                {language === "th"
-                  ? `แสดง ${bills.length} รายการจากทั้งหมด ${total} รายการ`
-                  : `Showing ${bills.length} of ${total} bills`}
+                {language === 'th' ? `แสดง ${bills.length} รายการจากทั้งหมด ${total} รายการ` :
+                `Showing ${bills.length} of ${total} bills`}
               </p>
             )}
           </div>
@@ -329,7 +328,7 @@ export default function StudentsBillsPage() {
                           >
                             {language === "th" ? "ดู" : "View"}
                           </Button>
-                          {bill.status !== "Paid" && (
+                          {bill.status !== 'Paid' && (
                             <Button
                               size="xs"
                               variant="secondary"
@@ -364,9 +363,10 @@ export default function StudentsBillsPage() {
                 </Button>
 
                 <span className="px-4 py-2 text-sm text-gray-600">
-                  {language === "th"
-                    ? `หน้า ${currentPage} จาก ${totalPages}`
-                    : `Page ${currentPage} of ${totalPages}`}
+                  {language === 'th' ?
+                    `หน้า ${currentPage} จาก ${totalPages}` :
+                    `Page ${currentPage} of ${totalPages}`
+                  }
                 </span>
 
                 <Button

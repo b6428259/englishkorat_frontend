@@ -14,20 +14,11 @@ type ButtonProps = {
   type?: "button" | "submit" | "reset";
   className?: string;
   style?: React.CSSProperties;
-  size?: "xs" | "sm" | "md" | "lg";
-  variant?:
-    | "primary"
-    | "secondary"
-    | "outline"
-    | "link"
-    | "monthViewClicked"
-    | "monthView"
-    | "weekViewClicked"
-    | "weekView"
-    | "dayViewClicked"
-    | "dayView"
-    | "common";
+  size?: 'xs' | 'sm' | 'md' | 'lg';
+  variant?: 'primary' | 'secondary' | 'outline' | 'link' | 'monthViewClicked' | 'monthView'
+  | 'weekViewClicked' | 'weekView' | 'dayViewClicked' | 'dayView' | 'common' | 'cancel';
 };
+
 
 const Button = React.forwardRef<
   HTMLAnchorElement | HTMLButtonElement,
@@ -59,23 +50,18 @@ const Button = React.forwardRef<
     };
 
     const variants: Record<string, string> = {
-      primary:
-        "bg-[#334293] text-white hover:bg-[#EFE957] hover:text-[#334293]",
-      secondary: "bg-[#EFE957] text-[#334293] hover:bg-[#EFD157]",
-      outline:
-        "border-2 border-[#334293] text-[#334293] hover:bg-white hover:text-[#334293]",
-      link: "text-[#EFE957] hover:text-[#EFD157]",
-      monthViewClicked:
-        "rounded-lg bg-white text-black border-2 border-[#334293]",
-      monthView: "rounded-lg bg-white text-[#334293]",
-      weekViewClicked:
-        "rounded-lg bg-white text-black border-2 border-[#334293]",
-      weekView: "rounded-lg bg-white text-[#334293]",
-      dayViewClicked:
-        "rounded-lg bg-white text-black border-2 border-[#334293]",
-      dayView: "rounded-lg bg-white text-[#334293]",
-      common:
-        "rounded-lg bg-[#334293] text-white hover:bg-white hover:text-[#334293] hover:ring-1 hover:ring-[#334293]",
+      primary: 'rounded-lg bg-[#334293] text-white hover:bg-[#EFE957] hover:text-[#334293]',
+      secondary: 'bg-[#EFE957] text-[#334293] hover:bg-[#EFD157]',
+      outline: 'border-2 border-[#334293] text-[#334293] hover:bg-white hover:text-[#334293]',
+      link: 'text-[#EFE957] hover:text-[#EFD157]',
+      monthViewClicked: 'rounded-lg bg-white text-black border-2 border-[#334293]',
+      monthView: 'rounded-lg bg-white text-[#334293]',
+      weekViewClicked: 'rounded-lg bg-white text-black border-2 border-[#334293]',
+      weekView: 'rounded-lg bg-white text-[#334293]',
+      dayViewClicked: 'rounded-lg bg-white text-black border-2 border-[#334293]',
+      dayView: 'rounded-lg bg-white text-[#334293]',
+      common: 'rounded-lg bg-[#334293] text-white hover:bg-white hover:text-[#334293] hover:ring-1 hover:ring-[#334293]',
+      cancel: 'rounded-lg bg-red-600 text-white hover:bg-white hover:text-red-600 hover:ring-1 hover:ring-red-600',
     };
 
     const sizeClass = sizeVariants[size] || sizeVariants.md;
