@@ -4,6 +4,7 @@ import Button from "@/components/common/Button";
 import SidebarLayout from "@/components/common/SidebarLayout";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
+import Link from "next/link";
 import { useState } from "react";
 
 type PaymentType = "weekly" | "monthly";
@@ -117,7 +118,11 @@ export default function TeachersSalaryPage() {
                 <td className="px-2 py-1 w-auto whitespace-nowrap">
                   <div className="flex justify-center items-center gap-2">
                     <Button size="xs" variant="common">
-                      View
+                      <Link
+                        href={`/teachers/teachersSalary/salaryDetail/${teacher.id}`}
+                      >
+                        View
+                      </Link>
                     </Button>
                     <Button size="xs" variant="common">
                       Bill

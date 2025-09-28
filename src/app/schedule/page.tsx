@@ -32,6 +32,7 @@ import dynamic from "next/dynamic";
 import { SessionDetailModal } from "./components";
 import ModernScheduleModal from "./components/ModernScheduleModal";
 import MonthView from "./components/MonthView";
+import CompactDayViewModal from "./components/CompactDayViewModal";
 const ModernSessionsModal = dynamic(
   () =>
     import("./components/ModernSessionsModal").then(
@@ -132,6 +133,7 @@ const WeekView: React.FC<{
   const gap = density === "compact" ? "gap-1.5" : "gap-2";
   const cardPad = density === "compact" ? "p-2" : "p-3";
   const cardText = density === "compact" ? "text-[11px]" : "text-xs";
+
 
   return (
     <div className="min-h-0 flex flex-col bg-white rounded-xl overflow-hidden shadow-lg border border-gray-200">
@@ -523,6 +525,10 @@ export default function SchedulePage() {
       minute: now.getMinutes(),
     };
   });
+
+
+  // ปุ่มกระชับ
+  const [isCompactModalOpen, setIsCompactModalOpen] = useState(false);
 
   // Update current time every minute for realtime line
   useEffect(() => {
@@ -1197,7 +1203,7 @@ export default function SchedulePage() {
                       .toString()
                       .padStart(2, "0")}`}
               </div>
-              <Button
+              {/* <Button
                 variant={density === "compact" ? "weekViewClicked" : "weekView"}
                 onClick={() =>
                   setDensity(density === "compact" ? "comfortable" : "compact")
@@ -1211,7 +1217,24 @@ export default function SchedulePage() {
                   : density === "compact"
                   ? "Comfortable"
                   : "Compact"}
+              </Button> */}
+
+              <Button
+                variant={density === "compact" ? "weekViewClicked" : "weekView"}
+                onClick={() => setIsCompactModalOpen(true)}
+                className="px-4 py-1 text-sm"
+              >
+                {language === "th" ? "ภาพรวม" : "Overview"}
               </Button>
+
+              {isCompactModalOpen && (
+                <CompactDayViewModal
+                  date={currentDate}
+                  teachers={teachers}
+                  timeSlots={timeSlots}
+                  onClose={() => setIsCompactModalOpen(false)}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -1220,7 +1243,7 @@ export default function SchedulePage() {
         <div className="flex gap-4 flex-1 min-h-0">
           {/* Teacher Filters - Only show for day view */}
           {viewMode === "day" && (
-            <div className="w-64 bg-white border border-gray-200 rounded-lg p-3 flex flex-col flex-shrink-0">
+            <div className="w-48 h-280 bg-white border border-gray-200 rounded-lg p-3 flex flex-col flex-shrink-0">
               <h2 className="font-bold mb-3 text-[#334293] border-b border-[#334293] pb-2 text-sm">
                 {t.SelectTeachers}
               </h2>
@@ -1354,7 +1377,7 @@ export default function SchedulePage() {
                     <table className="w-full text-sm border-collapse">
                       <thead className="sticky top-0 z-20">
                         <tr>
-                          <th className="text-center font-bold text-white bg-gradient-to-br from-indigo-600 to-purple-700 border border-gray-300 p-3 text-sm min-w-[100px] sticky left-0 z-30 shadow-lg">
+                          <th className="text-center font-bold text-white bg-gradient-to-br from-indigo-600 to-purple-700 border border-gray-300 p-3 text-sm w-[70px] sticky left-0 z-30 shadow-lg">
                             {t.time}
                           </th>
                           {filteredTeachers.length === 0 ? (
@@ -1365,7 +1388,7 @@ export default function SchedulePage() {
                             filteredTeachers.map((teacher) => (
                               <th
                                 key={teacher.id}
-                                className={`text-center font-bold text-white border border-gray-300 p-3 text-sm min-w-[200px] bg-gradient-to-br from-indigo-600 to-purple-700`}
+                                className={`text-center font-bold text-white border border-gray-300 p-3 text-sm min-w-[90px] bg-gradient-to-br from-indigo-600 to-purple-700`}
                               >
                                 <div className="p-2">
                                   <div className="font-bold">
