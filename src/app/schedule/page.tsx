@@ -407,7 +407,7 @@ const timeSlots = Array.from({ length: (22 - 8) * 2 + 1 }, (_, i) => {
 
 export default function SchedulePage() {
   const { t, language } = useLanguage();
-  const [density, setDensity] = useState<"comfortable" | "compact">(
+  const [density] = useState<"comfortable" | "compact">(
     "comfortable"
   );
 
@@ -1231,7 +1231,6 @@ export default function SchedulePage() {
                 <CompactDayViewModal
                   date={currentDate}
                   teachers={teachers}
-                  timeSlots={timeSlots}
                   onClose={() => setIsCompactModalOpen(false)}
                 />
               )}

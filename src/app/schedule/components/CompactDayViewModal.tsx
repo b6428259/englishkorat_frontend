@@ -1,6 +1,34 @@
-import { useEffect } from "react";
+import React, { JSX, useEffect } from "react";
 
-export default function CompactDayViewModal({ date, teachers, onClose }) {
+type Session = {
+  start_time: string;
+  // add other session fields if needed
+};
+
+type Name = {
+  nickname_en?: string;
+  first_en?: string;
+  // add other name fields if needed
+};
+
+type Teacher = {
+  id: string | number;
+  name: Name;
+  sessions?: Session[];
+  // add other teacher fields if needed
+};
+
+type Props = {
+  date: string | Date;
+  teachers: Teacher[];
+  onClose: () => void;
+};
+
+export default function CompactDayViewModal({
+  date,
+  teachers,
+  onClose,
+}: Props): JSX.Element {
   useEffect(() => {
     // ปิด scroll ของ body ตอน modal เปิด
     document.body.style.overflow = "hidden";
@@ -9,6 +37,15 @@ export default function CompactDayViewModal({ date, teachers, onClose }) {
     };
   }, []);
 
+  // Close on Escape for better accessibility
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
   // Time slots (08:00 - 19:00 step 30 นาที)
   const timeSlots = Array.from({ length: (19 - 8 + 1) * 2 }, (_, i) => {
     const hour = 8 + Math.floor(i / 2);
@@ -16,20 +53,31 @@ export default function CompactDayViewModal({ date, teachers, onClose }) {
     return `${hour.toString().padStart(2, "0")}:${minute}`;
   });
 
+  // Ensure date is rendered as a string for React
+  const formattedDate = typeof date === "string" ? date : date.toLocaleDateString();
+
+  const handleOverlayKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+      e.preventDefault();
+      onClose();
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center">
       {/* พื้นหลังมืด */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-label="Close modal"
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
+        onKeyDown={handleOverlayKeyDown}
       ></div>
 
-      {/* กล่อง Modal */}
-      <div className="relative bg-white rounded-lg shadow-2xl w-[95%] max-w-[1600px] h-[90%] flex flex-col border border-gray-300 overflow-hidden z-[10000]">
-        {/* Header */}
         <div className="p-4 border-b flex justify-between items-center bg-gray-100">
           <h2 className="font-bold text-lg text-gray-800">
-            ตารางเรียน (Overview) วันที่ {date}
+            ตารางเรียน (Overview) วันที่ {formattedDate}
           </h2>
           <button
             className="text-white bg-red-500 hover:bg-red-600 px-3 py-1 rounded-md text-sm font-semibold"
@@ -38,7 +86,6 @@ export default function CompactDayViewModal({ date, teachers, onClose }) {
             ✕
           </button>
         </div>
-
         {/* ตาราง */}
         <div className="flex-1">
           <table className="w-full h-full border border-gray-400 border-collapse table-fixed text-[12px]">
@@ -84,6 +131,5 @@ export default function CompactDayViewModal({ date, teachers, onClose }) {
           </table>
         </div>
       </div>
-    </div>
   );
 }

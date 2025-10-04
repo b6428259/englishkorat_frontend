@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { playNotificationSound } from "@/lib/playNotificationSound";
 import {
   scheduleService,
   SessionDetailResponse,
@@ -47,38 +48,10 @@ export default function NotificationPopupModal({
   // Play notification sound when popup opens
   useEffect(() => {
     if (isOpen && notification && !viewingAccepted) {
-      playNotificationSound();
+      // fire-and-forget the async helper
+      void playNotificationSound();
     }
   }, [isOpen, notification, viewingAccepted]);
-
-  const playNotificationSound = () => {
-    try {
-      // Create a simple notification sound using Web Audio API
-      const audioContext = new (window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext })
-          .webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-      oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
-      oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
-
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(
-        0.01,
-        audioContext.currentTime + 0.3
-      );
-
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.3);
-    } catch (error) {
-      console.warn("Could not play notification sound:", error);
-    }
-  };
 
   const currentNotification = viewingAccepted || notification;
   if (!currentNotification) return null;

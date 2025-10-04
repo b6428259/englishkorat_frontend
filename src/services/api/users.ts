@@ -113,4 +113,15 @@ export const usersApi = {
     const response = await api.get(API_ENDPOINTS.USERS.PROFILE);
     return response.data;
   },
+
+  /**
+   * Update current user profile
+   */
+  updateProfile: async (userData: {
+    email?: string;
+    phone?: string;
+  }): Promise<UserResponse> => {
+    const response = await api.put(API_ENDPOINTS.USERS.PROFILE, userData);
+    return response.data;
+  },
 };

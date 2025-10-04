@@ -209,6 +209,37 @@ const SidebarComponent: React.FC<SidebarProps> = ({
 
   return (
     <>
+      {/* Expand/Collapse Button - fixed position relative to viewport */}
+      <button
+        onClick={handleToggleSidebar}
+        className="fixed p-2 rounded-full bg-white border border-gray-200 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer z-[60]"
+        style={{
+          left: expanded ? 280 : 80,
+          top: "50%",
+          transform: "translateY(-50%)",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+          transition: "left 0.3s ease-in-out",
+        }}
+        aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
+      >
+        <svg
+          className={`w-5 h-5 text-gray-600 transition-transform duration-300 ${
+            expanded ? "rotate-0" : "rotate-180"
+          }`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.08))" }}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15 19l-7-7 7-7"
+          />
+        </svg>
+      </button>
+
       <motion.aside
         initial={false}
         animate={{
@@ -295,31 +326,6 @@ const SidebarComponent: React.FC<SidebarProps> = ({
             })()}
           </SidebarLabel>
         </div>
-
-        {/* Expand/Collapse Button - vertical center, edge */}
-        <button
-          onClick={handleToggleSidebar}
-          className="absolute left-full top-1/2 -translate-y-1/2 p-2 rounded-full bg-white border border-gray-200 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer"
-          style={{ zIndex: 100, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}
-          aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
-        >
-          <svg
-            className={`w-5 h-5 text-gray-600 transition-transform duration-300 ${
-              expanded ? "rotate-0" : "rotate-180"
-            }`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.08))" }}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-        </button>
 
         {/* Navigation */}
         <nav

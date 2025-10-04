@@ -1,3 +1,4 @@
+import playNotificationSound from "@/lib/playNotificationSound";
 import { getSecureToken } from "@/utils/secureStorage";
 import {
   createContext,
@@ -572,6 +573,16 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         }
 
         lastOpenedNotificationIdRef.current = popupNotif.id;
+
+        // Play notification sound for popup (safe, non-blocking)
+        try {
+          // playNotificationSound already respects localStorage 'notificationSoundEnabled' setting
+          playNotificationSound().catch(() => {
+            /* ignore playback errors (autoplay policy etc.) */
+          });
+        } catch {
+          // swallow errors to avoid breaking notification flow
+        }
 
         // Auto-mark as read when popup is shown
         markAsRead(popupNotif.id).catch((error) => {
