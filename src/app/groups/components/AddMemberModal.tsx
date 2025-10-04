@@ -3,19 +3,9 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { groupService } from "@/services/api/groups";
-import { userService } from "@/services/user.service";
+import { Student, studentsApi } from "@/services/api/students";
 import { AddGroupMemberRequest, Group } from "@/types/group.types";
-import { useCallback, useEffect, useState } from "react";
-
-interface Student {
-  id: number;
-  username: string;
-  email: string;
-  first_name?: string;
-  last_name?: string;
-  nickname?: string;
-  role?: string;
-}
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface AddMemberModalProps {
   isOpen: boolean;
@@ -34,7 +24,6 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
 
   // State
   const [students, setStudents] = useState<Student[]>([]);
-  const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -44,35 +33,25 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
   >("pending");
   const [submitting, setSubmitting] = useState(false);
 
+  // Debounce timer ref
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
   // Load students on modal open
   const loadStudents = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Get all users and filter for students
-      const response = await userService.getUsers(1, 1000); // Get a large number to get all students
+      // Load all students using new API
+      const response = await studentsApi.getAllStudents();
 
-      if (response.success) {
-        // Filter for students who are not already in this group
-        const currentMemberIds = group.members?.map((m) => m.student_id) || [];
-        const availableStudents = response.data.users
-          .filter(
-            (user: Student) =>
-              user.role === "student" && !currentMemberIds.includes(user.id)
-          )
-          .map((user: Student) => ({
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            first_name: user.first_name,
-            last_name: user.last_name,
-            nickname: user.nickname,
-          }));
+      // Filter out students who are already in this group
+      const currentMemberIds = group.members?.map((m) => m.student_id) || [];
+      const availableStudents = response.filter(
+        (student) => !currentMemberIds.includes(student.id)
+      );
 
-        setStudents(availableStudents);
-        setFilteredStudents(availableStudents);
-      }
+      setStudents(availableStudents);
     } catch (err) {
       setError(
         language === "th"
@@ -85,33 +64,64 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
     }
   }, [group.members, language]);
 
+  // Initial load
   useEffect(() => {
     if (isOpen) {
       loadStudents();
+      setSearchTerm("");
+      setSelectedStudentId(0);
     }
   }, [isOpen, loadStudents]);
 
-  // Filter students based on search term
+  // Handle search with debounce
   useEffect(() => {
-    if (!searchTerm) {
-      setFilteredStudents(students);
-    } else {
-      const filtered = students.filter((student) => {
-        const searchLower = searchTerm.toLowerCase();
-        return (
-          student.username.toLowerCase().includes(searchLower) ||
-          student.email.toLowerCase().includes(searchLower) ||
-          (student.first_name &&
-            student.first_name.toLowerCase().includes(searchLower)) ||
-          (student.last_name &&
-            student.last_name.toLowerCase().includes(searchLower)) ||
-          (student.nickname &&
-            student.nickname.toLowerCase().includes(searchLower))
-        );
-      });
-      setFilteredStudents(filtered);
+    // Clear previous timer
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
     }
-  }, [searchTerm, students]);
+
+    // Set new timer
+    debounceTimer.current = setTimeout(async () => {
+      if (searchTerm) {
+        try {
+          setLoading(true);
+          setError(null);
+
+          // Call students API with search parameter
+          const response = await studentsApi.getAllStudents({
+            search: searchTerm,
+          });
+
+          // Filter out students who are already in this group
+          const currentMemberIds =
+            group.members?.map((m) => m.student_id) || [];
+          const availableStudents = response.filter(
+            (student) => !currentMemberIds.includes(student.id)
+          );
+
+          setStudents(availableStudents);
+        } catch (err) {
+          setError(
+            language === "th"
+              ? "ไม่สามารถโหลดรายชื่อนักเรียนได้"
+              : "Failed to load students"
+          );
+          console.error("Error loading students:", err);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        loadStudents();
+      }
+    }, 500);
+
+    // Cleanup
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, [searchTerm, group.members, language, loadStudents]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,17 +161,47 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
   };
 
   const getStudentDisplayName = (student: Student) => {
+    // Use Thai name (first_name + last_name)
     if (student.first_name && student.last_name) {
       return `${student.first_name} ${student.last_name}`;
     }
-    return student.username;
+    // Fallback to user.username if available
+    if (student.user?.username) {
+      return student.user.username;
+    }
+    return `Student #${student.id}`;
+  };
+
+  const getStudentNickname = (student: Student) => {
+    // Prefer Thai nickname
+    if (student.nickname_th) return student.nickname_th;
+    if (student.nickname_en) return student.nickname_en;
+    return null;
   };
 
   const getStudentSubtext = (student: Student) => {
     const parts = [];
-    if (student.nickname) parts.push(`(${student.nickname})`);
-    parts.push(student.email);
-    return parts.join(" ");
+    const nickname = getStudentNickname(student);
+    if (nickname) parts.push(`(${nickname})`);
+
+    // Add username if available
+    if (student.user?.username) {
+      parts.push(student.user.username);
+    }
+
+    // Add email
+    if (student.user?.email) {
+      parts.push(student.user.email);
+    } else if (student.email) {
+      parts.push(student.email);
+    }
+
+    // Add CEFR level
+    if (student.cefr_level) {
+      parts.push(`CEFR: ${student.cefr_level}`);
+    }
+
+    return parts.join(" • ");
   };
 
   if (!isOpen) return null;
@@ -211,47 +251,110 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
 
             {loading ? (
               <div className="flex items-center justify-center py-8">
-                <LoadingSpinner />
+                <div className="flex flex-col items-center gap-3">
+                  <LoadingSpinner />
+                  <p className="text-sm text-gray-500 animate-pulse">
+                    {language === "th" ? "กำลังโหลด..." : "Loading..."}
+                  </p>
+                </div>
               </div>
-            ) : filteredStudents.length === 0 ? (
+            ) : students.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                {students.length === 0
-                  ? language === "th"
+                <div className="mb-3 text-4xl">👥</div>
+                <p className="font-medium">
+                  {searchTerm
+                    ? language === "th"
+                      ? "ไม่พบนักเรียนที่ค้นหา"
+                      : "No students found"
+                    : language === "th"
                     ? "ไม่มีนักเรียนที่สามารถเพิ่มได้"
-                    : "No students available to add"
-                  : language === "th"
-                  ? "ไม่พบนักเรียนที่ค้นหา"
-                  : "No students found"}
+                    : "No students available to add"}
+                </p>
+                {searchTerm && (
+                  <p className="text-sm mt-2">
+                    {language === "th"
+                      ? "ลองค้นหาด้วยคำอื่น"
+                      : "Try searching with different keywords"}
+                  </p>
+                )}
               </div>
             ) : (
-              <div className="max-h-64 overflow-y-auto border border-gray-300 rounded-md">
-                {filteredStudents.map((student) => (
-                  <label
-                    key={student.id}
-                    className={`flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 ${
-                      selectedStudentId === student.id
-                        ? "bg-indigo-50 border-indigo-200"
-                        : ""
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="student"
-                      value={student.id}
-                      checked={selectedStudentId === student.id}
-                      onChange={() => setSelectedStudentId(student.id)}
-                      className="mr-3"
-                    />
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900">
-                        {getStudentDisplayName(student)}
+              <div className="max-h-64 overflow-y-auto border border-gray-300 rounded-md divide-y">
+                {students.map((student) => {
+                  const displayName = getStudentDisplayName(student);
+                  const subtext = getStudentSubtext(student);
+                  const isSelected = selectedStudentId === student.id;
+
+                  return (
+                    <label
+                      key={student.id}
+                      className={`flex items-center p-3 cursor-pointer transition-all duration-200 ${
+                        isSelected
+                          ? "bg-indigo-50 border-l-4 border-indigo-500"
+                          : "hover:bg-gray-50"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="student"
+                        value={student.id}
+                        checked={isSelected}
+                        onChange={() => setSelectedStudentId(student.id)}
+                        className="mr-3 text-indigo-600 focus:ring-indigo-500"
+                      />
+
+                      {/* Avatar */}
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-semibold mr-3 flex-shrink-0">
+                        {student.user?.avatar ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={`${
+                              process.env.NEXT_PUBLIC_API_URL ||
+                              "http://localhost:3000"
+                            }/${student.user.avatar}`}
+                            alt={displayName}
+                            className="w-full h-full rounded-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                              const initial = displayName
+                                .charAt(0)
+                                .toUpperCase();
+                              if (e.currentTarget.parentElement) {
+                                e.currentTarget.parentElement.textContent =
+                                  initial;
+                              }
+                            }}
+                          />
+                        ) : (
+                          displayName.charAt(0).toUpperCase()
+                        )}
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {getStudentSubtext(student)}
+
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-900 truncate">
+                          {displayName}
+                        </div>
+                        <div className="text-sm text-gray-500 truncate">
+                          {subtext}
+                        </div>
+
+                        {/* Additional info badges */}
+                        <div className="flex items-center gap-2 mt-1">
+                          {student.age_group && (
+                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                              {student.age_group}
+                            </span>
+                          )}
+                          {student.cefr_level && (
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                              {student.cefr_level}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </label>
-                ))}
+                    </label>
+                  );
+                })}
               </div>
             )}
           </div>

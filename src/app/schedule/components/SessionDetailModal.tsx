@@ -24,7 +24,7 @@ export default function SessionDetailModal({
   sessionId,
 }: SessionDetailModalProps) {
   const { language } = useLanguage();
-  
+
   const [sessionDetail, setSessionDetail] = useState<SessionDetail | null>(null);
   const [sessionComments, setSessionComments] = useState<SessionComment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -35,7 +35,7 @@ export default function SessionDetailModal({
 
   const fetchSessionDetail = async () => {
     if (!sessionId) return;
-    
+
     try {
       setIsLoading(true);
       const response = await scheduleService.getSessionDetail(sessionId.toString());
@@ -49,7 +49,7 @@ export default function SessionDetailModal({
 
   const fetchSessionComments = async () => {
     if (!sessionId) return;
-    
+
     try {
       setIsCommentsLoading(true);
       const response = await scheduleService.getSessionComments(sessionId);
@@ -78,7 +78,7 @@ export default function SessionDetailModal({
         session_id: sessionId,
         comment: newComment.trim(),
       };
-      
+
       await scheduleService.createSessionComment(commentData);
       setNewComment("");
       await fetchSessionComments();
@@ -93,35 +93,35 @@ export default function SessionDetailModal({
     const date = new Date(dateTime);
     return {
       date: date.toLocaleDateString(language === 'th' ? 'th-TH' : 'en-US'),
-      time: date.toLocaleTimeString(language === 'th' ? 'th-TH' : 'en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      time: date.toLocaleTimeString(language === 'th' ? 'th-TH' : 'en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
       })
     };
   };
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      confirmed: { 
-        variant: "success" as const, 
-        icon: CheckCircle, 
-        text: language === 'th' ? 'ยืนยันแล้ว' : 'Confirmed' 
+      confirmed: {
+        variant: "success" as const,
+        icon: CheckCircle,
+        text: language === 'th' ? 'ยืนยันแล้ว' : 'Confirmed'
       },
-      pending: { 
-        variant: "warning" as const, 
-        icon: Clock, 
-        text: language === 'th' ? 'รอการยืนยัน' : 'Pending' 
+      pending: {
+        variant: "warning" as const,
+        icon: Clock,
+        text: language === 'th' ? 'รอการยืนยัน' : 'Pending'
       },
-      cancelled: { 
-        variant: "destructive" as const, 
-        icon: XCircle, 
-        text: language === 'th' ? 'ยกเลิก' : 'Cancelled' 
+      cancelled: {
+        variant: "destructive" as const,
+        icon: XCircle,
+        text: language === 'th' ? 'ยกเลิก' : 'Cancelled'
       }
     };
-    
+
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
     const IconComponent = config.icon;
-    
+
     return (
       <Badge variant={config.variant} className="inline-flex items-center gap-1">
         <IconComponent className="h-3 w-3" />
@@ -171,7 +171,7 @@ export default function SessionDetailModal({
                       </h3>
                       {getStatusBadge(sessionDetail.status)}
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
                         <Calendar className="h-5 w-5 text-indigo-600" />
@@ -180,7 +180,7 @@ export default function SessionDetailModal({
                           <p className="font-medium text-gray-700">{formatDateTime(sessionDetail.session_date).date}</p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
                         <Clock className="h-5 w-5 text-indigo-600" />
                         <div>
@@ -190,7 +190,7 @@ export default function SessionDetailModal({
                           </p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
                         <MapPin className="h-5 w-5 text-indigo-600" />
                         <div>
@@ -198,7 +198,7 @@ export default function SessionDetailModal({
                           <p className="font-medium text-gray-700">{sessionDetail.room?.room_name}</p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
                         <Users className="h-5 w-5 text-indigo-600" />
                         <div>
@@ -219,22 +219,22 @@ export default function SessionDetailModal({
                         <User className="h-5 w-5 text-indigo-600" />
                         {language === 'th' ? 'ข้อมูลอาจารย์' : 'Teacher Information'}
                       </h4>
-                      
+
                       {sessionDetail.assigned_teacher && (
                         <div className="flex items-start gap-4">
                           <Avatar className="h-12 w-12">
-                            <AvatarImage 
-                              src={sessionDetail.assigned_teacher.avatar ? 
-                                `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/${sessionDetail.assigned_teacher.avatar}` : 
+                            <AvatarImage
+                              src={sessionDetail.assigned_teacher.avatar ?
+                                `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/${sessionDetail.assigned_teacher.avatar}` :
                                 undefined
-                              } 
-                              alt={sessionDetail.assigned_teacher.username} 
+                              }
+                              alt={sessionDetail.assigned_teacher.username}
                             />
                             <AvatarFallback className="bg-indigo-100 text-indigo-600 font-semibold">
                               {sessionDetail.assigned_teacher.username.charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
-                          
+
                           <div className="flex-1">
                             <p className="font-medium text-gray-900">{sessionDetail.assigned_teacher.username}</p>
                             <p className="text-sm text-gray-600">{sessionDetail.assigned_teacher.email}</p>
@@ -255,7 +255,7 @@ export default function SessionDetailModal({
                         <MapPin className="h-5 w-5 text-indigo-600" />
                         {language === 'th' ? 'ข้อมูลห้องเรียน' : 'Room Information'}
                       </h4>
-                      
+
                       {sessionDetail.room && (
                         <div className="space-y-3">
                           <div>
@@ -264,10 +264,10 @@ export default function SessionDetailModal({
                               {language === 'th' ? 'ความจุ' : 'Capacity'}: {sessionDetail.room.capacity} {language === 'th' ? 'คน' : 'people'}
                             </p>
                           </div>
-                          
+
                           {sessionDetail.room.equipment && sessionDetail.room.equipment.length > 0 && (
                             <div>
-                              <p className="text-sm font-medium text-gray-700 mb-2">
+                              <p className="text-sm font-medium text-gray-900 mb-2">
                                 {language === 'th' ? 'อุปกรณ์' : 'Equipment'}:
                               </p>
                               <div className="flex flex-wrap gap-1">
@@ -291,39 +291,39 @@ export default function SessionDetailModal({
                         <FileText className="h-5 w-5 text-indigo-600" />
                         {language === 'th' ? 'ข้อมูลตารางเรียน' : 'Schedule Information'}
                       </h4>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
                           <p className="text-sm text-black">{language === 'th' ? 'ชื่อตารางเรียน' : 'Schedule Name'}</p>
                           <p className="font-medium text-gray-700">{sessionDetail.schedule.schedule_name}</p>
                         </div>
-                        
+
                         <div>
                           <p className="text-sm text-black">{language === 'th' ? 'ประเภท' : 'Type'}</p>
                           <Badge variant="outline" className="text-gray-700">{sessionDetail.schedule.schedule_type}</Badge>
                         </div>
-                        
+
                         <div>
                           <p className="text-sm text-black">{language === 'th' ? 'รูปแบบ' : 'Pattern'}</p>
                           <p className="font-medium text-gray-700">{sessionDetail.schedule.recurring_pattern}</p>
                         </div>
-                        
+
                         <div>
                           <p className="text-sm text-black">{language === 'th' ? 'จำนวนชั่วโมงรวม' : 'Total Hours'}</p>
                           <p className="font-medium text-gray-700">{sessionDetail.schedule.total_hours} {language === 'th' ? 'ชั่วโมง' : 'hours'}</p>
                         </div>
-                        
+
                         <div>
                           <p className="text-sm text-black">{language === 'th' ? 'ชั่วโมงต่อครั้ง' : 'Hours per Session'}</p>
                           <p className="font-medium text-gray-700">{sessionDetail.schedule.hours_per_session} {language === 'th' ? 'ชั่วโมง' : 'hours'}</p>
                         </div>
-                        
+
                         <div>
                           <p className="text-sm text-black">{language === 'th' ? 'ครั้งต่อสัปดาห์' : 'Sessions per Week'}</p>
                           <p className="font-medium text-gray-700">{sessionDetail.schedule.session_per_week}</p>
                         </div>
                       </div>
-                      
+
                       {sessionDetail.schedule.notes && (
                         <div className="mt-4">
                           <p className="text-sm text-black mb-1">{language === 'th' ? 'หมายเหตุ' : 'Notes'}</p>
@@ -340,21 +340,21 @@ export default function SessionDetailModal({
                         <CheckCircle className="h-5 w-5 text-green-600" />
                         {language === 'th' ? 'ข้อมูลการยืนยัน' : 'Confirmation Details'}
                       </h4>
-                      
+
                       <div className="flex items-start gap-4">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage 
-                            src={sessionDetail.confirmed_by.avatar ? 
-                              `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/${sessionDetail.confirmed_by.avatar}` : 
+                          <AvatarImage
+                            src={sessionDetail.confirmed_by.avatar ?
+                              `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/${sessionDetail.confirmed_by.avatar}` :
                               undefined
-                            } 
-                            alt={sessionDetail.confirmed_by.username} 
+                            }
+                            alt={sessionDetail.confirmed_by.username}
                           />
                           <AvatarFallback className="bg-green-100 text-green-600 font-semibold">
                             {sessionDetail.confirmed_by.username.charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        
+
                         <div>
                           <p className="font-medium text-green-800">{sessionDetail.confirmed_by.username}</p>
                           <p className="text-sm text-green-600">
@@ -394,18 +394,18 @@ export default function SessionDetailModal({
                       <div key={comment.id} className="bg-white p-4 rounded-xl border border-gray-300 shadow-sm">
                         <div className="flex items-start gap-3">
                           <Avatar className="h-8 w-8">
-                            <AvatarImage 
-                              src={comment.user?.avatar ? 
-                                `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/${comment.user.avatar}` : 
+                            <AvatarImage
+                              src={comment.user?.avatar ?
+                                `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/${comment.user.avatar}` :
                                 undefined
-                              } 
-                              alt={comment.user?.username} 
+                              }
+                              alt={comment.user?.username}
                             />
                             <AvatarFallback className="bg-gray-100 text-gray-600 text-sm">
                               {comment.user?.username.charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
-                          
+
                           <div className="flex-1">
                             <div className="flex items-center justify-between mb-2">
                               <span className="font-medium text-gray-900">
@@ -430,9 +430,9 @@ export default function SessionDetailModal({
                   )}
                 </div>
               </div>
-              
+
               <Separator className="my-4" />
-              
+
               {/* Add Comment Section */}
               <div className="bg-gray-100 p-4 rounded-xl">
                 <div className="flex gap-3">

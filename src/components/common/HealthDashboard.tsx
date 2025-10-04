@@ -232,15 +232,15 @@ const HealthDashboard: React.FC<HealthDashboardProps> = ({ className }) => {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-blue-700">Allocated:</span>
-                  <span className="font-medium">{healthService.formatBytes(healthData.metrics.memory.alloc_bytes)}</span>
+                  <span className="font-medium text-gray-700">{healthService.formatBytes(healthData.metrics.memory.alloc_bytes)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-blue-700">System:</span>
-                  <span className="font-medium">{healthService.formatBytes(healthData.metrics.memory.sys_bytes)}</span>
+                  <span className="font-medium text-gray-700">{healthService.formatBytes(healthData.metrics.memory.sys_bytes)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-blue-700">Heap Objects:</span>
-                  <span className="font-medium">{healthData.metrics.memory.heap_objects.toLocaleString()}</span>
+                  <span className="font-medium text-gray-700">{healthData.metrics.memory.heap_objects.toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -259,11 +259,11 @@ const HealthDashboard: React.FC<HealthDashboardProps> = ({ className }) => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-green-700">In Use:</span>
-                  <span className="font-medium">{healthData.metrics.database.in_use}</span>
+                  <span className="font-medium text-gray-700">{healthData.metrics.database.in_use}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-green-700">Idle:</span>
-                  <span className="font-medium">{healthData.metrics.database.idle}</span>
+                  <span className="font-medium text-gray-700">{healthData.metrics.database.idle}</span>
                 </div>
               </div>
             </div>
@@ -276,15 +276,15 @@ const HealthDashboard: React.FC<HealthDashboardProps> = ({ className }) => {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-purple-700">Goroutines:</span>
-                  <span className="font-medium">{healthData.metrics.goroutines}</span>
+                  <span className="font-medium text-gray-700">{healthData.metrics.goroutines}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-purple-700">OS:</span>
-                  <span className="font-medium">{healthData.system.go_os}/{healthData.system.go_arch}</span>
+                  <span className="font-medium text-gray-700">{healthData.system.go_os}/{healthData.system.go_arch}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-purple-700">Go Version:</span>
-                  <span className="font-medium">{healthData.system.go_version}</span>
+                  <span className="font-medium text-gray-700">{healthData.system.go_version}</span>
                 </div>
               </div>
             </div>

@@ -17,7 +17,7 @@ const teachingHistory = [
 ];
 
 // ---- Helper: หาว่าสัปดาห์ไหน ----
-function getWeekKey(dateStr) {
+function getWeekKey(dateStr: string) {
   const d = new Date(dateStr);
   // year-weekNumber
   const firstDayOfYear = new Date(d.getFullYear(), 0, 1);
@@ -39,7 +39,7 @@ export default function SalaryDetailPage() {
   const history = teachingHistory.filter((h) => h.teacherId === teacherId);
 
   // group by week
-  const grouped = {};
+  const grouped: Record<string, typeof history> = {};
   history.forEach((h) => {
     const key = getWeekKey(h.date);
     if (!grouped[key]) grouped[key] = [];

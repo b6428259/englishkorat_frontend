@@ -9,7 +9,6 @@ import SidebarLayout from "../../components/common/SidebarLayout";
 import { useLanguage } from "../../contexts/LanguageContext";
 // import { ButtonGroup } from "@heroui/react";
 import CalendarLoading from "@/components/common/CalendarLoading";
-import { groupService } from "@/services/api/groups";
 import {
   CalendarSession,
   CalendarViewApiResponse as CalendarViewResponse,
@@ -22,7 +21,6 @@ import {
   TeacherOption,
   TeacherSession,
 } from "@/services/api/schedules";
-import { GroupOption } from "@/types/group.types";
 import {
   deriveScheduleFields,
   validateScheduleForm,
@@ -30,9 +28,9 @@ import {
 } from "@/utils/scheduleValidation";
 import dynamic from "next/dynamic";
 import { SessionDetailModal } from "./components";
-import ModernScheduleModal from "./components/ModernScheduleModal";
-import MonthView from "./components/MonthView";
 import CompactDayViewModal from "./components/CompactDayViewModal";
+import MonthView from "./components/MonthView";
+import ScheduleModalWrapper from "./components/ScheduleModalWrapper";
 const ModernSessionsModal = dynamic(
   () =>
     import("./components/ModernSessionsModal").then(
@@ -133,7 +131,6 @@ const WeekView: React.FC<{
   const gap = density === "compact" ? "gap-1.5" : "gap-2";
   const cardPad = density === "compact" ? "p-2" : "p-3";
   const cardText = density === "compact" ? "text-[11px]" : "text-xs";
-
 
   return (
     <div className="min-h-0 flex flex-col bg-white rounded-xl overflow-hidden shadow-lg border border-gray-200">
@@ -407,9 +404,7 @@ const timeSlots = Array.from({ length: (22 - 8) * 2 + 1 }, (_, i) => {
 
 export default function SchedulePage() {
   const { t, language } = useLanguage();
-  const [density] = useState<"comfortable" | "compact">(
-    "comfortable"
-  );
+  const [density] = useState<"comfortable" | "compact">("comfortable");
 
   // State management
   const [viewMode, setViewMode] = useState<"day" | "week" | "month">("day");
@@ -451,7 +446,6 @@ export default function SchedulePage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [teacherOptions, setTeacherOptions] = useState<TeacherOption[]>([]);
-  const [groups, setGroups] = useState<GroupOption[]>([]); // New: Groups for group-based scheduling
   const [schedules, setSchedules] = useState<
     Array<{ schedule_id: number; schedule_name: string; course_name: string }>
   >([]);
@@ -525,7 +519,6 @@ export default function SchedulePage() {
       minute: now.getMinutes(),
     };
   });
-
 
   // ปุ่มกระชับ
   const [isCompactModalOpen, setIsCompactModalOpen] = useState(false);
@@ -624,33 +617,27 @@ export default function SchedulePage() {
 
     try {
       setFormLoading(true);
-      const [
-        coursesRes,
-        roomsRes,
-        teachersRes,
-        schedulesRes,
-        studentsRes,
-        groupsRes,
-      ] = await Promise.all([
-        scheduleService.getCourses().catch(() => ({ success: true, data: [] })),
-        scheduleService.getRooms().catch(() => ({ success: true, data: [] })),
-        scheduleService
-          .getTeachers()
-          .catch(() => ({ success: true, data: [] })),
-        scheduleService
-          .getSchedules()
-          .catch(() => ({ success: true, data: [] })),
-        // Fetch users with student role - we'll filter students from all users for now
-        import("@/services/user.service")
-          .then((service) =>
-            service.userService
-              .getUsers(1, 1000)
-              .catch(() => ({ success: false, data: { users: [] } }))
-          )
-          .catch(() => ({ success: false, data: { users: [] } })),
-        // Fetch groups for group-based scheduling
-        groupService.getGroupOptions().catch(() => []),
-      ]);
+      const [coursesRes, roomsRes, teachersRes, schedulesRes, studentsRes] =
+        await Promise.all([
+          scheduleService
+            .getCourses()
+            .catch(() => ({ success: true, data: [] })),
+          scheduleService.getRooms().catch(() => ({ success: true, data: [] })),
+          scheduleService
+            .getTeachers()
+            .catch(() => ({ success: true, data: [] })),
+          scheduleService
+            .getSchedules()
+            .catch(() => ({ success: true, data: [] })),
+          // Fetch users with student role - we'll filter students from all users for now
+          import("@/services/user.service")
+            .then((service) =>
+              service.userService
+                .getUsers(1, 1000)
+                .catch(() => ({ success: false, data: { users: [] } }))
+            )
+            .catch(() => ({ success: false, data: { users: [] } })),
+        ]);
 
       console.log("courses:", coursesRes.data);
       if (coursesRes && coursesRes.success && Array.isArray(coursesRes.data))
@@ -668,6 +655,7 @@ export default function SchedulePage() {
       // Filter and set students from users data
       if (
         studentsRes &&
+        "success" in studentsRes &&
         studentsRes.success &&
         Array.isArray(studentsRes.data?.users)
       ) {
@@ -704,9 +692,6 @@ export default function SchedulePage() {
           );
         setStudents(studentUsers);
       }
-
-      // Set groups (groupsRes may be array or other)
-      setGroups(Array.isArray(groupsRes) ? groupsRes : groupsRes || []);
 
       setFormOptionsLoaded(true);
     } catch (err) {
@@ -920,20 +905,26 @@ export default function SchedulePage() {
     finalForm?: Partial<CreateScheduleRequest>
   ) => {
     try {
+      console.log("🚀 handleCreateSchedule STARTED");
       setFormLoading(true);
       setFormError(null);
 
       const formToValidate = finalForm || scheduleForm;
+      console.log("📋 Form to validate:", formToValidate);
 
       // Validate per new spec
       const issues = validateScheduleForm(formToValidate);
+      console.log("✅ Validation issues:", issues);
       if (issues.length > 0) {
-        setFormError(issues[0].message);
-        return;
+        const errorMsg = issues[0].message;
+        console.error("❌ Validation failed:", errorMsg);
+        setFormError(errorMsg);
+        throw new Error(errorMsg);
       }
 
       // Derive fields (estimated_end_date/total sessions)
       const derived = deriveScheduleFields(formToValidate);
+      console.log("📊 Derived fields:", derived);
       const payload: CreateScheduleRequest = {
         ...(formToValidate as CreateScheduleRequest),
         estimated_end_date: derived.estimated_end_date,
@@ -942,10 +933,25 @@ export default function SchedulePage() {
           formToValidate.auto_reschedule ??
           false,
       };
+      console.log("📦 Final API payload:", payload);
 
       // Use unified schedule creation per new spec
+      console.log("🌐 Calling API...");
       const response = await scheduleService.createSchedule(payload);
+      console.log("📡 API Response:", response);
       if (response && response.schedule) {
+        console.log("✅ Schedule created successfully!");
+
+        // Jump to the created schedule's start date
+        if (payload.start_date) {
+          const startDateStr =
+            typeof payload.start_date === "string"
+              ? payload.start_date.split("T")[0]
+              : new Date(payload.start_date).toISOString().split("T")[0];
+          setCurrentDate(startDateStr);
+          console.log("📅 Jumped to schedule start date:", startDateStr);
+        }
+
         setIsCreateModalOpen(false);
         await fetchData(); // Refresh the schedule data
         // Refresh form options to include new schedule
@@ -953,14 +959,17 @@ export default function SchedulePage() {
         await fetchFormOptions();
         // Show success message (you can add toast notification here)
       } else {
-        setFormError(
+        const errorMsg =
           response?.message ||
-            (language === "th"
-              ? "เกิดข้อผิดพลาดในการสร้างตารางเรียน"
-              : "Failed to create schedule")
-        );
+          (language === "th"
+            ? "เกิดข้อผิดพลาดในการสร้างตารางเรียน"
+            : "Failed to create schedule");
+        console.error("❌ API returned error:", errorMsg);
+        setFormError(errorMsg);
+        throw new Error(errorMsg);
       }
     } catch (err: unknown) {
+      console.error("💥 Exception caught:", err);
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       setFormError(
         errorMessage ||
@@ -968,7 +977,9 @@ export default function SchedulePage() {
             ? "เกิดข้อผิดพลาดในการสร้างตารางเรียน"
             : "Failed to create schedule")
       );
+      throw err; // Re-throw to propagate to modal
     } finally {
+      console.log("🏁 handleCreateSchedule FINISHED");
       setFormLoading(false);
     }
   };
@@ -1587,26 +1598,13 @@ export default function SchedulePage() {
       )}
 
       {isCreateModalOpen && (
-        <ModernScheduleModal
+        <ScheduleModalWrapper
           isOpen={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}
           onConfirm={handleCreateSchedule}
-          // Always start on the basic tab
-          initialTab="basic"
           courses={courses}
           rooms={rooms}
           teachers={teacherOptions}
-          groups={groups} // New: Pass groups for group-based scheduling
-          scheduleForm={scheduleForm} // pass current form state
-          updateForm={(updates) => {
-            console.log("Page updateForm called with:", updates);
-            setScheduleForm((prev) => {
-              console.log("Previous page scheduleForm:", prev);
-              const updated = { ...prev, ...updates };
-              console.log("Updated page scheduleForm:", updated);
-              return updated;
-            });
-          }} // provide update function
           isLoading={formLoading}
           error={formError}
         />

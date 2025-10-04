@@ -1,5 +1,5 @@
-import { api } from './base';
-import { API_ENDPOINTS } from './endpoints';
+import { api } from "./base";
+import { API_ENDPOINTS } from "./endpoints";
 
 // Student interfaces
 export interface Student {
@@ -14,7 +14,7 @@ export interface Student {
   date_of_birth: string;
   age: number;
   age_group?: string;
-  gender: 'male' | 'female' | 'other';
+  gender: "male" | "female" | "other";
   address?: string;
   citizen_id?: string;
   phone: string;
@@ -23,9 +23,9 @@ export interface Student {
   grade_level?: string;
   current_education?: string;
   cefr_level?: string;
-  preferred_language?: 'english' | 'chinese';
+  preferred_language?: "english" | "chinese";
   language_level?: string;
-  learning_style?: 'private' | 'pair' | 'group';
+  learning_style?: "private" | "pair" | "group";
   recent_cefr?: string;
   selected_courses?: number[];
   learning_goals?: string;
@@ -44,8 +44,12 @@ export interface Student {
   listening_score?: number;
   reading_score?: number;
   writing_score?: number;
-  registration_status: 'pending_review' | 'schedule_exam' | 'waiting_for_group' | 'active';
-  registration_type: 'quick' | 'full';
+  registration_status:
+    | "pending_review"
+    | "schedule_exam"
+    | "waiting_for_group"
+    | "active";
+  registration_type: "quick" | "full";
   learning_preferences?: string;
   preferred_teacher_type?: string;
   contact_source?: string;
@@ -110,7 +114,7 @@ export interface BasicInformation {
   nickname_th: string;
   nickname_en: string;
   date_of_birth: string;
-  gender: 'male' | 'female' | 'other';
+  gender: "male" | "female" | "other";
 }
 
 export interface ContactInformation {
@@ -127,9 +131,9 @@ export interface FullInformation {
   last_name_en?: string;
   current_education: string;
   preferred_branch: number;
-  preferred_language: 'english' | 'chinese';
+  preferred_language: "english" | "chinese";
   language_level: string;
-  learning_style: 'private' | 'pair' | 'group';
+  learning_style: "private" | "pair" | "group";
   recent_cefr: string;
   selected_courses?: number[];
   learning_goals?: string;
@@ -141,7 +145,7 @@ export interface FullInformation {
 }
 
 export interface StudentRegistrationRequest {
-  registration_type: 'quick' | 'full';
+  registration_type: "quick" | "full";
   basic_information: BasicInformation;
   contact_information: ContactInformation;
   full_information?: FullInformation;
@@ -152,8 +156,8 @@ export interface StudentRegistrationResponse {
   message: string;
   data: {
     student_id: number;
-    registration_status: 'pending_review';
-    registration_type: 'quick' | 'full';
+    registration_status: "pending_review";
+    registration_type: "quick" | "full";
   };
 }
 
@@ -185,16 +189,16 @@ export interface CreateStudentRequest {
   nickname_th: string;
   nickname_en: string;
   date_of_birth: string;
-  gender: 'male' | 'female' | 'other';
+  gender: "male" | "female" | "other";
   citizen_id: string;
   phone: string;
   email?: string;
   line_id: string;
   address?: string;
   current_education: string;
-  preferred_language: 'english' | 'chinese';
+  preferred_language: "english" | "chinese";
   language_level: string;
-  learning_style: 'private' | 'pair' | 'group';
+  learning_style: "private" | "pair" | "group";
   recent_cefr: string;
   selected_courses?: number[];
   learning_goals?: string;
@@ -213,16 +217,16 @@ export interface UpdateStudentRequest {
   nickname_th?: string;
   nickname_en?: string;
   date_of_birth?: string;
-  gender?: 'male' | 'female' | 'other';
+  gender?: "male" | "female" | "other";
   citizen_id?: string;
   phone?: string;
   email?: string;
   line_id?: string;
   address?: string;
   current_education?: string;
-  preferred_language?: 'english' | 'chinese';
+  preferred_language?: "english" | "chinese";
   language_level?: string;
-  learning_style?: 'private' | 'pair' | 'group';
+  learning_style?: "private" | "pair" | "group";
   recent_cefr?: string;
   selected_courses?: number[];
   learning_goals?: string;
@@ -231,7 +235,11 @@ export interface UpdateStudentRequest {
   unavailable_time_slots?: TimeSlot[];
   emergency_contact?: string;
   emergency_phone?: string;
-  registration_status?: 'pending_review' | 'schedule_exam' | 'waiting_for_group' | 'active';
+  registration_status?:
+    | "pending_review"
+    | "schedule_exam"
+    | "waiting_for_group"
+    | "active";
 }
 
 export interface ExamScoresRequest {
@@ -253,9 +261,9 @@ export interface StudentsByStatusResponse {
 
 // Helper function to normalize student data from API response
 const normalizeStudent = (raw: Record<string, unknown>): Student => {
-  const asString = (value: unknown): string | undefined => 
+  const asString = (value: unknown): string | undefined =>
     value !== null && value !== undefined ? String(value) : undefined;
-  
+
   const asNumber = (value: unknown): number | undefined => {
     const num = Number(value);
     return !isNaN(num) ? num : undefined;
@@ -269,29 +277,33 @@ const normalizeStudent = (raw: Record<string, unknown>): Student => {
   return {
     id: asNumber(raw.id) ?? 0,
     user_id: asNumber(raw.user_id),
-    first_name: asString(raw.first_name) ?? '',
-    last_name: asString(raw.last_name) ?? '',
+    first_name: asString(raw.first_name) ?? "",
+    last_name: asString(raw.last_name) ?? "",
     first_name_en: asString(raw.first_name_en),
     last_name_en: asString(raw.last_name_en),
-    nickname_th: asString(raw.nickname_th) ?? '',
-    nickname_en: asString(raw.nickname_en) ?? '',
-    date_of_birth: asString(raw.date_of_birth) ?? '',
+    nickname_th: asString(raw.nickname_th) ?? "",
+    nickname_en: asString(raw.nickname_en) ?? "",
+    date_of_birth: asString(raw.date_of_birth) ?? "",
     age: asNumber(raw.age) ?? 0,
     age_group: asString(raw.age_group),
-    gender: (asString(raw.gender) as Student['gender']) ?? 'other',
+    gender: (asString(raw.gender) as Student["gender"]) ?? "other",
     address: asString(raw.address),
     citizen_id: asString(raw.citizen_id),
-    phone: asString(raw.phone) ?? '',
+    phone: asString(raw.phone) ?? "",
     email: asString(raw.email),
-    line_id: asString(raw.line_id) ?? '',
+    line_id: asString(raw.line_id) ?? "",
     grade_level: asString(raw.grade_level),
     current_education: asString(raw.current_education),
     cefr_level: asString(raw.cefr_level),
-    preferred_language: asString(raw.preferred_language) as Student['preferred_language'],
+    preferred_language: asString(
+      raw.preferred_language
+    ) as Student["preferred_language"],
     language_level: asString(raw.language_level),
-    learning_style: asString(raw.learning_style) as Student['learning_style'],
+    learning_style: asString(raw.learning_style) as Student["learning_style"],
     recent_cefr: asString(raw.recent_cefr),
-    selected_courses: Array.isArray(raw.selected_courses) ? raw.selected_courses : [],
+    selected_courses: Array.isArray(raw.selected_courses)
+      ? raw.selected_courses
+      : [],
     learning_goals: asString(raw.learning_goals),
     preferred_branch_id: asNumber(raw.preferred_branch_id),
     teacher_type: asString(raw.teacher_type),
@@ -299,12 +311,24 @@ const normalizeStudent = (raw: Record<string, unknown>): Student => {
     parent_phone: asString(raw.parent_phone),
     emergency_contact: asString(raw.emergency_contact),
     emergency_phone: asString(raw.emergency_phone),
-    preferred_time_slots: Array.isArray(raw.preferred_time_slots) ? raw.preferred_time_slots : [],
-    unavailable_time_slots: Array.isArray(raw.unavailable_time_slots) ? raw.unavailable_time_slots : [],
-    availability_schedule: Array.isArray(raw.availability_schedule) ? raw.availability_schedule : null,
-    unavailable_times: Array.isArray(raw.unavailable_times) ? raw.unavailable_times : null,
-    registration_status: (asString(raw.registration_status) as Student['registration_status']) ?? 'pending_review',
-    registration_type: (asString(raw.registration_type) as Student['registration_type']) ?? 'full',
+    preferred_time_slots: Array.isArray(raw.preferred_time_slots)
+      ? raw.preferred_time_slots
+      : [],
+    unavailable_time_slots: Array.isArray(raw.unavailable_time_slots)
+      ? raw.unavailable_time_slots
+      : [],
+    availability_schedule: Array.isArray(raw.availability_schedule)
+      ? raw.availability_schedule
+      : null,
+    unavailable_times: Array.isArray(raw.unavailable_times)
+      ? raw.unavailable_times
+      : null,
+    registration_status:
+      (asString(raw.registration_status) as Student["registration_status"]) ??
+      "pending_review",
+    registration_type:
+      (asString(raw.registration_type) as Student["registration_type"]) ??
+      "full",
     learning_preferences: asString(raw.learning_preferences),
     preferred_teacher_type: asString(raw.preferred_teacher_type),
     contact_source: asString(raw.contact_source),
@@ -322,90 +346,288 @@ const normalizeStudent = (raw: Record<string, unknown>): Student => {
     updated_at: asString(raw.updated_at),
     deleted_at: asString(raw.deleted_at),
     // Handle nested objects
-    user: raw.user ? {
-      id: asNumber((raw.user as Record<string, unknown>).id) ?? 0,
-      username: asString((raw.user as Record<string, unknown>).username) ?? '',
-      email: asString((raw.user as Record<string, unknown>).email) ?? '',
-      phone: asString((raw.user as Record<string, unknown>).phone) ?? '',
-      line_id: asString((raw.user as Record<string, unknown>).line_id) ?? '',
-      role: asString((raw.user as Record<string, unknown>).role) ?? '',
-      branch_id: asNumber((raw.user as Record<string, unknown>).branch_id) ?? 0,
-      status: asString((raw.user as Record<string, unknown>).status) ?? '',
-      avatar: asString((raw.user as Record<string, unknown>).avatar),
-      created_at: asString((raw.user as Record<string, unknown>).created_at) ?? '',
-      updated_at: asString((raw.user as Record<string, unknown>).updated_at) ?? '',
-      branch: (raw.user as Record<string, unknown>).branch ? {
-        id: asNumber(((raw.user as Record<string, unknown>).branch as Record<string, unknown>).id) ?? 0,
-        name_en: asString(((raw.user as Record<string, unknown>).branch as Record<string, unknown>).name_en) ?? '',
-        name_th: asString(((raw.user as Record<string, unknown>).branch as Record<string, unknown>).name_th) ?? '',
-        code: asString(((raw.user as Record<string, unknown>).branch as Record<string, unknown>).code) ?? '',
-        address: asString(((raw.user as Record<string, unknown>).branch as Record<string, unknown>).address) ?? '',
-        phone: asString(((raw.user as Record<string, unknown>).branch as Record<string, unknown>).phone) ?? '',
-        type: asString(((raw.user as Record<string, unknown>).branch as Record<string, unknown>).type) ?? '',
-        active: asBoolean(((raw.user as Record<string, unknown>).branch as Record<string, unknown>).active) ?? false,
-        created_at: asString(((raw.user as Record<string, unknown>).branch as Record<string, unknown>).created_at) ?? '',
-        updated_at: asString(((raw.user as Record<string, unknown>).branch as Record<string, unknown>).updated_at) ?? '',
-      } : undefined,
-    } : undefined,
-    preferred_branch: raw.preferred_branch ? {
-      id: asNumber((raw.preferred_branch as Record<string, unknown>).id) ?? 0,
-      name_en: asString((raw.preferred_branch as Record<string, unknown>).name_en) ?? '',
-      name_th: asString((raw.preferred_branch as Record<string, unknown>).name_th) ?? '',
-      code: asString((raw.preferred_branch as Record<string, unknown>).code) ?? '',
-      address: asString((raw.preferred_branch as Record<string, unknown>).address) ?? '',
-      phone: asString((raw.preferred_branch as Record<string, unknown>).phone) ?? '',
-      type: asString((raw.preferred_branch as Record<string, unknown>).type) ?? '',
-      active: asBoolean((raw.preferred_branch as Record<string, unknown>).active) ?? false,
-      created_at: asString((raw.preferred_branch as Record<string, unknown>).created_at) ?? '',
-      updated_at: asString((raw.preferred_branch as Record<string, unknown>).updated_at) ?? '',
-    } : undefined,
+    user: raw.user
+      ? {
+          id: asNumber((raw.user as Record<string, unknown>).id) ?? 0,
+          username:
+            asString((raw.user as Record<string, unknown>).username) ?? "",
+          email: asString((raw.user as Record<string, unknown>).email) ?? "",
+          phone: asString((raw.user as Record<string, unknown>).phone) ?? "",
+          line_id:
+            asString((raw.user as Record<string, unknown>).line_id) ?? "",
+          role: asString((raw.user as Record<string, unknown>).role) ?? "",
+          branch_id:
+            asNumber((raw.user as Record<string, unknown>).branch_id) ?? 0,
+          status: asString((raw.user as Record<string, unknown>).status) ?? "",
+          avatar: asString((raw.user as Record<string, unknown>).avatar),
+          created_at:
+            asString((raw.user as Record<string, unknown>).created_at) ?? "",
+          updated_at:
+            asString((raw.user as Record<string, unknown>).updated_at) ?? "",
+          branch: (raw.user as Record<string, unknown>).branch
+            ? {
+                id:
+                  asNumber(
+                    (
+                      (raw.user as Record<string, unknown>).branch as Record<
+                        string,
+                        unknown
+                      >
+                    ).id
+                  ) ?? 0,
+                name_en:
+                  asString(
+                    (
+                      (raw.user as Record<string, unknown>).branch as Record<
+                        string,
+                        unknown
+                      >
+                    ).name_en
+                  ) ?? "",
+                name_th:
+                  asString(
+                    (
+                      (raw.user as Record<string, unknown>).branch as Record<
+                        string,
+                        unknown
+                      >
+                    ).name_th
+                  ) ?? "",
+                code:
+                  asString(
+                    (
+                      (raw.user as Record<string, unknown>).branch as Record<
+                        string,
+                        unknown
+                      >
+                    ).code
+                  ) ?? "",
+                address:
+                  asString(
+                    (
+                      (raw.user as Record<string, unknown>).branch as Record<
+                        string,
+                        unknown
+                      >
+                    ).address
+                  ) ?? "",
+                phone:
+                  asString(
+                    (
+                      (raw.user as Record<string, unknown>).branch as Record<
+                        string,
+                        unknown
+                      >
+                    ).phone
+                  ) ?? "",
+                type:
+                  asString(
+                    (
+                      (raw.user as Record<string, unknown>).branch as Record<
+                        string,
+                        unknown
+                      >
+                    ).type
+                  ) ?? "",
+                active:
+                  asBoolean(
+                    (
+                      (raw.user as Record<string, unknown>).branch as Record<
+                        string,
+                        unknown
+                      >
+                    ).active
+                  ) ?? false,
+                created_at:
+                  asString(
+                    (
+                      (raw.user as Record<string, unknown>).branch as Record<
+                        string,
+                        unknown
+                      >
+                    ).created_at
+                  ) ?? "",
+                updated_at:
+                  asString(
+                    (
+                      (raw.user as Record<string, unknown>).branch as Record<
+                        string,
+                        unknown
+                      >
+                    ).updated_at
+                  ) ?? "",
+              }
+            : undefined,
+        }
+      : undefined,
+    preferred_branch: raw.preferred_branch
+      ? {
+          id:
+            asNumber((raw.preferred_branch as Record<string, unknown>).id) ?? 0,
+          name_en:
+            asString(
+              (raw.preferred_branch as Record<string, unknown>).name_en
+            ) ?? "",
+          name_th:
+            asString(
+              (raw.preferred_branch as Record<string, unknown>).name_th
+            ) ?? "",
+          code:
+            asString((raw.preferred_branch as Record<string, unknown>).code) ??
+            "",
+          address:
+            asString(
+              (raw.preferred_branch as Record<string, unknown>).address
+            ) ?? "",
+          phone:
+            asString((raw.preferred_branch as Record<string, unknown>).phone) ??
+            "",
+          type:
+            asString((raw.preferred_branch as Record<string, unknown>).type) ??
+            "",
+          active:
+            asBoolean(
+              (raw.preferred_branch as Record<string, unknown>).active
+            ) ?? false,
+          created_at:
+            asString(
+              (raw.preferred_branch as Record<string, unknown>).created_at
+            ) ?? "",
+          updated_at:
+            asString(
+              (raw.preferred_branch as Record<string, unknown>).updated_at
+            ) ?? "",
+        }
+      : undefined,
   };
 };
+
+// New response interface matching API structure
+export interface StudentsApiResponse {
+  students: Student[];
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
+}
+
+// Filter parameters for students API
+export interface StudentsFilterParams {
+  page?: number;
+  limit?: number;
+  age_group?: "kids" | "teens" | "adults";
+  cefr_level?: "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+  branch_id?: number;
+  search?: string;
+  status?: string;
+}
 
 export const studentsApi = {
   /**
    * Register new student (public endpoint)
    */
-  registerStudent: async (registrationData: StudentRegistrationRequest): Promise<StudentRegistrationResponse> => {
-    const response = await api.post(API_ENDPOINTS.STUDENTS.REGISTER, registrationData);
+  registerStudent: async (
+    registrationData: StudentRegistrationRequest
+  ): Promise<StudentRegistrationResponse> => {
+    const response = await api.post(
+      API_ENDPOINTS.STUDENTS.REGISTER,
+      registrationData
+    );
     return response.data;
   },
 
   /**
-   * Get list of all students with pagination (admin only)
+   * Get list of students with optional filters
+   * All query parameters are optional
+   * @param params - Optional filter parameters (page, limit, age_group, cefr_level, branch_id, search, status)
+   * @returns Promise<StudentsApiResponse> - Direct API response structure
    */
-  getStudents: async (params?: {
+  getStudents: async (
+    params?: StudentsFilterParams
+  ): Promise<StudentsApiResponse> => {
+    const queryParams: Record<string, string> = {};
+
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams[key] = String(value);
+        }
+      });
+    }
+
+    const response = await api.get(API_ENDPOINTS.STUDENTS.LIST, {
+      params: queryParams,
+    });
+    const data = response.data;
+
+    // Normalize students data
+    const students = (data.students || []).map(normalizeStudent);
+
+    return {
+      students,
+      page: data.page || 1,
+      limit: data.limit || 10,
+      total: data.total || 0,
+      total_pages: data.total_pages || 0,
+    };
+  },
+
+  /**
+   * Get all students (load all pages automatically)
+   * @param filters - Optional filter parameters (age_group, cefr_level, branch_id, search, status)
+   * @returns Promise<Student[]> - Array of all students
+   */
+  getAllStudents: async (
+    filters?: Omit<StudentsFilterParams, "page" | "limit">
+  ): Promise<Student[]> => {
+    let allStudents: Student[] = [];
+    let currentPage = 1;
+    const limit = 100; // Load 100 students per page
+
+    while (true) {
+      const response = await studentsApi.getStudents({
+        ...filters,
+        page: currentPage,
+        limit,
+      });
+
+      allStudents = [...allStudents, ...response.students];
+
+      // Check if we've loaded all students
+      if (
+        response.students.length < limit ||
+        allStudents.length >= response.total
+      ) {
+        break;
+      }
+
+      currentPage++;
+    }
+
+    return allStudents;
+  },
+
+  /**
+   * Legacy method - kept for backward compatibility
+   * @deprecated Use getStudents() instead
+   */
+  getStudentsList: async (params?: {
     page?: number;
     limit?: number;
     search?: string;
     status?: string;
   }): Promise<StudentsListResponse> => {
-    const queryParams = new URLSearchParams();
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          queryParams.append(key, value.toString());
-        }
-      });
-    }
-    
-    const url = queryParams.toString() 
-      ? `${API_ENDPOINTS.STUDENTS.LIST}?${queryParams}`
-      : API_ENDPOINTS.STUDENTS.LIST;
-      
-    const response = await api.get(url);
-    const data = response.data || {};
-    const raw = data.data || {};
-    
+    const response = await studentsApi.getStudents(params);
+
     return {
-      success: data.success ?? true,
+      success: true,
       data: {
-        students: (raw.students || []).map(normalizeStudent),
-        pagination: raw.pagination || {
-          current_page: 1,
-          per_page: 10,
-          total: 0,
-          total_pages: 0,
+        students: response.students,
+        pagination: {
+          current_page: response.page,
+          per_page: response.limit,
+          total: response.total,
+          total_pages: response.total_pages,
         },
       },
     };
@@ -415,7 +637,7 @@ export const studentsApi = {
    * Get students by registration status
    */
   getStudentsByStatus: async (
-    status: 'pending_review' | 'schedule_exam' | 'waiting_for_group' | 'active',
+    status: "pending_review" | "schedule_exam" | "waiting_for_group" | "active",
     params?: {
       page?: number;
       limit?: number;
@@ -429,14 +651,14 @@ export const studentsApi = {
         }
       });
     }
-    
-    const url = queryParams.toString() 
+
+    const url = queryParams.toString()
       ? `${API_ENDPOINTS.STUDENTS.BY_STATUS(status)}?${queryParams}`
       : API_ENDPOINTS.STUDENTS.BY_STATUS(status);
-      
+
     const response = await api.get(url);
     const data = response.data || {};
-    
+
     return {
       students: (data.students || []).map(normalizeStudent),
       status: data.status || status,
@@ -454,7 +676,7 @@ export const studentsApi = {
     const response = await api.get(API_ENDPOINTS.STUDENTS.GET_BY_ID(id));
     const data = response.data || {};
     const raw = data.student ?? data.data?.student ?? data;
-    
+
     return {
       success: data.success ?? true,
       data: {
@@ -466,11 +688,13 @@ export const studentsApi = {
   /**
    * Create new student (admin only)
    */
-  createStudent: async (studentData: CreateStudentRequest): Promise<StudentResponse> => {
+  createStudent: async (
+    studentData: CreateStudentRequest
+  ): Promise<StudentResponse> => {
     const response = await api.post(API_ENDPOINTS.STUDENTS.CREATE, studentData);
     const data = response.data || {};
     const raw = data.student ?? data.data?.student ?? data;
-    
+
     return {
       success: data.success ?? true,
       data: {
@@ -482,11 +706,17 @@ export const studentsApi = {
   /**
    * Update student by ID (admin only)
    */
-  updateStudent: async (id: string, studentData: UpdateStudentRequest): Promise<StudentResponse> => {
-    const response = await api.patch(API_ENDPOINTS.STUDENTS.UPDATE(id), studentData);
+  updateStudent: async (
+    id: string,
+    studentData: UpdateStudentRequest
+  ): Promise<StudentResponse> => {
+    const response = await api.patch(
+      API_ENDPOINTS.STUDENTS.UPDATE(id),
+      studentData
+    );
     const data = response.data || {};
     const raw = data.student ?? data.data?.student ?? data;
-    
+
     return {
       success: data.success ?? true,
       data: {
@@ -498,7 +728,9 @@ export const studentsApi = {
   /**
    * Delete student by ID (admin only)
    */
-  deleteStudent: async (id: string): Promise<{ success: boolean; message: string }> => {
+  deleteStudent: async (
+    id: string
+  ): Promise<{ success: boolean; message: string }> => {
     const response = await api.delete(API_ENDPOINTS.STUDENTS.DELETE(id));
     return response.data;
   },
@@ -506,11 +738,17 @@ export const studentsApi = {
   /**
    * Record exam scores for student
    */
-  recordExamScores: async (id: string, scores: ExamScoresRequest): Promise<StudentResponse> => {
-    const response = await api.post(API_ENDPOINTS.STUDENTS.EXAM_SCORES(id), scores);
+  recordExamScores: async (
+    id: string,
+    scores: ExamScoresRequest
+  ): Promise<StudentResponse> => {
+    const response = await api.post(
+      API_ENDPOINTS.STUDENTS.EXAM_SCORES(id),
+      scores
+    );
     const data = response.data || {};
     const raw = data.student ?? data.data?.student ?? data;
-    
+
     return {
       success: data.success ?? true,
       data: {

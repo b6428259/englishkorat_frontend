@@ -25,6 +25,8 @@ export const SCHEDULE_ENDPOINTS_EXTENDED = {
   COMMENTS: "/schedules/comments",
   TEACHERS_SCHEDULE: "/schedules/teachers",
   PARTICIPATE: (id: string) => `/schedules/${id}/participants/me`,
+  CHECK_ROOM_CONFLICT: "/schedules/rooms/check-conflicts",
+  PREVIEW: "/schedules/preview",
 } as const;
 // Session detail response interfaces
 export interface SessionDetailUser {
@@ -353,15 +355,16 @@ export interface ScheduleListApiResponse {
 
 // Create schedule request interface
 export interface CreateScheduleInput {
-  course_id: number;
+  course_id?: number; // Optional for non-class types
   teacher_id?: number;
   room_id?: number;
   // New canonical fields
   default_teacher_id?: number;
   default_room_id?: number;
+  branch_id?: number; // Branch ID
   schedule_name: string;
-  total_hours: number;
-  hours_per_session?: number;
+  total_hours?: number; // Required for class schedules
+  hours_per_session?: number; // Required for class schedules
   // New spec fields
   schedule_type?:
     | "class"
@@ -370,7 +373,7 @@ export interface CreateScheduleInput {
     | "holiday"
     | "appointment"
     | "personal";
-  // For class schedules, associate to a group
+  // For class schedules, associate to a group (REQUIRED for class)
   group_id?: number;
   recurring_pattern?:
     | "none"
@@ -385,11 +388,16 @@ export interface CreateScheduleInput {
   max_students?: number;
   start_date: string;
   estimated_end_date?: string;
-  session_start_time?: string; // HH:MM
+  session_start_time?: string; // HH:MM - for single-slot weekly (legacy)
+  // For multi-slot weekly classes (Case 2)
+  session_times?: Array<{
+    weekday: number; // 0 (Sunday) through 6 (Saturday)
+    start_time: string; // HH:MM
+  }>;
   // For event/appointment schedules, specify participants
   participant_user_ids?: number[];
   custom_recurring_days?: number[]; // 1-7 for Mon-Sun
-  time_slots: Array<{
+  time_slots?: Array<{
     day_of_week: string;
     start_time: string;
     end_time: string;
@@ -486,6 +494,146 @@ export interface Room {
   room_name: string;
   capacity: number;
   branch_id: number;
+}
+
+// Room conflict check types
+export interface RoomConflictDetail {
+  room_id: number;
+  existing_room_id: number;
+  session_id: number;
+  schedule_id: number;
+  schedule_name: string;
+  session_date: string;
+  start_time: string;
+  end_time: string;
+}
+
+export interface RoomConflictInfo {
+  room_id: number;
+  conflicts: RoomConflictDetail[];
+}
+
+export interface CheckRoomConflictRequest {
+  room_ids: number[];
+  branch_id: number;
+  recurring_pattern: string;
+  total_hours: number;
+  hours_per_session: number;
+  session_per_week: number;
+  start_date: string;
+  estimated_end_date?: string;
+  session_times?: Array<{ weekday: number; start_time: string }>;
+  session_start_time?: string;
+  exclude_schedule_id?: number;
+}
+
+export interface CheckRoomConflictResponse {
+  has_conflict: boolean;
+  checked_room_ids: number[];
+  conflicts: RoomConflictDetail[];
+  rooms: RoomConflictInfo[];
+}
+
+// Schedule Preview (Dry Run) Types
+export interface PreviewIssue {
+  severity: "error" | "warning";
+  code: string;
+  message: string;
+  details?: unknown;
+}
+
+export interface PreviewSession {
+  session_number: number;
+  week_number: number;
+  date: string;
+  start_time: string;
+  end_time: string;
+  notes?: string;
+}
+
+export interface HolidayImpact {
+  session_number: number;
+  date: string;
+  holiday_name?: string;
+  shifted_to: string;
+  was_rescheduled: boolean;
+}
+
+export interface PreviewConflictDetail {
+  schedule_id: number;
+  schedule_name: string;
+  session_id: number;
+  session_date: string;
+  start_time: string;
+  end_time: string;
+}
+
+export interface PreviewTeacherConflict {
+  teacher_id: number;
+  teacher_name: string;
+  conflicts: PreviewConflictDetail[];
+}
+
+export interface PreviewRoomConflict {
+  room_id: number;
+  conflicts: Array<{
+    room_id: number;
+    existing_room_id: number;
+    session_id: number;
+    schedule_id: number;
+    schedule_name: string;
+    session_date: string;
+    start_time: string;
+    end_time: string;
+  }>;
+}
+
+export interface GroupPaymentStatus {
+  group_id: number;
+  group_name: string;
+  group_payment_status: string;
+  eligible_members: number;
+  ineligible_members: number;
+  member_totals: {
+    pending: number;
+    deposit_paid: number;
+    fully_paid: number;
+  };
+  require_deposit: boolean;
+}
+
+export interface SchedulePreviewResponse {
+  can_create: boolean;
+  issues: PreviewIssue[];
+  summary: {
+    schedule_name: string;
+    schedule_type: string;
+    start_date: string;
+    estimated_end_date: string;
+    total_hours: number;
+    hours_per_session: number;
+    session_per_week: number;
+    total_sessions: number;
+  };
+  sessions: PreviewSession[];
+  original_sessions?: PreviewSession[];
+  holiday_impacts: HolidayImpact[];
+  conflicts: {
+    group: unknown | null;
+    rooms: PreviewRoomConflict[];
+    teachers: PreviewTeacherConflict[];
+    participants: PreviewConflictDetail[];
+    students: PreviewConflictDetail[];
+  };
+  group_payment?: GroupPaymentStatus;
+  auto_reschedule: boolean;
+  branch_hours: {
+    open_minutes: number;
+    close_minutes: number;
+    open_time: string;
+    close_time: string;
+  };
+  checked_room_ids: number[];
 }
 
 // Teacher interface for dropdowns
@@ -642,6 +790,7 @@ export const scheduleService = {
     } else {
       // Default status=active per API if no params provided
       query.append("status", "active");
+      query.append("status", "full");
     }
 
     const url = query.toString()
@@ -920,6 +1069,133 @@ export const scheduleService = {
     };
   },
 
+  // Check room conflicts
+  checkRoomConflict: async (
+    request: CheckRoomConflictRequest
+  ): Promise<CheckRoomConflictResponse> => {
+    return checkRoomConflict(request);
+  },
+
+  // Preview schedule (dry run) before creation
+  previewSchedule: async (
+    scheduleData: CreateScheduleInput
+  ): Promise<SchedulePreviewResponse> => {
+    // Use the same payload transformation logic as createSchedule
+    const toTimeOnly = (timeStr?: string) => {
+      if (!timeStr) return timeStr;
+      const hmMatch = timeStr.match(/^(\d{2}:\d{2})/);
+      if (hmMatch) return hmMatch[1];
+      const isoMatch = timeStr.match(/T(\d{2}):(\d{2})/);
+      if (isoMatch) return `${isoMatch[1]}:${isoMatch[2]}`;
+      return timeStr;
+    };
+
+    const toISODate = (d?: string) => {
+      if (!d) return d;
+      if (d.includes("T")) return d;
+      try {
+        return new Date(`${d}T00:00:00Z`).toISOString();
+      } catch {
+        return d;
+      }
+    };
+
+    const payload: Partial<CreateScheduleInput> = {
+      schedule_name: scheduleData.schedule_name,
+      schedule_type: scheduleData.schedule_type || "class",
+      start_date: toISODate(scheduleData.start_date),
+      estimated_end_date:
+        toISODate(scheduleData.estimated_end_date) ||
+        toISODate(scheduleData.start_date),
+      recurring_pattern: scheduleData.recurring_pattern || "none",
+    };
+
+    if (scheduleData.total_hours != null)
+      payload.total_hours = scheduleData.total_hours;
+    if (scheduleData.hours_per_session != null)
+      payload.hours_per_session = scheduleData.hours_per_session;
+
+    if (scheduleData.schedule_type === "class") {
+      if (scheduleData.course_id) payload.course_id = scheduleData.course_id;
+      if (scheduleData.group_id) payload.group_id = scheduleData.group_id;
+      if (scheduleData.max_students != null)
+        payload.max_students = scheduleData.max_students;
+    }
+
+    if (
+      scheduleData.default_teacher_id != null ||
+      scheduleData.teacher_id != null
+    ) {
+      payload.default_teacher_id =
+        scheduleData.default_teacher_id ?? scheduleData.teacher_id;
+    }
+    if (scheduleData.default_room_id != null || scheduleData.room_id != null) {
+      payload.default_room_id =
+        scheduleData.default_room_id ?? scheduleData.room_id;
+    }
+
+    if (scheduleData.schedule_type === "class") {
+      if (scheduleData.session_times && scheduleData.session_times.length > 0) {
+        payload.session_times = scheduleData.session_times.map((slot) => ({
+          weekday: slot.weekday,
+          start_time: toTimeOnly(slot.start_time) || slot.start_time,
+        }));
+        payload.recurring_pattern = "custom";
+        payload.session_per_week = scheduleData.session_times.length;
+      } else if (scheduleData.session_start_time) {
+        payload.session_start_time = toTimeOnly(
+          scheduleData.session_start_time
+        );
+        if (scheduleData.session_per_week != null) {
+          payload.session_per_week = scheduleData.session_per_week;
+        }
+      }
+    } else if (scheduleData.session_start_time) {
+      payload.session_start_time = toTimeOnly(scheduleData.session_start_time);
+    }
+
+    if (payload.session_per_week == null) {
+      if (scheduleData.session_per_week != null) {
+        payload.session_per_week = scheduleData.session_per_week;
+      } else if (payload.recurring_pattern === "none") {
+        payload.session_per_week = 1;
+      }
+    }
+
+    if (
+      scheduleData.schedule_type !== "class" &&
+      payload.recurring_pattern === "custom" &&
+      scheduleData.custom_recurring_days &&
+      scheduleData.custom_recurring_days.length > 0
+    ) {
+      payload.custom_recurring_days = Array.from(
+        new Set(scheduleData.custom_recurring_days)
+      );
+    }
+
+    if (
+      scheduleData.participant_user_ids &&
+      scheduleData.participant_user_ids.length > 0
+    ) {
+      payload.participant_user_ids = scheduleData.participant_user_ids;
+    }
+
+    payload.auto_reschedule_holidays =
+      scheduleData.auto_reschedule_holidays ??
+      scheduleData.auto_reschedule ??
+      true;
+
+    if (scheduleData.notes && scheduleData.notes.trim() !== "") {
+      payload.notes = scheduleData.notes;
+    }
+
+    const response = await api.post(
+      SCHEDULE_ENDPOINTS_EXTENDED.PREVIEW,
+      payload
+    );
+    return response.data;
+  },
+
   // Create a new schedule (unified per new spec)
   createSchedule: async (
     scheduleData: CreateScheduleInput
@@ -1000,21 +1276,48 @@ export const scheduleService = {
         scheduleData.default_room_id ?? scheduleData.room_id;
     }
 
-    // Session start time - required for both recurring and one-off events
-    if (scheduleData.session_start_time) {
+    // For class schedules: support both legacy single-slot and new multi-slot patterns
+    if (scheduleData.schedule_type === "class") {
+      // Case 2: Multi-slot weekly class (session_times)
+      if (scheduleData.session_times && scheduleData.session_times.length > 0) {
+        payload.session_times = scheduleData.session_times.map((slot) => ({
+          weekday: slot.weekday,
+          start_time: toTimeOnly(slot.start_time) || slot.start_time,
+        }));
+        // When session_times is provided, recurring_pattern is forced to "custom"
+        payload.recurring_pattern = "custom";
+        // session_per_week must equal number of session_times entries
+        payload.session_per_week = scheduleData.session_times.length;
+      }
+      // Case 1: Legacy single-slot weekly class
+      else if (scheduleData.session_start_time) {
+        payload.session_start_time = toTimeOnly(
+          scheduleData.session_start_time
+        );
+        // Keep user-selected recurring_pattern for single-slot (weekly, bi-weekly, monthly)
+        if (scheduleData.session_per_week != null) {
+          payload.session_per_week = scheduleData.session_per_week;
+        }
+      }
+    }
+    // For non-class schedules: use session_start_time
+    else if (scheduleData.session_start_time) {
       payload.session_start_time = toTimeOnly(scheduleData.session_start_time);
     }
 
-    // Recurring: include session_per_week for all events
-    if (scheduleData.session_per_week != null) {
-      payload.session_per_week = scheduleData.session_per_week;
-    } else if (payload.recurring_pattern === "none") {
-      // Default to 1 for one-off events
-      payload.session_per_week = 1;
+    // Recurring: include session_per_week for all events (if not already set by session_times)
+    if (payload.session_per_week == null) {
+      if (scheduleData.session_per_week != null) {
+        payload.session_per_week = scheduleData.session_per_week;
+      } else if (payload.recurring_pattern === "none") {
+        // Default to 1 for one-off events
+        payload.session_per_week = 1;
+      }
     }
 
-    // Custom recurring days (0=Sunday, 1=Monday, ..., 6=Saturday)
+    // Custom recurring days (0=Sunday, 1=Monday, ..., 6=Saturday) - for non-class events
     if (
+      scheduleData.schedule_type !== "class" &&
       payload.recurring_pattern === "custom" &&
       scheduleData.custom_recurring_days &&
       scheduleData.custom_recurring_days.length > 0
@@ -1823,6 +2126,20 @@ export const getScheduleForInvitation = async (
     description?: string;
   }>(`/schedules/${scheduleId}`);
   return response.data;
+};
+
+/**
+ * Check room conflicts for schedule creation
+ * POST /api/schedules/check-room-conflict
+ */
+export const checkRoomConflict = async (
+  request: CheckRoomConflictRequest
+): Promise<CheckRoomConflictResponse> => {
+  const response = await api.post<{
+    success: boolean;
+    data: CheckRoomConflictResponse;
+  }>(SCHEDULE_ENDPOINTS_EXTENDED.CHECK_ROOM_CONFLICT, request);
+  return response.data.data;
 };
 
 /**

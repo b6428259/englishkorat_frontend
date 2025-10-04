@@ -57,6 +57,9 @@ const SystemSettingsPage = () => {
   // Sound testing
   const [isPlayingSound, setIsPlayingSound] = useState(false);
 
+  // Custom sound upload states
+  const [isUploadingSound, setIsUploadingSound] = useState(false);
+
   // Button text variables to avoid nested ternary
   const saveButtonText = language === "th" ? "บันทึก" : "Save";
   const savingButtonText = language === "th" ? "กำลังบันทึก..." : "Saving...";
@@ -68,13 +71,11 @@ const SystemSettingsPage = () => {
         // Load settings and system info in parallel
         const [userSettings, healthData] = await Promise.all([
           settingsService.getUserSettings(),
-          healthService
-            .getHealthInfo()
-            .catch(() => ({
-              service: "Unknown",
-              status: "error",
-              version: "Unknown",
-            })),
+          healthService.getHealthInfo().catch(() => ({
+            service: "Unknown",
+            status: "error",
+            version: "Unknown",
+          })),
         ]);
 
         setSettings(userSettings);
@@ -147,7 +148,12 @@ const SystemSettingsPage = () => {
     try {
       const soundData =
         NOTIFICATION_SOUNDS[soundKey as keyof typeof NOTIFICATION_SOUNDS];
-      if (soundData && typeof soundData === "object" && "file" in soundData) {
+      if (
+        soundData &&
+        typeof soundData === "object" &&
+        "file" in soundData &&
+        soundData.file
+      ) {
         const audio = new Audio(soundData.file);
         await audio.play();
       }
@@ -236,6 +242,121 @@ const SystemSettingsPage = () => {
         ? "enable_email_notifications"
         : "enable_phone_notifications";
     updateSettings({ [key]: enabled });
+  };
+
+  // Handle custom sound upload
+  const handleCustomSoundUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ["audio/mp3", "audio/mpeg", "audio/wav"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error(
+        language === "th"
+          ? "รองรับเฉพาะไฟล์ MP3 และ WAV เท่านั้น"
+          : "Only MP3 and WAV files are supported"
+      );
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      toast.error(
+        language === "th"
+          ? "ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 5MB)"
+          : "File size too large (max 5MB)"
+      );
+      return;
+    }
+
+    setIsUploadingSound(true);
+
+    try {
+      const updatedSettings = await settingsService.uploadCustomSound(file);
+      setSettings(updatedSettings);
+
+      // Auto-select custom sound after upload
+      setPendingUpdates((prev) => ({
+        ...prev,
+        notification_sound: "custom",
+      }));
+      setHasChanges(true);
+
+      toast.success(
+        language === "th"
+          ? "อัปโหลดเสียงแจ้งเตือนเรียบร้อยแล้ว"
+          : "Custom sound uploaded successfully"
+      );
+    } catch (error: unknown) {
+      console.error("Failed to upload custom sound:", error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : language === "th"
+          ? "ไม่สามารถอัปโหลดไฟล์เสียงได้"
+          : "Failed to upload sound file";
+      toast.error(message);
+    } finally {
+      setIsUploadingSound(false);
+      // Reset file input
+      event.target.value = "";
+    }
+  };
+
+  // Handle custom sound deletion
+  const handleDeleteCustomSound = async () => {
+    if (!settings?.custom_sound_url) return;
+
+    try {
+      const updatedSettings = await settingsService.deleteCustomSound();
+      setSettings(updatedSettings);
+
+      // Switch to default sound if custom was selected
+      if (settings.notification_sound === "custom") {
+        setPendingUpdates((prev) => ({
+          ...prev,
+          notification_sound: "default",
+        }));
+        setHasChanges(true);
+      }
+
+      toast.success(
+        language === "th"
+          ? "ลบเสียงแจ้งเตือนเรียบร้อยแล้ว"
+          : "Custom sound deleted successfully"
+      );
+    } catch (error: unknown) {
+      console.error("Failed to delete custom sound:", error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : language === "th"
+          ? "ไม่สามารถลบไฟล์เสียงได้"
+          : "Failed to delete sound file";
+      toast.error(message);
+    }
+  };
+
+  // Play custom sound
+  const playCustomSound = async () => {
+    if (!settings?.custom_sound_url) return;
+
+    setIsPlayingSound(true);
+    try {
+      const audio = new Audio(settings.custom_sound_url);
+      await audio.play();
+    } catch (error) {
+      console.error("Failed to play custom sound:", error);
+      toast.error(
+        language === "th" ? "ไม่สามารถเล่นเสียงได้" : "Failed to play sound"
+      );
+    } finally {
+      setTimeout(() => setIsPlayingSound(false), 1000);
+    }
   };
 
   if (isLoading) {
@@ -379,6 +500,28 @@ const SystemSettingsPage = () => {
                         ? "🎵 เลือกเสียงแจ้งเตือน"
                         : "🎵 Sound Selection"}
                     </Label>
+
+                    {/* Current Sound Info */}
+                    {settings.notification_sound && (
+                      <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-blue-700 font-medium">
+                            {language === "th"
+                              ? "เสียงปัจจุบัน:"
+                              : "Current Sound:"}
+                          </span>
+                          <span className="text-blue-900">
+                            {settings.notification_sound === "custom" &&
+                            settings.custom_sound_filename
+                              ? `🎶 ${settings.custom_sound_filename}`
+                              : NOTIFICATION_SOUNDS[
+                                  settings.notification_sound as keyof typeof NOTIFICATION_SOUNDS
+                                ]?.label || settings.notification_sound}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {Object.entries(NOTIFICATION_SOUNDS).map(
                         ([key, soundData]) => {
@@ -388,6 +531,57 @@ const SystemSettingsPage = () => {
                             typeof soundData === "object"
                               ? soundData
                               : { label: String(soundData), file: "" };
+                          const isCustom = key === "custom";
+                          const hasCustomSound = Boolean(
+                            settings.custom_sound_url
+                          );
+                          const canSelectCustom = isCustom
+                            ? hasCustomSound
+                            : true;
+
+                          // Special handling for custom sound
+                          if (isCustom && !hasCustomSound) {
+                            return (
+                              <div key={key} className="space-y-2">
+                                {/* Upload button for custom sound */}
+                                <div className="relative p-3 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 text-center">
+                                  <input
+                                    type="file"
+                                    accept="audio/mp3,audio/mpeg,audio/wav"
+                                    onChange={handleCustomSoundUpload}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    disabled={isUploadingSound}
+                                  />
+                                  <div className="pointer-events-none">
+                                    {isUploadingSound ? (
+                                      <div className="space-y-2">
+                                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#334293] mx-auto"></div>
+                                        <p className="text-xs text-gray-600">
+                                          {language === "th"
+                                            ? "กำลังอัปโหลด..."
+                                            : "Uploading..."}
+                                        </p>
+                                      </div>
+                                    ) : (
+                                      <div className="space-y-2">
+                                        <div className="text-2xl">📁</div>
+                                        <p className="text-sm font-medium text-gray-700">
+                                          {language === "th"
+                                            ? "อัปโหลดเสียงแจ้งเตือน"
+                                            : "Upload Custom Sound"}
+                                        </p>
+                                        <p className="text-xs text-gray-500">
+                                          {language === "th"
+                                            ? "รองรับ MP3, WAV (สูงสุด 5MB)"
+                                            : "Supports MP3, WAV (max 5MB)"}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
 
                           return (
                             <button
@@ -396,11 +590,18 @@ const SystemSettingsPage = () => {
                               className={`relative p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md w-full text-left ${
                                 isSelected
                                   ? "border-[#334293] bg-blue-50 shadow-sm"
-                                  : "border-gray-200 bg-white hover:border-gray-300"
-                              }`}
-                              onClick={() =>
-                                addToPendingUpdates({ notification_sound: key })
-                              }
+                                  : canSelectCustom
+                                  ? "border-gray-200 bg-white hover:border-gray-300"
+                                  : "border-gray-200 bg-gray-50 cursor-not-allowed"
+                              } ${!canSelectCustom ? "opacity-50" : ""}`}
+                              onClick={() => {
+                                if (canSelectCustom) {
+                                  addToPendingUpdates({
+                                    notification_sound: key,
+                                  });
+                                }
+                              }}
+                              disabled={!canSelectCustom}
                             >
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
@@ -415,29 +616,97 @@ const SystemSettingsPage = () => {
                                       <div className="w-2 h-2 bg-white rounded-full mx-auto mt-0.5"></div>
                                     )}
                                   </div>
-                                  <span
-                                    className={`text-sm font-medium ${
-                                      isSelected
-                                        ? "text-[#334293]"
-                                        : "text-gray-700"
-                                    }`}
-                                  >
-                                    {soundInfo.label}
-                                  </span>
+                                  <div className="flex-1">
+                                    <span
+                                      className={`text-sm font-medium ${
+                                        isSelected
+                                          ? "text-[#334293]"
+                                          : "text-gray-700"
+                                      }`}
+                                    >
+                                      {isCustom &&
+                                      hasCustomSound &&
+                                      settings.custom_sound_filename
+                                        ? `🎶 ${settings.custom_sound_filename}`
+                                        : soundInfo.label}
+                                    </span>
+                                    {isCustom && hasCustomSound && (
+                                      <div className="text-xs text-gray-500 mt-1">
+                                        {language === "th"
+                                          ? "ไฟล์ที่อัปโหลด"
+                                          : "Uploaded file"}
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 text-gray-500 hover:text-[#334293] hover:bg-blue-50"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    playNotificationSound(key);
-                                  }}
-                                  disabled={isPlayingSound}
-                                >
-                                  {isPlayingSound ? "⏸️" : "▶️"}
-                                </Button>
+                                <div className="flex items-center gap-1">
+                                  {/* Play button */}
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-gray-500 hover:text-[#334293] hover:bg-blue-50"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (isCustom && hasCustomSound) {
+                                        playCustomSound();
+                                      } else {
+                                        playNotificationSound(key);
+                                      }
+                                    }}
+                                    disabled={
+                                      isPlayingSound || !canSelectCustom
+                                    }
+                                  >
+                                    {isPlayingSound ? "⏸️" : "▶️"}
+                                  </Button>
+
+                                  {/* Delete button for custom sound */}
+                                  {isCustom && hasCustomSound && (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (
+                                          confirm(
+                                            language === "th"
+                                              ? "คุณต้องการลบเสียงแจ้งเตือนนี้หรือไม่?"
+                                              : "Are you sure you want to delete this custom sound?"
+                                          )
+                                        ) {
+                                          handleDeleteCustomSound();
+                                        }
+                                      }}
+                                    >
+                                      🗑️
+                                    </Button>
+                                  )}
+
+                                  {/* Re-upload button for custom sound */}
+                                  {isCustom && hasCustomSound && (
+                                    <div className="relative">
+                                      <input
+                                        type="file"
+                                        accept="audio/mp3,audio/mpeg,audio/wav"
+                                        onChange={handleCustomSoundUpload}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        disabled={isUploadingSound}
+                                      />
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                                        disabled={isUploadingSound}
+                                      >
+                                        📁
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </button>
                           );

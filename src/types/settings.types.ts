@@ -4,6 +4,10 @@ export interface UserSettings {
   language: "th" | "en" | "auto";
   enable_notification_sound: boolean;
   notification_sound: string;
+  notification_sound_file?: string | null; // Main sound file URL
+  custom_sound?: string | null; // URL to the user's custom sound file (deprecated)
+  custom_sound_url?: string | null; // URL to the user's custom sound file
+  custom_sound_filename?: string | null; // Original filename of custom sound
   enable_email_notifications: boolean;
   enable_phone_notifications: boolean;
   enable_in_app_notifications: boolean;
@@ -16,6 +20,10 @@ export interface UpdateUserSettingsInput {
   language?: "th" | "en" | "auto";
   enable_notification_sound?: boolean;
   notification_sound?: string;
+  notification_sound_file?: string | null;
+  custom_sound?: string | null;
+  custom_sound_url?: string | null;
+  custom_sound_filename?: string | null;
   enable_email_notifications?: boolean;
   enable_phone_notifications?: boolean;
   enable_in_app_notifications?: boolean;
@@ -33,6 +41,7 @@ export const NOTIFICATION_SOUNDS = {
   bell: { label: "🔔 Bell", file: "/sounds/bell.mp3" },
   ding: { label: "✨ Ding", file: "/sounds/ding.mp3" },
   pop: { label: "💫 Pop", file: "/sounds/pop.mp3" },
+  custom: { label: "🎶 Custom Sound", file: null }, // File will be set from user's custom_sound field
 } as const;
 
 export type NotificationSoundType = keyof typeof NOTIFICATION_SOUNDS;

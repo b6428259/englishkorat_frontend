@@ -28,6 +28,7 @@ import {
   type ValidationIssue,
 } from "@/utils/scheduleValidation";
 import {
+  ArrowLeft as ArrowLeftIcon,
   BookOpenIcon,
   CalendarIcon,
   CheckCircleIcon,
@@ -59,6 +60,8 @@ interface ModernScheduleModalProps {
   groups?: GroupOption[];
   isLoading?: boolean;
   error?: string | null;
+  /** Optional callback to go back to previous modal (type selection) */
+  onBack?: () => void;
 }
 
 export default function ModernScheduleModal({
@@ -74,6 +77,7 @@ export default function ModernScheduleModal({
   groups = [],
   isLoading = false,
   error,
+  onBack,
 }: ModernScheduleModalProps) {
   const { language } = useLanguage();
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -776,19 +780,48 @@ export default function ModernScheduleModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       {isOpen && (
-        <DialogContent className="flex flex-col max-w-4xl max-h-[90vh] bg-white">
+        <DialogContent className="flex flex-col max-w-4xl max-h-[90vh] bg-white animate-in fade-in-0 zoom-in-95 slide-in-from-top-8 duration-300">
           <DialogHeader className="border-b border-gray-200 pb-6 bg-gradient-to-r from-indigo-50 to-purple-50 -m-6 mb-6 px-6 pt-6">
-            <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl">
-                <CalendarIcon className="h-8 w-8 text-white" />
+            <div className="flex items-center gap-3">
+              {onBack && (
+                <button
+                  onClick={onBack}
+                  className="p-2 hover:bg-white/50 rounded-lg transition-colors"
+                >
+                  <ArrowLeftIcon className="h-5 w-5 text-gray-600" />
+                </button>
+              )}
+              <div className="flex-1">
+                <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-3">
+                  <div className="p-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl">
+                    <CalendarIcon className="h-8 w-8 text-white" />
+                  </div>
+                  {language === "th" ? "สร้างตารางใหม่" : "Create New Schedule"}
+                  {scheduleForm.schedule_type &&
+                    scheduleForm.schedule_type !== "class" && (
+                      <span className="text-sm font-normal text-gray-600">
+                        (
+                        {scheduleForm.schedule_type === "meeting" &&
+                          (language === "th" ? "ประชุม" : "Meeting")}
+                        {scheduleForm.schedule_type === "appointment" &&
+                          (language === "th" ? "นัดหมาย" : "Appointment")}
+                        {scheduleForm.schedule_type === "event" &&
+                          (language === "th" ? "อีเวนต์" : "Event")}
+                        {scheduleForm.schedule_type === "personal" &&
+                          (language === "th" ? "ส่วนตัว" : "Personal")}
+                        {scheduleForm.schedule_type === "holiday" &&
+                          (language === "th" ? "วันหยุด" : "Holiday")}
+                        )
+                      </span>
+                    )}
+                </DialogTitle>
+                <p className="text-gray-600 mt-2">
+                  {language === "th"
+                    ? "กำหนดตารางเรียน การประชุม หรืออีเวนต์ต่าง ๆ ได้อย่างง่ายดาย"
+                    : "Easily create schedules for classes, meetings, or events"}
+                </p>
               </div>
-              {language === "th" ? "สร้างตารางใหม่" : "Create New Schedule"}
-            </DialogTitle>
-            <p className="text-gray-600 mt-2">
-              {language === "th"
-                ? "กำหนดตารางเรียน การประชุม หรืออีเวนต์ต่าง ๆ ได้อย่างง่ายดาย"
-                : "Easily create schedules for classes, meetings, or events"}
-            </p>
+            </div>
           </DialogHeader>
 
           <div className="flex-1 min-h-0 overflow-y-auto">
@@ -825,13 +858,13 @@ export default function ModernScheduleModal({
 
               <TabsContent
                 value="basic"
-                className="flex-1 overflow-y-auto space-y-6"
+                className="flex-1 overflow-y-auto space-y-6 animate-in fade-in-0 slide-in-from-right-4 duration-300"
               >
                 {/* Schedule Name */}
-                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 animate-in fade-in-0 slide-in-from-bottom-2 animation-duration-400">
                   {/* One-off event helper */}
                   {scheduleForm.schedule_type === "event" && (
-                    <div className="mb-6 p-4 rounded-xl border-2 border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-800">
+                    <div className="mb-6 p-4 rounded-xl border-2 border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-800 animate-in fade-in-0 slide-in-from-top-2 duration-300">
                       <div className="flex items-start gap-3">
                         <div className="flex-shrink-0 w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
                           <span className="text-emerald-600 font-bold">!</span>
@@ -1641,7 +1674,10 @@ export default function ModernScheduleModal({
                 </div>
               </TabsContent>
 
-              <TabsContent value="schedule" className="flex-1 overflow-y-auto">
+              <TabsContent
+                value="schedule"
+                className="flex-1 overflow-y-auto animate-in fade-in-0 slide-in-from-right-4 duration-300"
+              >
                 <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -1788,7 +1824,10 @@ export default function ModernScheduleModal({
                 </div>
               </TabsContent>
 
-              <TabsContent value="preview" className="flex-1 overflow-y-auto">
+              <TabsContent
+                value="preview"
+                className="flex-1 overflow-y-auto animate-in fade-in-0 slide-in-from-right-4 duration-300"
+              >
                 <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                   <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
                     <HiDocumentText className="h-5 w-5 text-indigo-600" />
@@ -2031,7 +2070,7 @@ export default function ModernScheduleModal({
                       )
                     }
                     variant="monthViewClicked"
-                    className="px-6 py-2"
+                    className="px-6 py-2 transition-all duration-200 hover:scale-105 active:scale-95"
                   >
                     {language === "th" ? "ต่อไป" : "Next"}
                   </Button>
@@ -2040,7 +2079,7 @@ export default function ModernScheduleModal({
                     onClick={handleConfirm}
                     disabled={hasErrors || isLoading || isSubmittingLocal}
                     variant="monthViewClicked"
-                    className="px-6 py-2"
+                    className="px-6 py-2 transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSubmittingLocal || isLoading ? (
                       <LoadingSpinner size="sm" />
@@ -2069,13 +2108,16 @@ export default function ModernScheduleModal({
             }
           }}
         >
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md animate-in fade-in-0 zoom-in-90 duration-200">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-900">
+              <DialogTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <div className="animate-in zoom-in-0 spin-in-180 duration-500">
+                  <CheckCircleIcon className="h-6 w-6 text-green-500" />
+                </div>
                 {language === "th" ? "สร้างตารางเรียบร้อย" : "Schedule Created"}
               </DialogTitle>
             </DialogHeader>
-            <div className="p-4">
+            <div className="p-4 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-100">
               <p className="text-sm text-gray-700">
                 {language === "th"
                   ? "ตารางเรียนถูกสร้างเรียบร้อยแล้ว"
