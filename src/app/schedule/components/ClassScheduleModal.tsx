@@ -218,6 +218,14 @@ export default function ClassScheduleModal({
   );
 
   const updateForm = useCallback((updates: Partial<CreateScheduleRequest>) => {
+    // 🔍 Debug: ดูว่า updateForm ถูกเรียกด้วยค่าอะไร
+    if (updates.default_teacher_id !== undefined) {
+      console.log(
+        "🔍 updateForm called with default_teacher_id:",
+        updates.default_teacher_id
+      );
+    }
+
     setScheduleForm((prev) => {
       const newForm = { ...prev, ...updates };
 
@@ -233,6 +241,14 @@ export default function ClassScheduleModal({
           { ...newForm.session_times[0], weekday: newWeekday },
           ...newForm.session_times.slice(1),
         ];
+      }
+
+      // 🔍 Debug: ดูค่า default_teacher_id หลังจาก merge
+      if (updates.default_teacher_id !== undefined) {
+        console.log(
+          "🔍 After merge, newForm.default_teacher_id:",
+          newForm.default_teacher_id
+        );
       }
 
       return newForm;
@@ -602,6 +618,14 @@ export default function ClassScheduleModal({
       payload.default_room_id = selectedRoomId;
     }
 
+    // Ensure default_teacher_id is included in payload
+    if (
+      scheduleForm.default_teacher_id &&
+      scheduleForm.default_teacher_id > 0
+    ) {
+      payload.default_teacher_id = scheduleForm.default_teacher_id;
+    }
+
     // Use estimated_end_date from preview data
     if (previewData?.summary?.estimated_end_date) {
       payload.estimated_end_date = previewData.summary.estimated_end_date;
@@ -635,6 +659,14 @@ export default function ClassScheduleModal({
     console.log("Full payload:", JSON.stringify(payload, null, 2));
     console.log("Selected Room ID:", selectedRoomId);
     console.log("Schedule Form:", scheduleForm);
+    console.log(
+      "🎯 default_teacher_id from scheduleForm:",
+      scheduleForm.default_teacher_id
+    );
+    console.log(
+      "🎯 default_teacher_id in payload:",
+      payload.default_teacher_id
+    );
 
     setIsSubmitting(true);
     try {

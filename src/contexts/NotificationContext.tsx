@@ -37,6 +37,7 @@ interface NotificationContextType {
   acceptPopupNotification: () => Promise<void>;
   declinePopupNotification: () => Promise<void>;
   dismissPopupNotification: () => void;
+  openNotificationPopup: (notification: Notification) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(
@@ -827,6 +828,12 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     setPopupNotification(null);
   }, []);
 
+  const openNotificationPopup = useCallback((notification: Notification) => {
+    // Allow reopening any popup notification (read or unread)
+    setPopupNotification(notification);
+    lastOpenedNotificationIdRef.current = notification.id;
+  }, []);
+
   const contextValue = useMemo<NotificationContextType>(
     () => ({
       notifications,
@@ -843,6 +850,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       acceptPopupNotification,
       declinePopupNotification,
       dismissPopupNotification,
+      openNotificationPopup,
     }),
     [
       notifications,
@@ -859,6 +867,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       acceptPopupNotification,
       declinePopupNotification,
       dismissPopupNotification,
+      openNotificationPopup,
     ]
   );
 

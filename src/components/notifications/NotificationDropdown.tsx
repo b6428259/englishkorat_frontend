@@ -1,11 +1,13 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
-import { FaBell, FaCheck, FaEllipsisV, FaEye } from "react-icons/fa";
+import { FaBell, FaCheck, FaSync } from "react-icons/fa";
+import { HiOutlineInbox } from "react-icons/hi2";
 import { useNotifications } from "../../contexts/NotificationContext";
 import { useIsMobile } from "../../hooks/useMediaQuery";
 import type { Notification } from "../../types/notification";
+import { NotificationItem } from "./NotificationItem";
 
 interface NotificationDropdownProps {
   isOpen: boolean;
@@ -46,11 +48,9 @@ export default function NotificationDropdown({
     refreshNotifications,
     markAsRead,
     markAllAsRead,
-    loadMore,
-    hasMore,
+    openNotificationPopup,
   } = useNotifications();
 
-  const [showActions, setShowActions] = useState<number | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const firstItemRef = useRef<HTMLDivElement | null>(null);
 
@@ -64,298 +64,98 @@ export default function NotificationDropdown({
     }
   }, [isOpen]);
 
-  const getNotificationIcon = (type: string) => {
-    const icons: Record<string, string> = {
-      info: "📢",
-      warning: "⚠️",
-      error: "❌",
-      success: "✅",
-      class_confirmation: "✅",
-      class_cancellation: "❌",
-      schedule_change: "📅",
-      payment_reminder: "💰",
-      student_registration: "👨‍🎓",
-      appointment_reminder: "🕐",
-      class_reminder: "🎓",
-      system_maintenance: "🔧",
-      leave_approval: "📋",
-      report_deadline: "📊",
-      room_conflict: "⚠️",
-      general: "📢",
-    };
-    return icons[type] || "📢";
-  };
-
-  const getNotificationColors = (type: string) => {
-    const colors: Record<
-      string,
-      { bg: string; border: string; text: string; accent: string }
-    > = {
-      info: {
-        bg: "bg-blue-50",
-        border: "border-blue-200",
-        text: "text-blue-800",
-        accent: "bg-blue-500",
-      },
-      warning: {
-        bg: "bg-amber-50",
-        border: "border-amber-200",
-        text: "text-amber-800",
-        accent: "bg-amber-500",
-      },
-      error: {
-        bg: "bg-red-50",
-        border: "border-red-200",
-        text: "text-red-800",
-        accent: "bg-red-500",
-      },
-      success: {
-        bg: "bg-emerald-50",
-        border: "border-emerald-200",
-        text: "text-emerald-800",
-        accent: "bg-emerald-500",
-      },
-      class_confirmation: {
-        bg: "bg-green-50",
-        border: "border-green-200",
-        text: "text-green-800",
-        accent: "bg-green-500",
-      },
-      class_cancellation: {
-        bg: "bg-red-50",
-        border: "border-red-200",
-        text: "text-red-800",
-        accent: "bg-red-500",
-      },
-      schedule_change: {
-        bg: "bg-purple-50",
-        border: "border-purple-200",
-        text: "text-purple-800",
-        accent: "bg-purple-500",
-      },
-      payment_reminder: {
-        bg: "bg-yellow-50",
-        border: "border-yellow-200",
-        text: "text-yellow-800",
-        accent: "bg-yellow-500",
-      },
-      student_registration: {
-        bg: "bg-blue-50",
-        border: "border-blue-200",
-        text: "text-blue-800",
-        accent: "bg-blue-500",
-      },
-    };
-    return colors[type] || colors.info;
-  };
-
-  const formatTimeAgo = (dateString: string) => {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 1) return "เมื่อสักครู่";
-    if (diffMins < 60) return `${diffMins} นาทีที่แล้ว`;
-    if (diffHours < 24) return `${diffHours} ชั่วโมงที่แล้ว`;
-    if (diffDays < 7) return `${diffDays} วันที่แล้ว`;
-
-    return date.toLocaleDateString("th-TH");
-  };
-
   const renderNotificationsContent = () => {
     if (isLoading && notifications.length === 0) {
       return (
-        <div className="p-8 text-center">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-b-2 border-blue-500"></div>
-          <p className="mt-3 text-sm text-gray-500">กำลังโหลดการแจ้งเตือน...</p>
+        <div className="p-12 text-center">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="mx-auto h-12 w-12 rounded-full border-4 border-gray-200 border-t-blue-500"
+          />
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="mt-4 text-sm font-medium text-gray-600"
+          >
+            กำลังโหลดการแจ้งเตือน...
+          </motion.p>
         </div>
       );
     }
 
     if (notifications.length === 0) {
       return (
-        <div className="p-8 text-center">
-          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
-            <FaBell className="h-8 w-8 text-gray-400" />
-          </div>
-          <p className="font-medium text-gray-500">ไม่มีการแจ้งเตือน</p>
-          <p className="mt-1 text-sm text-gray-400">การแจ้งเตือนจะแสดงที่นี่</p>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="p-12 text-center"
+        >
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 200, damping: 15 }}
+            className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 shadow-sm"
+          >
+            <HiOutlineInbox className="h-10 w-10 text-blue-400" />
+          </motion.div>
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-base font-semibold text-gray-700"
+          >
+            ไม่มีการแจ้งเตือน
+          </motion.p>
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="mt-2 text-sm text-gray-500"
+          >
+            การแจ้งเตือนจะแสดงที่นี่
+          </motion.p>
+        </motion.div>
       );
     }
 
     return (
-      <div className="divide-y divide-gray-50">
-        {notifications.slice(0, 5).map((notification, idx) => {
-          const colors = getNotificationColors(notification.type);
-          return (
-            <motion.div
-              key={notification.id}
-              layout
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className={`relative cursor-pointer border-l-4 transition-all duration-200 hover:bg-gray-50 ${
-                !notification.read
-                  ? `${colors.border} bg-gradient-to-r from-blue-25 to-transparent`
-                  : "border-transparent bg-white hover:border-gray-200"
-              }`}
-              onClick={() => handleNotificationClick(notification)}
-              role="menuitem"
-              tabIndex={0}
-              ref={idx === 0 ? firstItemRef : undefined}
-              aria-label={
-                (notification.title_th || notification.title) +
-                (notification.read ? "" : " ยังไม่ได้อ่าน")
-              }
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  handleNotificationClick(notification);
-                }
-                if (e.key === "Escape") {
-                  onClose();
-                }
-              }}
-            >
-              <div className="flex items-start space-x-4 p-4">
-                {/* Icon */}
-                <div
-                  className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border-2 ${colors.bg} ${colors.border} shadow-sm`}
-                >
-                  <span className="text-xl">
-                    {getNotificationIcon(notification.type)}
-                  </span>
-                </div>
-
-                {/* Content */}
-                <div className="relative flex-1 min-w-0">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 pr-2">
-                      <p
-                        className={`text-sm font-semibold leading-tight ${
-                          !notification.read ? "text-gray-900" : "text-gray-700"
-                        }`}
-                      >
-                        {notification.title_th || notification.title}
-                      </p>
-                      <p
-                        className={`mt-1.5 text-xs leading-relaxed line-clamp-2 ${
-                          !notification.read ? "text-gray-600" : "text-gray-500"
-                        }`}
-                      >
-                        {notification.message_th || notification.message}
-                      </p>
-                      <div className="mt-2 flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <p className="text-xs font-medium text-gray-400">
-                            {formatTimeAgo(notification.created_at)}
-                          </p>
-                          {/* Channel indicators */}
-                          {notification.channels &&
-                            notification.channels.length > 0 && (
-                              <div className="flex items-center space-x-1">
-                                {notification.channels.includes("popup") && (
-                                  <span
-                                    className="inline-flex items-center rounded-full bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-800"
-                                    title="ต้องการการตอบสนอง"
-                                  >
-                                    ⚡
-                                  </span>
-                                )}
-                                {notification.channels.includes("normal") && (
-                                  <span
-                                    className="inline-flex items-center rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-800"
-                                    title="การแจ้งเตือนปกติ"
-                                  >
-                                    📢
-                                  </span>
-                                )}
-                                {notification.channels.includes("line") && (
-                                  <span
-                                    className="inline-flex items-center rounded-full bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-800"
-                                    title="ส่งผ่าน LINE"
-                                  >
-                                    LINE
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                        </div>
-                        {notification.branch && (
-                          <p className="text-xs text-gray-400">
-                            {notification.branch.name_th ||
-                              notification.branch.name_en}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="ml-2 flex-shrink-0">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowActions(
-                            showActions === notification.id
-                              ? null
-                              : notification.id
-                          );
-                        }}
-                        className="cursor-pointer rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-                        aria-label="เมนูตัวเลือกการแจ้งเตือน"
-                        aria-haspopup="menu"
-                        aria-expanded={showActions === notification.id}
-                        aria-controls={`notification-actions-${notification.id}`}
-                      >
-                        <FaEllipsisV className="h-3 w-3" />
-                      </button>
-
-                      {showActions === notification.id && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className="absolute right-2 top-12 z-10 min-w-[160px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
-                          role="menu"
-                          id={`notification-actions-${notification.id}`}
-                        >
-                          {!notification.read && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                markAsRead(notification.id);
-                                setShowActions(null);
-                              }}
-                              className="flex w-full items-center space-x-3 px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 cursor-pointer"
-                              role="menuitem"
-                            >
-                              <FaEye className="h-3 w-3" />
-                              <span>ทำเครื่องหมายว่าอ่านแล้ว</span>
-                            </button>
-                          )}
-                        </motion.div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Unread indicator */}
-                  {!notification.read && (
-                    <div className="absolute left-1 top-4 h-2 w-2 rounded-full bg-blue-500 shadow-sm"></div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          );
-        })}
+      <div className="divide-y divide-gray-100">
+        {notifications.slice(0, 5).map((notification, idx) => (
+          <motion.div
+            key={notification.id}
+            ref={idx === 0 ? firstItemRef : undefined}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: idx * 0.05 }}
+          >
+            <NotificationItem
+              notification={notification}
+              onNotificationClick={handleNotificationClick}
+              onMarkAsRead={markAsRead}
+              showActions={true}
+              compact={true}
+              index={idx}
+            />
+          </motion.div>
+        ))}
       </div>
     );
   };
 
   const handleNotificationClick = async (notification: Notification) => {
-    // Navigate immediately so UI responds instantly
+    const channels = notification.channels || ["normal"];
+    const hasPopupChannel = channels.includes("popup");
+
+    // If this notification has popup channel, open it as modal
+    if (hasPopupChannel) {
+      openNotificationPopup(notification);
+      onClose();
+      return;
+    }
+
+    // Otherwise, navigate immediately so UI responds instantly
     const route = getNotificationRoute(notification);
     if (!notification.read) {
       // Fire-and-forget mark-as-read; don't await so navigation isn't delayed
@@ -386,8 +186,8 @@ export default function NotificationDropdown({
   if (!isOpen) return null;
 
   const containerClasses = isMobile
-    ? "fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-h-[85vh] rounded-t-3xl border border-transparent bg-white shadow-2xl flex flex-col overflow-hidden"
-    : "absolute right-0 top-12 z-50 w-[90vw] max-w-md rounded-lg border border-gray-200 bg-white shadow-xl max-h-[70vh] flex flex-col overflow-hidden";
+    ? "fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-h-[85vh] rounded-t-3xl border border-gray-100 bg-white shadow-2xl flex flex-col overflow-hidden backdrop-blur-sm"
+    : "absolute right-0 top-12 z-50 w-[90vw] max-w-md rounded-2xl border border-gray-100 bg-white shadow-2xl max-h-[70vh] flex flex-col overflow-hidden";
 
   const containerStyle = isMobile
     ? { paddingBottom: "max(env(safe-area-inset-bottom), 1.25rem)" }
@@ -449,58 +249,89 @@ export default function NotificationDropdown({
         ref={menuRef}
       >
         {isMobile && (
-          <div className="flex justify-center py-3">
-            <span
-              className="h-1.5 w-12 rounded-full bg-gray-300"
+          <div className="flex justify-center py-3 bg-gradient-to-b from-gray-50 to-transparent">
+            <motion.span
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.1}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 100) {
+                  onClose();
+                }
+              }}
+              className="h-1.5 w-12 rounded-full bg-gray-300 cursor-grab active:cursor-grabbing"
               aria-hidden="true"
             />
           </div>
         )}
 
         {/* Header */}
-        <div className="px-4 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50 sm:px-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3" aria-live="polite">
-              <div className="p-2 bg-blue-100 rounded-full">
-                <FaBell className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">
+        <div className="px-4 py-4 border-b border-gray-100 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 sm:px-6">
+          <div className="flex items-center justify-between gap-3">
+            <div
+              className="flex items-center space-x-3 min-w-0 flex-1"
+              aria-live="polite"
+            >
+              <motion.div
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                className="p-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg flex-shrink-0"
+              >
+                <FaBell className="w-5 h-5 text-white" />
+              </motion.div>
+              <div className="min-w-0">
+                <h3 className="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
                   การแจ้งเตือน
                 </h3>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-600 font-medium">
                   {unreadCount > 0
                     ? `${unreadCount} รายการใหม่`
                     : "ไม่มีการแจ้งเตือนใหม่"}
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center gap-2 flex-shrink-0">
               {/* Connection status */}
-              <div className="flex items-center space-x-2">
-                <div
+              <motion.div
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg ${
+                  isConnected
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
+                }`}
+                title={isConnected ? "เชื่อมต่อแล้ว" : "ขาดการเชื่อมต่อ"}
+              >
+                <motion.div
+                  animate={isConnected ? { scale: [1, 1.2, 1] } : { scale: 1 }}
+                  transition={{ duration: 2, repeat: Infinity }}
                   className={`w-2 h-2 rounded-full ${
-                    isConnected ? "bg-green-500" : "bg-red-500"
+                    isConnected
+                      ? "bg-green-500 shadow-green-500/50 shadow-md"
+                      : "bg-red-500"
                   }`}
                 />
-                <span
-                  className={`text-xs font-medium ${
-                    isConnected ? "text-green-600" : "text-red-600"
-                  }`}
-                >
-                  {isConnected ? "เชื่อมต่อ" : "ขาดการเชื่อมต่อ"}
+                <span className="text-xs font-semibold hidden sm:inline">
+                  {isConnected ? "เชื่อมต่อ" : "ออฟไลน์"}
                 </span>
-              </div>
+              </motion.div>
 
               {unreadCount > 0 && (
-                <button
+                <motion.button
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={markAllAsRead}
-                  className="flex items-center space-x-1 text-sm text-blue-600 hover:text-blue-800 font-medium cursor-pointer transition-colors"
+                  className="flex items-center space-x-1.5 px-3 py-1.5 bg-white rounded-lg text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-semibold cursor-pointer transition-all shadow-sm hover:shadow-md border border-blue-100"
                   title="ทำเครื่องหมายว่าอ่านทั้งหมด"
                 >
                   <FaCheck className="w-3 h-3" />
-                  <span>อ่านทั้งหมด</span>
-                </button>
+                  <span className="hidden sm:inline">อ่านหมด</span>
+                </motion.button>
               )}
             </div>
           </div>
@@ -517,37 +348,36 @@ export default function NotificationDropdown({
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-4 border-t border-gray-100 bg-gray-50 sm:px-6">
-          <div className="flex items-center justify-between">
-            <button
+        <div className="px-4 py-4 border-t border-gray-100 bg-gradient-to-br from-gray-50 to-blue-50/30 sm:px-6">
+          <div className="flex items-center justify-between gap-3">
+            <motion.button
+              whileHover={{ scale: 1.02, x: 2 }}
+              whileTap={{ scale: 0.98 }}
               onClick={handleViewAll}
-              className="flex items-center space-x-2 text-sm text-blue-600 hover:text-blue-800 font-semibold cursor-pointer transition-colors group"
+              className="flex items-center space-x-2 text-sm text-blue-600 hover:text-blue-700 font-bold cursor-pointer transition-colors group px-3 py-2 rounded-lg hover:bg-blue-50/50"
             >
-              <span>ดูการแจ้งเตือนทั้งหมด</span>
+              <span>ดูทั้งหมด</span>
               <motion.div
-                className="group-hover:translate-x-1 transition-transform"
+                className="group-hover:translate-x-1 transition-transform text-base"
                 initial={false}
               >
                 →
               </motion.div>
-            </button>
-            <div className="flex items-center space-x-3">
-              {hasMore && notifications.length > 0 && (
-                <button
-                  onClick={loadMore}
-                  disabled={isLoading}
-                  className="text-sm text-gray-600 hover:text-gray-800 font-medium disabled:opacity-50 cursor-pointer transition-colors"
-                >
-                  {isLoading ? "กำลังโหลด..." : "โหลดเพิ่ม"}
-                </button>
-              )}
-              <button
+            </motion.button>
+            <div className="flex items-center space-x-2">
+              <motion.button
+                whileHover={{ scale: 1.05, rotate: 180 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={refreshNotifications}
                 disabled={isLoading}
-                className="text-sm text-gray-600 hover:text-gray-800 font-medium disabled:opacity-50 cursor-pointer transition-colors"
+                className="flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm text-gray-600 hover:text-gray-800 hover:bg-white font-medium disabled:opacity-50 cursor-pointer transition-all border border-gray-200 shadow-sm hover:shadow-md"
+                title="รีเฟรชการแจ้งเตือน"
               >
-                รีเฟรช
-              </button>
+                <FaSync
+                  className={`w-3 h-3 ${isLoading ? "animate-spin" : ""}`}
+                />
+                <span className="hidden sm:inline">รีเฟรช</span>
+              </motion.button>
             </div>
           </div>
         </div>

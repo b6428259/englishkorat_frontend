@@ -129,6 +129,14 @@ const TEST_CASES: TestCase[] = [
     icon: "✉️",
     type: "info",
   },
+  {
+    id: "teacher_confirmation",
+    shortcut: "14",
+    name: "Teacher Confirmation",
+    description: "ยืนยันคาบสอน (3 วันก่อน - 1 วันก่อน)",
+    icon: "👨‍🏫",
+    type: "warning",
+  },
 ];
 
 const TestNotificationsPage = () => {

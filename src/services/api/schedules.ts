@@ -711,8 +711,44 @@ export interface CalendarSession {
   }>;
 }
 
-// Internal API shape used by legacy calendar endpoints
+// New API structure for calendar endpoints
+export interface CalendarDay {
+  date: string;
+  day_name: string;
+  day_of_week: number; // 0 = Sunday, 1 = Monday, etc.
+  event_count: number;
+  events: CalendarSession[];
+  holiday_title: string;
+  is_holiday: boolean;
+}
+
 export interface CalendarViewApiResponse {
+  success: boolean;
+  data: {
+    calendar_days: CalendarDay[];
+    date_range: {
+      start: string;
+      end: string;
+      total_days: number;
+    };
+    events: CalendarSession[]; // All events in the period
+    holidays: Array<{
+      date: string;
+      title: string;
+      type: string;
+    }>;
+    total_events: number;
+    user_context: {
+      branch_id: string | number;
+      role: string;
+      user_id: number;
+    };
+    view_type: "day" | "week" | "month";
+  };
+}
+
+// Legacy calendar structure (for backward compatibility)
+export interface LegacyCalendarViewApiResponse {
   success: boolean;
   data: {
     view: "day" | "week" | "month";
@@ -985,9 +1021,15 @@ export const scheduleService = {
       status?: string;
       include_students?: boolean;
       include_holidays?: boolean;
+      start_date?: string;
+      end_date?: string;
     }
   ): Promise<CalendarViewApiResponse> => {
-    const queryParams = new URLSearchParams({ view, date });
+    const queryParams = new URLSearchParams({ view });
+    // Only add date if no start_date/end_date provided
+    if (!params?.start_date && !params?.end_date) {
+      queryParams.append("date", date);
+    }
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
@@ -998,26 +1040,32 @@ export const scheduleService = {
     const response = await api.get(
       `${API_ENDPOINTS.SCHEDULES.CALENDAR}?${queryParams}`
     );
-    const data = response?.data?.data ?? {};
-    // Defensive defaults
-    data.view = data.view ?? view;
-    data.period = data.period ?? {
-      start_date: "",
-      end_date: "",
-      total_days: 0,
+    const rawData = response?.data?.data ?? {};
+
+    // Ensure calendar_days is an array
+    const calendar_days = Array.isArray(rawData.calendar_days)
+      ? rawData.calendar_days
+      : [];
+
+    // Transform to new structure with defensive defaults
+    const data = {
+      calendar_days,
+      date_range: rawData.date_range ?? {
+        start: "",
+        end: "",
+        total_days: 0,
+      },
+      events: Array.isArray(rawData.events) ? rawData.events : [],
+      holidays: Array.isArray(rawData.holidays) ? rawData.holidays : [],
+      total_events: rawData.total_events ?? 0,
+      user_context: rawData.user_context ?? {
+        branch_id: "",
+        role: "",
+        user_id: 0,
+      },
+      view_type: (rawData.view_type ?? view) as "day" | "week" | "month",
     };
-    data.calendar = data.calendar ?? {};
-    data.holidays = Array.isArray(data.holidays) ? data.holidays : [];
-    data.summary = data.summary ?? {
-      total_sessions: 0,
-      total_holidays: 0,
-      total_exceptions: 0,
-      sessions_by_status: {},
-      sessions_by_branch: {},
-      sessions_by_teacher: {},
-      days_with_sessions: 0,
-      days_with_holidays: 0,
-    };
+
     return {
       success: !!(response?.data?.success ?? true),
       data,
@@ -1943,27 +1991,28 @@ export const scheduleService = {
     const response = await api.get(API_ENDPOINTS.SCHEDULES.CALENDAR);
 
     if (response.data.success) {
+      const rawData = response.data.data ?? {};
+
       return {
         success: true,
         data: {
-          view: response.data.data?.view ?? "day",
-          period: response.data.data?.period ?? {
-            start_date: "",
-            end_date: "",
+          calendar_days: Array.isArray(rawData.calendar_days)
+            ? rawData.calendar_days
+            : [],
+          date_range: rawData.date_range ?? {
+            start: "",
+            end: "",
             total_days: 0,
           },
-          calendar: response.data.data?.calendar ?? {},
-          holidays: response.data.data?.holidays ?? [],
-          summary: response.data.data?.summary ?? {
-            total_sessions: 0,
-            total_holidays: 0,
-            total_exceptions: 0,
-            sessions_by_status: {},
-            sessions_by_branch: {},
-            sessions_by_teacher: {},
-            days_with_sessions: 0,
-            days_with_holidays: 0,
+          events: Array.isArray(rawData.events) ? rawData.events : [],
+          holidays: Array.isArray(rawData.holidays) ? rawData.holidays : [],
+          total_events: rawData.total_events ?? 0,
+          user_context: rawData.user_context ?? {
+            branch_id: "",
+            role: "",
+            user_id: 0,
           },
+          view_type: (rawData.view_type ?? "day") as "day" | "week" | "month",
         },
       };
     } else {
@@ -2232,4 +2281,46 @@ export const getScheduleDetail = async (
     };
   }>(`/schedules/${scheduleId}`);
   return response.data.data;
+};
+
+/**
+ * Teacher confirm session (pending -> confirmed)
+ */
+export const teacherConfirmSession = async (
+  sessionId: number
+): Promise<{ message: string; session?: SessionDetail }> => {
+  const response = await api.post(
+    `/schedules/sessions/${sessionId}/teacher-confirm`
+  );
+
+  if (response.data.success || response.data.message) {
+    return {
+      message: response.data.message || "Session confirmed successfully",
+      session: response.data.data?.session || response.data.session,
+    };
+  } else {
+    throw new Error(response.data.message || "Failed to confirm session");
+  }
+};
+
+/**
+ * Teacher decline session (pending -> cancelled)
+ */
+export const teacherDeclineSession = async (
+  sessionId: number,
+  reason?: string
+): Promise<{ message: string; session?: SessionDetail }> => {
+  const response = await api.post(
+    `/schedules/sessions/${sessionId}/teacher-decline`,
+    { reason }
+  );
+
+  if (response.data.success || response.data.message) {
+    return {
+      message: response.data.message || "Session declined successfully",
+      session: response.data.data?.session || response.data.session,
+    };
+  } else {
+    throw new Error(response.data.message || "Failed to decline session");
+  }
 };
