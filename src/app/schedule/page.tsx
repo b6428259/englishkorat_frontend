@@ -318,9 +318,9 @@ const WeekView: React.FC<{
                                     <div className="flex gap-1 ml-2">
                                       {session.participants
                                         .slice(0, 5)
-                                        .map((participant) => (
+                                        .map((participant, pIndex) => (
                                           <div
-                                            key={participant.user_id}
+                                            key={`${participant.user_id}-${pIndex}`}
                                             className={`w-2 h-2 rounded-full ${
                                               participant.status === "confirmed"
                                                 ? "bg-green-500"
@@ -332,7 +332,7 @@ const WeekView: React.FC<{
                                                 ? "bg-yellow-500"
                                                 : "bg-gray-400" // invited
                                             }`}
-                                            title={`${participant.user.username} - ${participant.status}`}
+                                            title={`${participant.user?.username || participant.user_id} - ${participant.status}`}
                                           />
                                         ))}
                                       {session.participants.length > 5 && (
