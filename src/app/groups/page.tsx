@@ -15,23 +15,23 @@ import { AddMemberModal } from "./components/AddMemberModal";
 
 export default function GroupsPage() {
   const { language } = useLanguage();
-  
+
   // State management
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Filter state
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
   // const [courseFilter, setCourseFilter] = useState<number | null>(null); // TODO: Implement course filtering
-  
+
   // Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
-  
+
   // Form state
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -54,7 +54,7 @@ export default function GroupsPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const params: {
         status?: Group['status'];
         payment_status?: Group['payment_status'];
@@ -65,7 +65,7 @@ export default function GroupsPage() {
       if (s) params.status = s;
       if (p) params.payment_status = p;
       // if (courseFilter) params.course_id = courseFilter;
-      
+
       const response = await groupService.getGroups(params);
       setGroups(response.groups);
     } catch (err) {
@@ -87,11 +87,11 @@ export default function GroupsPage() {
     try {
       setFormLoading(true);
       setFormError(null);
-      
+
       await groupService.createGroup(groupData);
       setIsCreateModalOpen(false);
       await fetchGroups(); // Refresh the list
-      
+
       // Success notification would go here
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create group';
@@ -172,14 +172,14 @@ export default function GroupsPage() {
 
   return (
     <SidebarLayout breadcrumbItems={[{ label: language === 'th' ? 'จัดการกลุ่ม' : 'Groups' }]}>
-      <div className="h-full flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+      <div className="h-full flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen text-gray-700">
         {/* Header Section */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-4 flex-shrink-0 border border-gray-200">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
               {language === 'th' ? 'จัดการกลุ่มเรียน' : 'Group Management'}
             </h1>
-            
+
             <Button
               onClick={() => setIsCreateModalOpen(true)}
               variant="monthViewClicked"

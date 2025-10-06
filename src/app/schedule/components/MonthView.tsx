@@ -128,19 +128,19 @@ export default function MonthView({
     return grouped;
   };
 
-  const pad = density === "compact" ? "p-2" : "p-3";
-  const gap = density === "compact" ? "gap-1.5" : "gap-2";
+  const pad = density === "compact" ? "p-1.5 sm:p-2" : "p-2 sm:p-3";
+  const gap = density === "compact" ? "gap-1 sm:gap-1.5" : "gap-1.5 sm:gap-2";
 
   return (
-    <div className="h-full flex flex-col bg-white rounded-xl overflow-hidden shadow-lg border border-gray-200">
-      {/* Week day headers (tone aligned with WeekView) */}
+    <div className="h-full flex flex-col bg-white rounded-lg sm:rounded-xl overflow-hidden shadow-lg border border-gray-200">
+      {/* Week day headers - Fully Responsive */}
       <div
-        className={`grid grid-cols-7 ${gap} p-4 pb-2 sticky top-0 z-20 bg-white/80 backdrop-blur-sm border-b border-gray-200`}
+        className={`grid grid-cols-7 ${gap} p-2 sm:p-3 lg:p-4 pb-1 sm:pb-2 sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-gray-200`}
       >
         {["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"].map((day, index) => (
           <div
             key={day}
-            className={`text-center font-bold text-sm py-2 rounded-lg tracking-wide ${
+            className={`text-center font-bold text-xs sm:text-sm py-1.5 sm:py-2 rounded-md sm:rounded-lg tracking-wide ${
               index === 5 || index === 6
                 ? "bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700"
                 : "bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700"
@@ -151,18 +151,10 @@ export default function MonthView({
         ))}
       </div>
 
-      {/* Calendar Grid - Responsive and scrollable */}
+      {/* Calendar Grid - Fully Responsive */}
       <div className="flex-1 overflow-auto">
-        {/* Dynamic grid based on number of days */}
-        <div
-          className={`grid ${gap} p-4 min-h-full`}
-          style={{
-            gridTemplateColumns: `repeat(${Math.min(
-              7,
-              calendarGrid.filter(Boolean).length
-            )}, minmax(120px, 1fr))`,
-          }}
-        >
+        {/* Responsive grid with better mobile support */}
+        <div className={`grid grid-cols-7 ${gap} p-2 sm:p-3 lg:p-4 min-h-full`}>
           {calendarGrid.map((gridDay, index) => {
             // Handle empty cells
             if (!gridDay) {
@@ -175,44 +167,59 @@ export default function MonthView({
             return (
               <div
                 key={date}
-                className={`min-h-[120px] ${pad} rounded-xl cursor-pointer transition-all duration-200 hover:shadow-xl border-2 relative ${
+                className={`min-h-[80px] sm:min-h-[100px] lg:min-h-[120px] ${pad} rounded-lg sm:rounded-xl cursor-pointer transition-all duration-200 hover:shadow-xl border sm:border-2 relative ${
                   isToday
-                    ? "bg-gradient-to-br from-indigo-100 to-purple-100 border-indigo-400 shadow-lg"
+                    ? "bg-gradient-to-br from-indigo-100 to-purple-100 border-indigo-400 shadow-md sm:shadow-lg"
                     : dayData.is_holiday
                     ? "bg-gradient-to-br from-red-50 to-red-100 border-red-200 hover:from-red-100 hover:to-red-200"
                     : "bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 hover:from-indigo-50 hover:to-purple-50 hover:border-indigo-300"
                 }`}
                 onClick={() => onDayClick?.(date)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onDayClick?.(date);
+                  }
+                }}
+                aria-label={`${day} ${dayData.is_holiday ? "Holiday" : ""} ${
+                  dayData.session_count > 0
+                    ? `${dayData.session_count} sessions`
+                    : ""
+                }`}
               >
-                {/* Day Number */}
+                {/* Day Number - Responsive */}
                 <div
-                  className={`text-right mb-1 ${
+                  className={`text-right mb-0.5 sm:mb-1 ${
                     isCurrentMonth
                       ? isToday
-                        ? "text-[#334293] font-bold text-lg"
+                        ? "text-[#334293] font-bold text-sm sm:text-base lg:text-lg"
                         : dayData.is_holiday
-                        ? "text-red-600 font-semibold"
-                        : "text-gray-900 font-medium"
-                      : "text-gray-400"
+                        ? "text-red-600 font-semibold text-sm sm:text-base"
+                        : "text-gray-900 font-medium text-sm sm:text-base"
+                      : "text-gray-400 text-sm sm:text-base"
                   }`}
                 >
                   {day}
                 </div>
 
-                {/* Holiday indicator */}
+                {/* Holiday indicator - Responsive */}
                 {dayData.is_holiday &&
                   dayData.holiday_info &&
                   isCurrentMonth && (
-                    <div className="text-[10px] text-red-600 mb-1 truncate font-medium">
+                    <div className="text-[9px] sm:text-[10px] text-red-600 mb-0.5 sm:mb-1 truncate font-medium leading-tight">
                       🎌{" "}
-                      {(dayData.holiday_info as { name?: string })?.name ||
-                        "Holiday"}
+                      <span className="hidden sm:inline">
+                        {(dayData.holiday_info as { name?: string })?.name ||
+                          "Holiday"}
+                      </span>
                     </div>
                   )}
 
-                {/* Sessions */}
+                {/* Sessions - Responsive Display */}
                 {isCurrentMonth && dayData.sessions.length > 0 && (
-                  <div className="space-y-1 overflow-hidden">
+                  <div className="space-y-0.5 sm:space-y-1 overflow-hidden">
                     {Object.entries(sessionsByBranch)
                       .slice(0, 3)
                       .map(([branchName, branchSessions]) => (
@@ -220,56 +227,65 @@ export default function MonthView({
                           {branchSessions.slice(0, 2).map((session) => (
                             <div
                               key={session.id}
-                              className={`text-[10px] p-1 rounded border cursor-pointer hover:shadow-sm transition-all ${getBranchColorLight(
+                              className={`text-[9px] sm:text-[10px] p-0.5 sm:p-1 rounded border cursor-pointer hover:shadow-sm active:scale-95 transition-all ${getBranchColorLight(
                                 branchName
                               )}`}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onSessionClick(session);
                               }}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  onSessionClick(session);
+                                }
+                              }}
                             >
                               <div className="flex items-center justify-between mb-0.5">
-                                <span className="font-bold text-gray-800 truncate flex-1">
+                                <span className="font-bold text-gray-800 truncate flex-1 text-[9px] sm:text-[10px]">
                                   {formatTime(session.start_time)}
                                 </span>
                                 <div
-                                  className={`w-2 h-2 rounded-full ml-1 ${getBranchColorDot(
+                                  className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ml-1 flex-shrink-0 ${getBranchColorDot(
                                     branchName
                                   )}`}
                                 ></div>
                               </div>
 
-                              <div className="text-gray-700 font-medium truncate">
+                              <div className="text-gray-700 font-medium truncate text-[8px] sm:text-[10px] leading-tight">
                                 {session.schedule_name}
                               </div>
 
                               {session.teacher_name && (
-                                <div className="text-gray-600 truncate">
+                                <div className="text-gray-600 truncate text-[8px] sm:text-[10px] leading-tight hidden sm:block">
                                   👩‍🏫 {session.teacher_name}
                                 </div>
                               )}
 
                               {session.students &&
                                 session.students.length > 0 && (
-                                  <div className="text-gray-600">
+                                  <div className="text-gray-600 text-[8px] sm:text-[10px] leading-tight">
                                     👥 {session.students.length}
                                   </div>
                                 )}
 
-                              {/* Show participants for non-class schedules with status colors */}
+                              {/* Show participants for non-class schedules with status colors - Responsive */}
                               {session.participants &&
                                 session.participants.length > 0 && (
-                                  <div className="flex items-center gap-1 mt-0.5">
-                                    <span className="text-gray-600 text-[9px]">
+                                  <div className="flex items-center gap-0.5 sm:gap-1 mt-0.5">
+                                    <span className="text-gray-600 text-[8px] sm:text-[9px] hidden sm:inline">
                                       👤
                                     </span>
                                     <div className="flex gap-0.5">
                                       {session.participants
                                         .slice(0, 3)
-                                        .map((participant) => (
+                                        .map((participant, pIndex) => (
                                           <div
-                                            key={participant.user_id}
-                                            className={`w-1.5 h-1.5 rounded-full ${
+                                            key={`${participant.user_id}-${pIndex}`}
+                                            className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${
                                               participant.status === "confirmed"
                                                 ? "bg-green-500"
                                                 : participant.status ===
@@ -280,11 +296,14 @@ export default function MonthView({
                                                 ? "bg-yellow-500"
                                                 : "bg-gray-400" // invited
                                             }`}
-                                            title={`${participant.user.username} - ${participant.status}`}
+                                            title={`${
+                                              participant.user?.username ||
+                                              participant.user_id
+                                            } - ${participant.status}`}
                                           />
                                         ))}
                                       {session.participants.length > 3 && (
-                                        <span className="text-gray-500 text-[8px] ml-0.5">
+                                        <span className="text-gray-500 text-[7px] sm:text-[8px] ml-0.5">
                                           +{session.participants.length - 3}
                                         </span>
                                       )}
@@ -294,29 +313,29 @@ export default function MonthView({
                             </div>
                           ))}
 
-                          {/* Show remaining sessions count if more than 2 */}
+                          {/* Show remaining sessions count if more than 2 - Responsive */}
                           {branchSessions.length > 2 && (
-                            <div className="text-[10px] text-gray-500 text-center py-0.5">
-                              +{branchSessions.length - 2} more
+                            <div className="text-[8px] sm:text-[10px] text-gray-500 text-center py-0.5">
+                              +{branchSessions.length - 2}
                             </div>
                           )}
                         </div>
                       ))}
 
-                    {/* Show remaining branches count if more than 3 */}
+                    {/* Show remaining branches count if more than 3 - Responsive */}
                     {Object.keys(sessionsByBranch).length > 3 && (
-                      <div className="text-[10px] text-gray-500 text-center py-0.5 bg-gray-100 rounded">
-                        +{Object.keys(sessionsByBranch).length - 3} branches
+                      <div className="text-[8px] sm:text-[10px] text-gray-500 text-center py-0.5 bg-gray-100 rounded">
+                        +{Object.keys(sessionsByBranch).length - 3}
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Session count indicator for days with many sessions */}
+                {/* Session count indicator - Responsive Badge */}
                 {isCurrentMonth && dayData.session_count > 0 && (
-                  <div className="absolute top-1 left-1">
+                  <div className="absolute top-0.5 sm:top-1 left-0.5 sm:left-1">
                     <div
-                      className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center text-white ${
+                      className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full text-[8px] sm:text-[10px] font-bold flex items-center justify-center text-white shadow-md ${
                         dayData.session_count > 5
                           ? "bg-red-500"
                           : dayData.session_count > 3
@@ -329,13 +348,13 @@ export default function MonthView({
                   </div>
                 )}
 
-                {/* Empty day add button */}
+                {/* Empty day add button - Responsive Touch Target */}
                 {isCurrentMonth &&
                   dayData.sessions.length === 0 &&
                   !dayData.is_holiday && (
-                    <div className="h-full flex items-center justify-center opacity-0 hover:opacity-60 transition-opacity">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 hover:bg-indigo-200 flex items-center justify-center">
-                        <span className="text-lg text-indigo-400 hover:text-indigo-600">
+                    <div className="h-full flex items-center justify-center opacity-0 hover:opacity-60 active:opacity-80 transition-opacity">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-indigo-100 hover:bg-indigo-200 active:bg-indigo-300 flex items-center justify-center transition-colors">
+                        <span className="text-base sm:text-lg text-indigo-400 hover:text-indigo-600 font-bold">
                           +
                         </span>
                       </div>

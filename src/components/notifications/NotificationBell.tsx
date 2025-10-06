@@ -7,25 +7,39 @@ import NotificationDropdown from "./NotificationDropdown";
 export default function NotificationBell() {
   const { unreadCount, isConnected, popupNotification } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLButtonElement>(null);
 
   // Check if there are any popup notifications pending
   const hasPopupNotifications = popupNotification !== null;
 
+  let buttonStateClass =
+    "text-gray-600 hover:bg-gray-100 hover:text-gray-900 hover:shadow-md";
+  if (hasPopupNotifications) {
+    buttonStateClass = "bg-red-100 text-red-600 shadow-lg animate-pulse";
+  } else if (isOpen) {
+    buttonStateClass = "bg-blue-100 text-blue-600 shadow-lg";
+  }
+
   // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (bellRef.current && !bellRef.current.contains(event.target as Node)) {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
 
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside);
     }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
     };
   }, [isOpen]);
 
@@ -45,7 +59,7 @@ export default function NotificationBell() {
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <motion.button
         ref={bellRef}
         onClick={handleToggle}
@@ -56,13 +70,7 @@ export default function NotificationBell() {
         aria-expanded={isOpen}
         aria-controls="notification-dropdown"
         aria-label="เปิดการแจ้งเตือน"
-        className={`relative p-3 rounded-xl transition-all duration-200 cursor-pointer ${
-          hasPopupNotifications
-            ? "bg-red-100 text-red-600 shadow-lg animate-pulse"
-            : isOpen
-            ? "bg-blue-100 text-blue-600 shadow-lg"
-            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 hover:shadow-md"
-        }`}
+        className={`relative rounded-xl transition-all duration-200 cursor-pointer px-2.5 py-2.5 sm:p-3 ${buttonStateClass}`}
         title={hasPopupNotifications ? "การแจ้งเตือนเร่งด่วน!" : "การแจ้งเตือน"}
       >
         <FaBell className="w-5 h-5" />

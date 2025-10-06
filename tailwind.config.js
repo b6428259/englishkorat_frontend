@@ -1,5 +1,5 @@
 // tailwind.config.js
-const {heroui} = require("@heroui/theme");
+const { heroui } = require("@heroui/theme");
 const colors = require("./src/styles/colors.ts").colors;
 
 /** @type {import('tailwindcss').Config} */
@@ -8,10 +8,24 @@ module.exports = {
     "./src/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./node_modules/@heroui/theme/dist/components/(alert|autocomplete|button|chip|date-picker|ripple|spinner|form|input|listbox|divider|popover|scroll-shadow|calendar|date-input).js"
+    "./node_modules/@heroui/theme/dist/components/(alert|autocomplete|button|chip|date-picker|ripple|spinner|form|input|listbox|divider|popover|scroll-shadow|calendar|date-input).js",
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: [
+          "FC Subject Rounded",
+          "ui-sans-serif",
+          "system-ui",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "Roboto",
+          "Helvetica Neue",
+          "Arial",
+          "sans-serif",
+        ],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -21,16 +35,16 @@ module.exports = {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
-          50: '#e7e9f8',
-          100: '#c4c9ed',
-          200: '#9da7e1',
-          300: '#7685d5',
-          400: '#596bcb',
-          500: '#334293',
-          600: '#2d3a83',
-          700: '#252f70',
-          800: '#1e255d',
-          900: '#13183e',
+          50: "#e7e9f8",
+          100: "#c4c9ed",
+          200: "#9da7e1",
+          300: "#7685d5",
+          400: "#596bcb",
+          500: "#334293",
+          600: "#2d3a83",
+          700: "#252f70",
+          800: "#1e255d",
+          900: "#13183e",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -47,16 +61,16 @@ module.exports = {
         accent: {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
-          50: '#fefce8',
-          100: '#fef9c3',
-          200: '#fef08a',
-          300: '#fde047',
-          400: '#facc15',
-          500: '#EFE957',
-          600: '#ca8a04',
-          700: '#a16207',
-          800: '#854d0e',
-          900: '#713f12',
+          50: "#fefce8",
+          100: "#fef9c3",
+          200: "#fef08a",
+          300: "#fde047",
+          400: "#facc15",
+          500: "#EFE957",
+          600: "#ca8a04",
+          700: "#a16207",
+          800: "#854d0e",
+          900: "#713f12",
         },
         popover: {
           DEFAULT: "hsl(var(--popover))",
@@ -77,5 +91,5 @@ module.exports = {
     },
   },
   darkMode: "class",
-  plugins: [heroui(), require('@tailwindcss/line-clamp')],
+  plugins: [heroui(), require("@tailwindcss/line-clamp")],
 };

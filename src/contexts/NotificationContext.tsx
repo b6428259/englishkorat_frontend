@@ -1,3 +1,4 @@
+import playNotificationSound from "@/lib/playNotificationSound";
 import { getSecureToken } from "@/utils/secureStorage";
 import {
   createContext,
@@ -36,6 +37,7 @@ interface NotificationContextType {
   acceptPopupNotification: () => Promise<void>;
   declinePopupNotification: () => Promise<void>;
   dismissPopupNotification: () => void;
+  openNotificationPopup: (notification: Notification) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(
@@ -573,6 +575,16 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
         lastOpenedNotificationIdRef.current = popupNotif.id;
 
+        // Play notification sound for popup (safe, non-blocking)
+        try {
+          // playNotificationSound already respects localStorage 'notificationSoundEnabled' setting
+          playNotificationSound().catch(() => {
+            /* ignore playback errors (autoplay policy etc.) */
+          });
+        } catch {
+          // swallow errors to avoid breaking notification flow
+        }
+
         // Auto-mark as read when popup is shown
         markAsRead(popupNotif.id).catch((error) => {
           console.error(
@@ -816,6 +828,12 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     setPopupNotification(null);
   }, []);
 
+  const openNotificationPopup = useCallback((notification: Notification) => {
+    // Allow reopening any popup notification (read or unread)
+    setPopupNotification(notification);
+    lastOpenedNotificationIdRef.current = notification.id;
+  }, []);
+
   const contextValue = useMemo<NotificationContextType>(
     () => ({
       notifications,
@@ -832,6 +850,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       acceptPopupNotification,
       declinePopupNotification,
       dismissPopupNotification,
+      openNotificationPopup,
     }),
     [
       notifications,
@@ -848,6 +867,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       acceptPopupNotification,
       declinePopupNotification,
       dismissPopupNotification,
+      openNotificationPopup,
     ]
   );
 

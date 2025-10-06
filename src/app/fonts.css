@@ -1,0 +1,221 @@
+/* FC Subject Rounded Font Family */
+
+@font-face {
+  font-family: "FC Subject Rounded";
+  src: url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF2/FCSubjectRounded-Thin.woff2")
+      format("woff2"),
+    url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF/FCSubjectRounded-Thin.woff")
+      format("woff");
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "FC Subject Rounded";
+  src: url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF2/FCSubjectRounded-ThinItalic.woff2")
+      format("woff2"),
+    url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF/FCSubjectRounded-ThinItalic.woff")
+      format("woff");
+  font-weight: 100;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "FC Subject Rounded";
+  src: url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF2/FCSubjectRounded-ExtraLight.woff2")
+      format("woff2"),
+    url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF/FCSubjectRounded-ExtraLight.woff")
+      format("woff");
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "FC Subject Rounded";
+  src: url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF2/FCSubjectRounded-ExtraLightItalic.woff2")
+      format("woff2"),
+    url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF/FCSubjectRounded-ExtraLightItalic.woff")
+      format("woff");
+  font-weight: 200;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "FC Subject Rounded";
+  src: url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF2/FCSubjectRounded-Light.woff2")
+      format("woff2"),
+    url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF/FCSubjectRounded-Light.woff")
+      format("woff");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "FC Subject Rounded";
+  src: url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF2/FCSubjectRounded-LightItalic.woff2")
+      format("woff2"),
+    url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF/FCSubjectRounded-LightItalic.woff")
+      format("woff");
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "FC Subject Rounded";
+  src: url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF2/FCSubjectRounded-Regular.woff2")
+      format("woff2"),
+    url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF/FCSubjectRounded-Regular.woff")
+      format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "FC Subject Rounded";
+  src: url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF2/FCSubjectRounded-Italic.woff2")
+      format("woff2"),
+    url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF/FCSubjectRounded-Italic.woff")
+      format("woff");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "FC Subject Rounded";
+  src: url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF2/FCSubjectRounded-Medium.woff2")
+      format("woff2"),
+    url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF/FCSubjectRounded-Medium.woff")
+      format("woff");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "FC Subject Rounded";
+  src: url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF2/FCSubjectRounded-MediumItalic.woff2")
+      format("woff2"),
+    url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF/FCSubjectRounded-MediumItalic.woff")
+      format("woff");
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "FC Subject Rounded";
+  src: url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF2/FCSubjectRounded-SemiBold.woff2")
+      format("woff2"),
+    url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF/FCSubjectRounded-SemiBold.woff")
+      format("woff");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "FC Subject Rounded";
+  src: url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF2/FCSubjectRounded-SemiBoldItalic.woff2")
+      format("woff2"),
+    url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF/FCSubjectRounded-SemiBoldItalic.woff")
+      format("woff");
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "FC Subject Rounded";
+  src: url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF2/FCSubjectRounded-Bold.woff2")
+      format("woff2"),
+    url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF/FCSubjectRounded-Bold.woff")
+      format("woff");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "FC Subject Rounded";
+  src: url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF2/FCSubjectRounded-BoldItalic.woff2")
+      format("woff2"),
+    url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF/FCSubjectRounded-BoldItalic.woff")
+      format("woff");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "FC Subject Rounded";
+  src: url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF2/FCSubjectRounded-ExtraBold.woff2")
+      format("woff2"),
+    url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF/FCSubjectRounded-ExtraBold.woff")
+      format("woff");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "FC Subject Rounded";
+  src: url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF2/FCSubjectRounded-ExtraBoldItalic.woff2")
+      format("woff2"),
+    url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF/FCSubjectRounded-ExtraBoldItalic.woff")
+      format("woff");
+  font-weight: 800;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "FC Subject Rounded";
+  src: url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF2/FCSubjectRounded-Heavy.woff2")
+      format("woff2"),
+    url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF/FCSubjectRounded-Heavy.woff")
+      format("woff");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "FC Subject Rounded";
+  src: url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF2/FCSubjectRounded-HeavyItalic.woff2")
+      format("woff2"),
+    url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF/FCSubjectRounded-HeavyItalic.woff")
+      format("woff");
+  font-weight: 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "FC Subject Rounded";
+  src: url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF2/FCSubjectRounded-Black.woff2")
+      format("woff2"),
+    url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF/FCSubjectRounded-Black.woff")
+      format("woff");
+  font-weight: 950;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "FC Subject Rounded";
+  src: url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF2/FCSubjectRounded-BlackItalic.woff2")
+      format("woff2"),
+    url("/fonts/FC_Subject_Rounded_Webfont_ver_1.00/WOFF/FCSubjectRounded-BlackItalic.woff")
+      format("woff");
+  font-weight: 950;
+  font-style: italic;
+  font-display: swap;
+}

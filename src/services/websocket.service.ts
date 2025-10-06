@@ -2,6 +2,30 @@ import toast from "react-hot-toast";
 import { io, Socket } from "socket.io-client";
 import type { Notification } from "../types/notification";
 
+// WebSocket message envelope with settings
+interface WebSocketNotificationMessage {
+  type: "notification";
+  data: Notification;
+  settings?: {
+    notification_sound?: string;
+    notification_sound_file?: string;
+    enable_notification_sound?: boolean;
+    custom_sound_url?: string;
+    custom_sound_filename?: string;
+  };
+  available_sounds?: Array<{
+    id: string;
+    label: string;
+    description: string;
+    file: string;
+  }>;
+  settings_metadata?: {
+    allowed_custom_sound_extensions?: string[];
+    max_custom_sound_size_bytes?: number;
+    supports_custom_sound?: boolean;
+  };
+}
+
 export interface WebSocketConfig {
   url: string;
   options?: {
@@ -69,10 +93,13 @@ export class WebSocketService {
           try {
             const message = JSON.parse(event.data);
 
-            // Handle new envelope structure: { "type": "notification", "data": { ...NotificationDTO } }
+            // Handle new envelope structure: { "type": "notification", "data": { ...NotificationDTO }, "settings": {...} }
             if (message && typeof message === "object") {
               if (message.type === "notification" && message.data) {
-                this.handleNewNotification(message.data as Notification);
+                this.handleNewNotification(
+                  message.data as Notification,
+                  message as unknown as WebSocketNotificationMessage
+                );
                 this.emit("new-notification", message.data);
               } else if (message.id) {
                 // Legacy: Backend sends NotificationDTO directly
@@ -195,7 +222,7 @@ export class WebSocketService {
       // Listen for raw messages (backend sends envelope structure)
       this.socket.on("message", (data: unknown) => {
         try {
-          // Handle new envelope structure: { "type": "notification", "data": { ...NotificationDTO } }
+          // Handle new envelope structure: { "type": "notification", "data": { ...NotificationDTO }, "settings": {...} }
           if (data && typeof data === "object") {
             const message = data as Record<string, unknown>;
             if (message.type === "notification" && message.data) {
@@ -203,7 +230,10 @@ export class WebSocketService {
                 "New notification received via Socket.IO envelope:",
                 data
               );
-              this.handleNewNotification(message.data as Notification);
+              this.handleNewNotification(
+                message.data as Notification,
+                message as unknown as WebSocketNotificationMessage
+              );
               this.emit("new-notification", message.data);
             } else if ("id" in message) {
               // Legacy: Backend sends NotificationDTO directly
@@ -232,7 +262,10 @@ export class WebSocketService {
         if (data && typeof data === "object") {
           const message = data as Record<string, unknown>;
           if (message.type === "notification" && message.data) {
-            this.handleNewNotification(message.data as Notification);
+            this.handleNewNotification(
+              message.data as Notification,
+              message as unknown as WebSocketNotificationMessage
+            );
             this.emit("new-notification", message.data);
           } else {
             this.handleNewNotification(data as Notification);
@@ -307,7 +340,10 @@ export class WebSocketService {
   /**
    * Handle new notification with channel-based routing and action-based UI behavior
    */
-  private handleNewNotification(notification: Notification): void {
+  private handleNewNotification(
+    notification: Notification,
+    messageEnvelope?: WebSocketNotificationMessage
+  ): void {
     // Get channels (defaults to ["normal"] if missing)
     const channels = notification.channels || ["normal"];
     const payload = notification.data || {};
@@ -317,6 +353,12 @@ export class WebSocketService {
       payload.action,
       "channels:",
       channels
+    );
+
+    // Play notification sound if enabled
+    this.playNotificationSound(
+      messageEnvelope?.settings,
+      messageEnvelope?.available_sounds
     );
 
     // Always add to notifications list and increment unread count
@@ -451,6 +493,94 @@ export class WebSocketService {
         position: "top-center",
       }
     );
+  }
+
+  /**
+   * Play notification sound based on settings
+   */
+  private async playNotificationSound(
+    settings?: {
+      notification_sound?: string;
+      notification_sound_file?: string;
+      enable_notification_sound?: boolean;
+      custom_sound_url?: string;
+      custom_sound_filename?: string;
+    },
+    availableSounds?: Array<{
+      id: string;
+      label: string;
+      description: string;
+      file: string;
+    }>
+  ): Promise<void> {
+    // Check if sound is enabled
+    if (!settings?.enable_notification_sound) {
+      return;
+    }
+
+    let soundUrl: string | null = null;
+
+    try {
+      // Decide which sound to play
+      if (settings.notification_sound === "custom") {
+        // Use custom sound
+        soundUrl =
+          settings.notification_sound_file || settings.custom_sound_url || null;
+        console.log("Playing custom notification sound:", soundUrl);
+      } else {
+        // Use built-in sound
+        const selectedSound = availableSounds?.find(
+          (sound) => sound.id === settings.notification_sound
+        );
+        if (selectedSound) {
+          soundUrl = selectedSound.file; // e.g., '/sounds/ding.mp3'
+          console.log(
+            "Playing built-in notification sound:",
+            soundUrl,
+            "for sound ID:",
+            settings.notification_sound
+          );
+        } else {
+          console.warn("Sound not found for ID:", settings.notification_sound);
+        }
+      }
+
+      // Play the sound if URL is available
+      if (soundUrl) {
+        await this.playSound(soundUrl);
+      }
+    } catch (error) {
+      console.warn("Failed to play notification sound:", error);
+    }
+  }
+
+  /**
+   * Play sound from URL with caching support
+   */
+  private async playSound(soundUrl: string): Promise<void> {
+    try {
+      // Check if browser supports audio
+      if (typeof window === "undefined" || !window.Audio) {
+        console.warn("Audio not supported in this environment");
+        return;
+      }
+
+      // Create and play audio
+      const audio = new Audio(soundUrl);
+
+      // Set reasonable volume
+      audio.volume = 0.7;
+
+      // Preload the audio
+      audio.preload = "auto";
+
+      // Play the sound
+      await audio.play();
+
+      console.log("Notification sound played successfully:", soundUrl);
+    } catch (error) {
+      console.warn("Could not play notification sound:", error);
+    }
   }
 
   /**

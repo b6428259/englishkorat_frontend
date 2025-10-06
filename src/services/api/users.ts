@@ -21,14 +21,15 @@ export interface UpdateUserRequest {
   branch_id?: number;
 }
 
+export interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+}
+
 export interface UsersListResponse {
-  success: boolean;
-  data: {
-    users: User[];
-    total: number;
-    page: number;
-    limit: number;
-  };
+  users: User[];
+  pagination: PaginationInfo;
 }
 
 export interface UserResponse {
@@ -40,7 +41,7 @@ export interface UserResponse {
 
 export const usersApi = {
   /**
-   * Get list of all users
+   * Get list of all users with pagination
    */
   getUsers: async (
     page: number = 1,
@@ -52,6 +53,35 @@ export const usersApi = {
     if (filters?.search) params.search = filters.search;
     const response = await api.get(API_ENDPOINTS.USERS.LIST, { params });
     return response.data;
+  },
+
+  /**
+   * Get all users (load all pages)
+   */
+  getAllUsers: async (filters?: {
+    role?: User["role"];
+    search?: string;
+  }): Promise<User[]> => {
+    let allUsers: User[] = [];
+    let currentPage = 1;
+    const limit = 100; // Load 100 users per page
+
+    while (true) {
+      const response = await usersApi.getUsers(currentPage, limit, filters);
+      allUsers = [...allUsers, ...response.users];
+
+      // Check if we've loaded all users
+      if (
+        response.users.length < limit ||
+        allUsers.length >= response.pagination.total
+      ) {
+        break;
+      }
+
+      currentPage++;
+    }
+
+    return allUsers;
   },
 
   /**
@@ -111,6 +141,17 @@ export const usersApi = {
    */
   getProfile: async (): Promise<UserResponse> => {
     const response = await api.get(API_ENDPOINTS.USERS.PROFILE);
+    return response.data;
+  },
+
+  /**
+   * Update current user profile
+   */
+  updateProfile: async (userData: {
+    email?: string;
+    phone?: string;
+  }): Promise<UserResponse> => {
+    const response = await api.put(API_ENDPOINTS.USERS.PROFILE, userData);
     return response.data;
   },
 };

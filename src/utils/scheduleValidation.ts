@@ -18,7 +18,9 @@ const toInt = (n: unknown) =>
 
 // Validate schedule per new rules
 export function validateScheduleForm(
-  input: Partial<CreateScheduleRequest>
+  input: Partial<CreateScheduleRequest> & {
+    session_times?: Array<{ weekday: number; start_time: string }>;
+  }
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
@@ -55,9 +57,12 @@ export function validateScheduleForm(
       });
 
     // Validate custom recurring days when pattern is custom
+    // Class schedules can use session_times instead, so only check if not using session_times
     if (
       input.recurring_pattern === "custom" &&
-      (!input.custom_recurring_days || input.custom_recurring_days.length === 0)
+      (!input.custom_recurring_days ||
+        input.custom_recurring_days.length === 0) &&
+      (!input.session_times || input.session_times.length === 0)
     ) {
       issues.push({
         field: "custom_recurring_days",
@@ -68,13 +73,23 @@ export function validateScheduleForm(
 
   // Time validation - different rules for recurring vs one-off
   if (input.recurring_pattern && input.recurring_pattern !== "none") {
-    // Recurring schedules need time_slots
-    if (!input.time_slots || input.time_slots.length === 0) {
+    // Class schedules can use session_times (new format) OR time_slots (old format)
+    const hasSessionTimes =
+      input.session_times && input.session_times.length > 0;
+    const hasTimeSlots = input.time_slots && input.time_slots.length > 0;
+    const hasSessionStartTime = input.session_start_time;
+
+    // Must have at least one time specification
+    if (!hasSessionTimes && !hasTimeSlots && !hasSessionStartTime) {
       issues.push({
         field: "time_slots",
         message: "กรุณาเลือกวัน/เวลาอย่างน้อย 1 รายการ",
       });
-    } else {
+    }
+
+    // Validate time_slots if provided (old format)
+    if (hasTimeSlots) {
+      // @ts-expect-error - time_slots validation
       input.time_slots.forEach((ts, i) => {
         if (!ts.day_of_week)
           issues.push({
@@ -90,6 +105,23 @@ export function validateScheduleForm(
           issues.push({
             field: `time_slots[${i}].end_time`,
             message: "กรุณาเลือกเวลาสิ้นสุด",
+          });
+      });
+    }
+
+    // Validate session_times if provided (new format for class schedules)
+    if (hasSessionTimes) {
+      // @ts-expect-error - session_times validation
+      input.session_times.forEach((st, i) => {
+        if (st.weekday == null)
+          issues.push({
+            field: `session_times[${i}].weekday`,
+            message: "กรุณาเลือกวัน",
+          });
+        if (!st.start_time)
+          issues.push({
+            field: `session_times[${i}].start_time`,
+            message: "กรุณาเลือกเวลาเริ่ม",
           });
       });
     }

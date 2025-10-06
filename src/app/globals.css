@@ -1,9 +1,11 @@
 @import "tailwindcss";
+@import "./fonts.css";
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  
+  --font-fc-subject: "FC Subject Rounded", sans-serif;
+
   /* shadcn/ui variables */
   --card: 0 0% 100%;
   --card-foreground: 224 71.4% 4.1%;
@@ -30,7 +32,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  
+
   shadcn color mappings
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
@@ -61,7 +63,8 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "FC Subject Rounded", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 p {
@@ -146,7 +149,8 @@ p {
 
 /* Smooth transitions for all interactive elements */
 * {
-  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-property: background-color, border-color, color, fill, stroke,
+    opacity, box-shadow, transform;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 200ms;
 }
@@ -261,16 +265,13 @@ html {
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px);
   }
   50% {
     transform: translateY(-10px);
   }
-}
-
-.animate-in {
-  animation: animate-in 0.15s ease-out;
 }
 
 .fade-in-0 {
@@ -315,6 +316,57 @@ html {
 .hover-glow:hover {
   box-shadow: 0 10px 25px rgba(51, 66, 147, 0.3);
   transition: box-shadow 0.3s ease;
+}
+
+/* Custom animation durations and delays */
+.animation-duration-400 {
+  animation-duration: 400ms;
+}
+
+.animation-duration-500 {
+  animation-duration: 500ms;
+}
+
+.animation-delay-150 {
+  animation-delay: 150ms;
+}
+
+/* Modal backdrop animations */
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes backdrop-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Smooth scale bounce effect */
+@keyframes scale-in-bounce {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-scale-in-bounce {
+  animation: scale-in-bounce 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* Gradient animations */

@@ -1,16 +1,43 @@
 "use client";
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useState, useEffect } from "react";
-import { scheduleService, SessionDetail, SessionComment, CreateSessionCommentRequest } from "@/services/api/schedules";
-import { Clock, Calendar, User, MapPin, Users, FileText, MessageSquare, CheckCircle, XCircle } from "lucide-react";
+import {
+  CreateSessionCommentRequest,
+  scheduleService,
+  SessionComment,
+  SessionDetail,
+  teacherConfirmSession,
+  teacherDeclineSession,
+} from "@/services/api/schedules";
+import {
+  AlertCircle,
+  Ban,
+  Calendar,
+  CheckCircle,
+  Clock,
+  FileText,
+  MapPin,
+  MessageSquare,
+  RefreshCw,
+  User,
+  Users,
+  UserX,
+  XCircle,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 
 interface SessionDetailModalProps {
   isOpen: boolean;
@@ -24,21 +51,27 @@ export default function SessionDetailModal({
   sessionId,
 }: SessionDetailModalProps) {
   const { language } = useLanguage();
-  
-  const [sessionDetail, setSessionDetail] = useState<SessionDetail | null>(null);
+
+  const [sessionDetail, setSessionDetail] = useState<SessionDetail | null>(
+    null
+  );
   const [sessionComments, setSessionComments] = useState<SessionComment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isCommentsLoading, setIsCommentsLoading] = useState(false);
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [isDeclining, setIsDeclining] = useState(false);
 
   const fetchSessionDetail = async () => {
     if (!sessionId) return;
-    
+
     try {
       setIsLoading(true);
-      const response = await scheduleService.getSessionDetail(sessionId.toString());
+      const response = await scheduleService.getSessionDetail(
+        sessionId.toString()
+      );
       setSessionDetail(response.session);
     } catch (error) {
       console.error("Failed to fetch session detail:", error);
@@ -49,7 +82,7 @@ export default function SessionDetailModal({
 
   const fetchSessionComments = async () => {
     if (!sessionId) return;
-    
+
     try {
       setIsCommentsLoading(true);
       const response = await scheduleService.getSessionComments(sessionId);
@@ -78,7 +111,7 @@ export default function SessionDetailModal({
         session_id: sessionId,
         comment: newComment.trim(),
       };
-      
+
       await scheduleService.createSessionComment(commentData);
       setNewComment("");
       await fetchSessionComments();
@@ -89,41 +122,124 @@ export default function SessionDetailModal({
     }
   };
 
+  const handleConfirmSession = async () => {
+    if (!sessionId) return;
+
+    try {
+      setIsConfirming(true);
+      await teacherConfirmSession(sessionId);
+      toast.success(
+        language === "th"
+          ? "ยืนยันคาบเรียนสำเร็จ"
+          : "Session confirmed successfully",
+        { position: "top-center", icon: "✅" }
+      );
+      await fetchSessionDetail();
+    } catch (error) {
+      console.error("Failed to confirm session:", error);
+      toast.error(
+        language === "th" ? "ไม่สามารถยืนยันได้" : "Failed to confirm session",
+        { position: "top-center" }
+      );
+    } finally {
+      setIsConfirming(false);
+    }
+  };
+
+  const handleDeclineSession = async () => {
+    if (!sessionId) return;
+
+    try {
+      setIsDeclining(true);
+      await teacherDeclineSession(sessionId);
+      toast.success(
+        language === "th"
+          ? "ปฏิเสธคาบเรียนสำเร็จ"
+          : "Session declined successfully",
+        { position: "top-center", icon: "❌" }
+      );
+      await fetchSessionDetail();
+    } catch (error) {
+      console.error("Failed to decline session:", error);
+      toast.error(
+        language === "th" ? "ไม่สามารถปฏิเสธได้" : "Failed to decline session",
+        { position: "top-center" }
+      );
+    } finally {
+      setIsDeclining(false);
+    }
+  };
+
   const formatDateTime = (dateTime: string) => {
     const date = new Date(dateTime);
     return {
-      date: date.toLocaleDateString(language === 'th' ? 'th-TH' : 'en-US'),
-      time: date.toLocaleTimeString(language === 'th' ? 'th-TH' : 'en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      })
+      date: date.toLocaleDateString(language === "th" ? "th-TH" : "en-US"),
+      time: date.toLocaleTimeString(language === "th" ? "th-TH" : "en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     };
   };
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      confirmed: { 
-        variant: "success" as const, 
-        icon: CheckCircle, 
-        text: language === 'th' ? 'ยืนยันแล้ว' : 'Confirmed' 
+      pending: {
+        variant: "warning" as const,
+        icon: Clock,
+        text: language === "th" ? "รอการยืนยัน" : "Pending",
+        className: "bg-yellow-100 text-yellow-800 border-yellow-300",
       },
-      pending: { 
-        variant: "warning" as const, 
-        icon: Clock, 
-        text: language === 'th' ? 'รอการยืนยัน' : 'Pending' 
+      scheduled: {
+        variant: "secondary" as const,
+        icon: Calendar,
+        text: language === "th" ? "กำหนดการแล้ว" : "Scheduled",
+        className: "bg-blue-100 text-blue-800 border-blue-300",
       },
-      cancelled: { 
-        variant: "destructive" as const, 
-        icon: XCircle, 
-        text: language === 'th' ? 'ยกเลิก' : 'Cancelled' 
-      }
+      confirmed: {
+        variant: "success" as const,
+        icon: CheckCircle,
+        text: language === "th" ? "ยืนยันแล้ว" : "Confirmed",
+        className: "bg-green-100 text-green-800 border-green-300",
+      },
+      cancelled: {
+        variant: "destructive" as const,
+        icon: XCircle,
+        text: language === "th" ? "ยกเลิก" : "Cancelled",
+        className: "bg-red-100 text-red-800 border-red-300",
+      },
+      rescheduled: {
+        variant: "secondary" as const,
+        icon: RefreshCw,
+        text: language === "th" ? "เลื่อนกำหนดการ" : "Rescheduled",
+        className: "bg-purple-100 text-purple-800 border-purple-300",
+      },
+      "no-show": {
+        variant: "destructive" as const,
+        icon: UserX,
+        text: language === "th" ? "ไม่มาเรียน" : "No-show",
+        className: "bg-orange-100 text-orange-800 border-orange-300",
+      },
+      completed: {
+        variant: "success" as const,
+        icon: CheckCircle,
+        text: language === "th" ? "เสร็จสิ้น" : "Completed",
+        className: "bg-emerald-100 text-emerald-800 border-emerald-300",
+      },
     };
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+
+    const config = statusConfig[status as keyof typeof statusConfig] || {
+      variant: "secondary" as const,
+      icon: AlertCircle,
+      text: status,
+      className: "bg-gray-100 text-gray-800 border-gray-300",
+    };
     const IconComponent = config.icon;
-    
+
     return (
-      <Badge variant={config.variant} className="inline-flex items-center gap-1">
+      <Badge
+        variant={config.variant}
+        className={`inline-flex items-center gap-1 ${config.className}`}
+      >
         <IconComponent className="h-3 w-3" />
         {config.text}
       </Badge>
@@ -135,28 +251,42 @@ export default function SessionDetailModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden bg-white">
-  <DialogHeader className="border-b border-gray-300 pb-4">
+        <DialogHeader className="border-b border-gray-300 pb-4">
           <DialogTitle className="text-2xl font-bold text-gray-900 flex items-center gap-3">
             <Calendar className="h-6 w-6 text-indigo-600" />
-            {language === 'th' ? 'รายละเอียดคาบเรียน' : 'Session Details'}
+            {language === "th" ? "รายละเอียดคาบเรียน" : "Session Details"}
             <span className="text-lg text-black">#{sessionId}</span>
           </DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden min-h-0">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="h-full flex flex-col"
+          >
             <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="details" className="flex items-center gap-2 text-black">
+              <TabsTrigger
+                value="details"
+                className="flex items-center gap-2 text-black"
+              >
                 <FileText className="h-4 w-4 text-black" />
-                {language === 'th' ? 'รายละเอียด' : 'Details'}
+                {language === "th" ? "รายละเอียด" : "Details"}
               </TabsTrigger>
-              <TabsTrigger value="comments" className="flex items-center gap-2 text-black">
+              <TabsTrigger
+                value="comments"
+                className="flex items-center gap-2 text-black"
+              >
                 <MessageSquare className="h-4 w-4 text-black" />
-                {language === 'th' ? 'ความคิดเห็น' : 'Comments'} ({sessionComments.length})
+                {language === "th" ? "ความคิดเห็น" : "Comments"} (
+                {sessionComments.length})
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="details" className="flex-1 overflow-hidden min-h-0">
+            <TabsContent
+              value="details"
+              className="flex-1 overflow-hidden min-h-0"
+            >
               {isLoading ? (
                 <div className="flex justify-center items-center h-64">
                   <LoadingSpinner size="md" />
@@ -169,42 +299,94 @@ export default function SessionDetailModal({
                       <h3 className="text-xl font-semibold text-gray-900">
                         {sessionDetail.schedule?.schedule_name}
                       </h3>
-                      {getStatusBadge(sessionDetail.status)}
+                      <div className="flex items-center gap-3">
+                        {getStatusBadge(sessionDetail.status)}
+                        {sessionDetail.status === "pending" && (
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={handleDeclineSession}
+                              disabled={isDeclining || isConfirming}
+                              variant="cancel"
+                              className="px-4 py-2 text-sm"
+                            >
+                              {isDeclining ? (
+                                <LoadingSpinner size="sm" />
+                              ) : (
+                                <>
+                                  <Ban className="h-4 w-4 mr-1" />
+                                  {language === "th" ? "ปฏิเสธ" : "Decline"}
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              onClick={handleConfirmSession}
+                              disabled={isConfirming || isDeclining}
+                              variant="monthViewClicked"
+                              className="px-4 py-2 text-sm"
+                            >
+                              {isConfirming ? (
+                                <LoadingSpinner size="sm" />
+                              ) : (
+                                <>
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                  {language === "th" ? "ยืนยัน" : "Confirm"}
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
                         <Calendar className="h-5 w-5 text-indigo-600" />
                         <div>
-                          <p className="text-sm text-black">{language === 'th' ? 'วันที่' : 'Date'}</p>
-                          <p className="font-medium text-gray-700">{formatDateTime(sessionDetail.session_date).date}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
-                        <Clock className="h-5 w-5 text-indigo-600" />
-                        <div>
-                          <p className="text-sm text-black">{language === 'th' ? 'เวลา' : 'Time'}</p>
+                          <p className="text-sm text-black">
+                            {language === "th" ? "วันที่" : "Date"}
+                          </p>
                           <p className="font-medium text-gray-700">
-                            {formatDateTime(sessionDetail.start_time).time} - {formatDateTime(sessionDetail.end_time).time}
+                            {formatDateTime(sessionDetail.session_date).date}
                           </p>
                         </div>
                       </div>
-                      
+
+                      <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
+                        <Clock className="h-5 w-5 text-indigo-600" />
+                        <div>
+                          <p className="text-sm text-black">
+                            {language === "th" ? "เวลา" : "Time"}
+                          </p>
+                          <p className="font-medium text-gray-700">
+                            {formatDateTime(sessionDetail.start_time).time} -{" "}
+                            {formatDateTime(sessionDetail.end_time).time}
+                          </p>
+                        </div>
+                      </div>
+
                       <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
                         <MapPin className="h-5 w-5 text-indigo-600" />
                         <div>
-                          <p className="text-sm text-black">{language === 'th' ? 'ห้องเรียน' : 'Room'}</p>
-                          <p className="font-medium text-gray-700">{sessionDetail.room?.room_name}</p>
+                          <p className="text-sm text-black">
+                            {language === "th" ? "ห้องเรียน" : "Room"}
+                          </p>
+                          <p className="font-medium text-gray-700">
+                            {sessionDetail.room?.room_name}
+                          </p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
                         <Users className="h-5 w-5 text-indigo-600" />
                         <div>
-                          <p className="text-sm text-black">{language === 'th' ? 'ครั้งที่' : 'Session'}</p>
+                          <p className="text-sm text-black">
+                            {language === "th" ? "ครั้งที่" : "Session"}
+                          </p>
                           <p className="font-medium text-gray-700">
-                            {sessionDetail.session_number} / {language === 'th' ? `สัปดาห์ ${sessionDetail.week_number}` : `Week ${sessionDetail.week_number}`}
+                            {sessionDetail.session_number} /{" "}
+                            {language === "th"
+                              ? `สัปดาห์ ${sessionDetail.week_number}`
+                              : `Week ${sessionDetail.week_number}`}
                           </p>
                         </div>
                       </div>
@@ -217,28 +399,42 @@ export default function SessionDetailModal({
                     <div className="bg-white p-6 rounded-xl border border-gray-300 shadow-sm">
                       <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                         <User className="h-5 w-5 text-indigo-600" />
-                        {language === 'th' ? 'ข้อมูลอาจารย์' : 'Teacher Information'}
+                        {language === "th"
+                          ? "ข้อมูลอาจารย์"
+                          : "Teacher Information"}
                       </h4>
-                      
+
                       {sessionDetail.assigned_teacher && (
                         <div className="flex items-start gap-4">
                           <Avatar className="h-12 w-12">
-                            <AvatarImage 
-                              src={sessionDetail.assigned_teacher.avatar ? 
-                                `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/${sessionDetail.assigned_teacher.avatar}` : 
-                                undefined
-                              } 
-                              alt={sessionDetail.assigned_teacher.username} 
+                            <AvatarImage
+                              src={
+                                sessionDetail.assigned_teacher.avatar
+                                  ? `${
+                                      process.env.NEXT_PUBLIC_API_URL ||
+                                      "http://localhost:8080"
+                                    }/${sessionDetail.assigned_teacher.avatar}`
+                                  : undefined
+                              }
+                              alt={sessionDetail.assigned_teacher.username}
                             />
                             <AvatarFallback className="bg-indigo-100 text-indigo-600 font-semibold">
-                              {sessionDetail.assigned_teacher.username.charAt(0).toUpperCase()}
+                              {sessionDetail.assigned_teacher.username
+                                .charAt(0)
+                                .toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
-                          
+
                           <div className="flex-1">
-                            <p className="font-medium text-gray-900">{sessionDetail.assigned_teacher.username}</p>
-                            <p className="text-sm text-gray-600">{sessionDetail.assigned_teacher.email}</p>
-                            <p className="text-sm text-gray-600">{sessionDetail.assigned_teacher.phone}</p>
+                            <p className="font-medium text-gray-900">
+                              {sessionDetail.assigned_teacher.username}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {sessionDetail.assigned_teacher.email}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {sessionDetail.assigned_teacher.phone}
+                            </p>
                             {sessionDetail.assigned_teacher.branch && (
                               <p className="text-sm text-indigo-600 mt-1">
                                 {sessionDetail.assigned_teacher.branch.name_en}
@@ -253,32 +449,45 @@ export default function SessionDetailModal({
                     <div className="bg-white p-6 rounded-xl border border-gray-300 shadow-sm">
                       <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                         <MapPin className="h-5 w-5 text-indigo-600" />
-                        {language === 'th' ? 'ข้อมูลห้องเรียน' : 'Room Information'}
+                        {language === "th"
+                          ? "ข้อมูลห้องเรียน"
+                          : "Room Information"}
                       </h4>
-                      
+
                       {sessionDetail.room && (
                         <div className="space-y-3">
                           <div>
-                            <p className="font-medium text-gray-900">{sessionDetail.room.room_name}</p>
+                            <p className="font-medium text-gray-900">
+                              {sessionDetail.room.room_name}
+                            </p>
                             <p className="text-sm text-gray-600">
-                              {language === 'th' ? 'ความจุ' : 'Capacity'}: {sessionDetail.room.capacity} {language === 'th' ? 'คน' : 'people'}
+                              {language === "th" ? "ความจุ" : "Capacity"}:{" "}
+                              {sessionDetail.room.capacity}{" "}
+                              {language === "th" ? "คน" : "people"}
                             </p>
                           </div>
-                          
-                          {sessionDetail.room.equipment && sessionDetail.room.equipment.length > 0 && (
-                            <div>
-                              <p className="text-sm font-medium text-gray-700 mb-2">
-                                {language === 'th' ? 'อุปกรณ์' : 'Equipment'}:
-                              </p>
-                              <div className="flex flex-wrap gap-1">
-                                {sessionDetail.room.equipment.map((equipment, index) => (
-                                  <Badge key={index} variant="secondary" className="text-xs">
-                                    {equipment}
-                                  </Badge>
-                                ))}
+
+                          {sessionDetail.room.equipment &&
+                            sessionDetail.room.equipment.length > 0 && (
+                              <div>
+                                <p className="text-sm font-medium text-gray-900 mb-2">
+                                  {language === "th" ? "อุปกรณ์" : "Equipment"}:
+                                </p>
+                                <div className="flex flex-wrap gap-1">
+                                  {sessionDetail.room.equipment.map(
+                                    (equipment, index) => (
+                                      <Badge
+                                        key={index}
+                                        variant="secondary"
+                                        className="text-xs"
+                                      >
+                                        {equipment}
+                                      </Badge>
+                                    )
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )}
                         </div>
                       )}
                     </div>
@@ -289,45 +498,85 @@ export default function SessionDetailModal({
                     <div className="bg-white p-6 rounded-xl border border-gray-300 shadow-sm">
                       <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                         <FileText className="h-5 w-5 text-indigo-600" />
-                        {language === 'th' ? 'ข้อมูลตารางเรียน' : 'Schedule Information'}
+                        {language === "th"
+                          ? "ข้อมูลตารางเรียน"
+                          : "Schedule Information"}
                       </h4>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
-                          <p className="text-sm text-black">{language === 'th' ? 'ชื่อตารางเรียน' : 'Schedule Name'}</p>
-                          <p className="font-medium text-gray-700">{sessionDetail.schedule.schedule_name}</p>
+                          <p className="text-sm text-black">
+                            {language === "th"
+                              ? "ชื่อตารางเรียน"
+                              : "Schedule Name"}
+                          </p>
+                          <p className="font-medium text-gray-700">
+                            {sessionDetail.schedule.schedule_name}
+                          </p>
                         </div>
-                        
+
                         <div>
-                          <p className="text-sm text-black">{language === 'th' ? 'ประเภท' : 'Type'}</p>
-                          <Badge variant="outline" className="text-gray-700">{sessionDetail.schedule.schedule_type}</Badge>
+                          <p className="text-sm text-black">
+                            {language === "th" ? "ประเภท" : "Type"}
+                          </p>
+                          <Badge variant="outline" className="text-gray-700">
+                            {sessionDetail.schedule.schedule_type}
+                          </Badge>
                         </div>
-                        
+
                         <div>
-                          <p className="text-sm text-black">{language === 'th' ? 'รูปแบบ' : 'Pattern'}</p>
-                          <p className="font-medium text-gray-700">{sessionDetail.schedule.recurring_pattern}</p>
+                          <p className="text-sm text-black">
+                            {language === "th" ? "รูปแบบ" : "Pattern"}
+                          </p>
+                          <p className="font-medium text-gray-700">
+                            {sessionDetail.schedule.recurring_pattern}
+                          </p>
                         </div>
-                        
+
                         <div>
-                          <p className="text-sm text-black">{language === 'th' ? 'จำนวนชั่วโมงรวม' : 'Total Hours'}</p>
-                          <p className="font-medium text-gray-700">{sessionDetail.schedule.total_hours} {language === 'th' ? 'ชั่วโมง' : 'hours'}</p>
+                          <p className="text-sm text-black">
+                            {language === "th"
+                              ? "จำนวนชั่วโมงรวม"
+                              : "Total Hours"}
+                          </p>
+                          <p className="font-medium text-gray-700">
+                            {sessionDetail.schedule.total_hours}{" "}
+                            {language === "th" ? "ชั่วโมง" : "hours"}
+                          </p>
                         </div>
-                        
+
                         <div>
-                          <p className="text-sm text-black">{language === 'th' ? 'ชั่วโมงต่อครั้ง' : 'Hours per Session'}</p>
-                          <p className="font-medium text-gray-700">{sessionDetail.schedule.hours_per_session} {language === 'th' ? 'ชั่วโมง' : 'hours'}</p>
+                          <p className="text-sm text-black">
+                            {language === "th"
+                              ? "ชั่วโมงต่อครั้ง"
+                              : "Hours per Session"}
+                          </p>
+                          <p className="font-medium text-gray-700">
+                            {sessionDetail.schedule.hours_per_session}{" "}
+                            {language === "th" ? "ชั่วโมง" : "hours"}
+                          </p>
                         </div>
-                        
+
                         <div>
-                          <p className="text-sm text-black">{language === 'th' ? 'ครั้งต่อสัปดาห์' : 'Sessions per Week'}</p>
-                          <p className="font-medium text-gray-700">{sessionDetail.schedule.session_per_week}</p>
+                          <p className="text-sm text-black">
+                            {language === "th"
+                              ? "ครั้งต่อสัปดาห์"
+                              : "Sessions per Week"}
+                          </p>
+                          <p className="font-medium text-gray-700">
+                            {sessionDetail.schedule.session_per_week}
+                          </p>
                         </div>
                       </div>
-                      
+
                       {sessionDetail.schedule.notes && (
                         <div className="mt-4">
-                          <p className="text-sm text-black mb-1">{language === 'th' ? 'หมายเหตุ' : 'Notes'}</p>
-                          <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">{sessionDetail.schedule.notes}</p>
+                          <p className="text-sm text-black mb-1">
+                            {language === "th" ? "หมายเหตุ" : "Notes"}
+                          </p>
+                          <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">
+                            {sessionDetail.schedule.notes}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -338,27 +587,46 @@ export default function SessionDetailModal({
                     <div className="bg-green-50 p-6 rounded-xl border border-green-300">
                       <h4 className="text-lg font-semibold text-green-800 mb-4 flex items-center gap-2">
                         <CheckCircle className="h-5 w-5 text-green-600" />
-                        {language === 'th' ? 'ข้อมูลการยืนยัน' : 'Confirmation Details'}
+                        {language === "th"
+                          ? "ข้อมูลการยืนยัน"
+                          : "Confirmation Details"}
                       </h4>
-                      
+
                       <div className="flex items-start gap-4">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage 
-                            src={sessionDetail.confirmed_by.avatar ? 
-                              `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/${sessionDetail.confirmed_by.avatar}` : 
-                              undefined
-                            } 
-                            alt={sessionDetail.confirmed_by.username} 
+                          <AvatarImage
+                            src={
+                              sessionDetail.confirmed_by.avatar
+                                ? `${
+                                    process.env.NEXT_PUBLIC_API_URL ||
+                                    "http://localhost:8080"
+                                  }/${sessionDetail.confirmed_by.avatar}`
+                                : undefined
+                            }
+                            alt={sessionDetail.confirmed_by.username}
                           />
                           <AvatarFallback className="bg-green-100 text-green-600 font-semibold">
-                            {sessionDetail.confirmed_by.username.charAt(0).toUpperCase()}
+                            {sessionDetail.confirmed_by.username
+                              .charAt(0)
+                              .toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        
+
                         <div>
-                          <p className="font-medium text-green-800">{sessionDetail.confirmed_by.username}</p>
+                          <p className="font-medium text-green-800">
+                            {sessionDetail.confirmed_by.username}
+                          </p>
                           <p className="text-sm text-green-600">
-                            {language === 'th' ? 'ยืนยันเมื่อ' : 'Confirmed at'}: {formatDateTime(sessionDetail.confirmed_at || '').date} {formatDateTime(sessionDetail.confirmed_at || '').time}
+                            {language === "th" ? "ยืนยันเมื่อ" : "Confirmed at"}
+                            :{" "}
+                            {
+                              formatDateTime(sessionDetail.confirmed_at || "")
+                                .date
+                            }{" "}
+                            {
+                              formatDateTime(sessionDetail.confirmed_at || "")
+                                .time
+                            }
                           </p>
                         </div>
                       </div>
@@ -370,19 +638,26 @@ export default function SessionDetailModal({
                     <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-300">
                       <p className="text-yellow-800 font-medium flex items-center gap-2">
                         <Clock className="h-4 w-4" />
-                        {language === 'th' ? 'นี่คือคาบเรียนชดเชย' : 'This is a makeup session'}
+                        {language === "th"
+                          ? "นี่คือคาบเรียนชดเชย"
+                          : "This is a makeup session"}
                       </p>
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="flex justify-center items-center h-64 text-black">
-                  {language === 'th' ? 'ไม่พบข้อมูลคาบเรียน' : 'Session not found'}
+                  {language === "th"
+                    ? "ไม่พบข้อมูลคาบเรียน"
+                    : "Session not found"}
                 </div>
               )}
             </TabsContent>
 
-            <TabsContent value="comments" className="flex-1 overflow-hidden min-h-0 flex flex-col">
+            <TabsContent
+              value="comments"
+              className="flex-1 overflow-hidden min-h-0 flex flex-col"
+            >
               <div className="flex-1 overflow-y-auto min-h-0 p-2">
                 <div className="space-y-4 mb-6">
                   {isCommentsLoading ? (
@@ -391,28 +666,36 @@ export default function SessionDetailModal({
                     </div>
                   ) : sessionComments.length > 0 ? (
                     sessionComments.map((comment) => (
-                      <div key={comment.id} className="bg-white p-4 rounded-xl border border-gray-300 shadow-sm">
+                      <div
+                        key={comment.id}
+                        className="bg-white p-4 rounded-xl border border-gray-300 shadow-sm"
+                      >
                         <div className="flex items-start gap-3">
                           <Avatar className="h-8 w-8">
-                            <AvatarImage 
-                              src={comment.user?.avatar ? 
-                                `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/${comment.user.avatar}` : 
-                                undefined
-                              } 
-                              alt={comment.user?.username} 
+                            <AvatarImage
+                              src={
+                                comment.user?.avatar
+                                  ? `${
+                                      process.env.NEXT_PUBLIC_API_URL ||
+                                      "http://localhost:8080"
+                                    }/${comment.user.avatar}`
+                                  : undefined
+                              }
+                              alt={comment.user?.username}
                             />
                             <AvatarFallback className="bg-gray-100 text-gray-600 text-sm">
                               {comment.user?.username.charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
-                          
+
                           <div className="flex-1">
                             <div className="flex items-center justify-between mb-2">
                               <span className="font-medium text-gray-900">
                                 {comment.user?.username}
                               </span>
                               <span className="text-xs text-black">
-                                {formatDateTime(comment.created_at).date} {formatDateTime(comment.created_at).time}
+                                {formatDateTime(comment.created_at).date}{" "}
+                                {formatDateTime(comment.created_at).time}
                               </span>
                             </div>
                             <p className="text-gray-700">{comment.comment}</p>
@@ -424,22 +707,28 @@ export default function SessionDetailModal({
                     <div className="text-center py-12">
                       <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                       <p className="text-black">
-                        {language === 'th' ? 'ยังไม่มีความคิดเห็น' : 'No comments yet'}
+                        {language === "th"
+                          ? "ยังไม่มีความคิดเห็น"
+                          : "No comments yet"}
                       </p>
                     </div>
                   )}
                 </div>
               </div>
-              
+
               <Separator className="my-4" />
-              
+
               {/* Add Comment Section */}
               <div className="bg-gray-100 p-4 rounded-xl">
                 <div className="flex gap-3">
                   <textarea
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
-                    placeholder={language === 'th' ? 'เพิ่มความคิดเห็น...' : 'Add a comment...'}
+                    placeholder={
+                      language === "th"
+                        ? "เพิ่มความคิดเห็น..."
+                        : "Add a comment..."
+                    }
                     className="flex-1 p-3 border border-gray-300 rounded-lg resize-none h-20 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-black"
                     rows={3}
                   />
@@ -451,8 +740,10 @@ export default function SessionDetailModal({
                   >
                     {isSubmittingComment ? (
                       <LoadingSpinner size="sm" />
+                    ) : language === "th" ? (
+                      "ส่ง"
                     ) : (
-                      language === 'th' ? 'ส่ง' : 'Send'
+                      "Send"
                     )}
                   </Button>
                 </div>

@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { getSidebarItems } from "../sidebar/sidebarConfig";
 import type { SidebarItem } from "../sidebar/types";
@@ -40,24 +40,31 @@ const MobileBottomNavbar: React.FC<MobileBottomNavbarProps> = ({
     );
   };
 
+  useEffect(() => {
+    if (!expanded) {
+      setOpenMenus({});
+    }
+  }, [expanded]);
+
+  const openMenu = (id: string) => {
+    setOpenMenus((prev) => {
+      if (prev[id]) {
+        return {};
+      }
+      return { [id]: true };
+    });
+  };
+
   const handleItemClick = (item: SidebarItem) => {
     if (item.children && item.children.length > 0) {
-      // If has children, toggle the expanded state to show full menu
       onToggle(true);
-      setTimeout(() => {
-        setOpenMenus((prev) => ({
-          ...Object.fromEntries(Object.keys(prev).map((k) => [k, false])),
-          [item.id]: true,
-        }));
-      }, 150);
+      openMenu(item.id);
     } else if (item.href) {
-      // Direct navigation
       router.push(item.href);
     }
   };
 
   const handleChildClick = (href: string) => {
-    onToggle(false);
     router.push(href);
   };
 
@@ -179,8 +186,9 @@ const MobileBottomNavbar: React.FC<MobileBottomNavbarProps> = ({
                 ease: [0.4, 0, 0.2, 1], // Custom cubic-bezier for smooth animation
                 duration: 0.3,
               }}
-              className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl max-h-[80vh] overflow-hidden"
+              className="fixed bottom-0 left-0 right-0 z-50 flex max-h-[80vh] flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl"
               style={{ paddingBottom: "max(env(safe-area-inset-bottom), 0px)" }}
+              onClick={(e) => e.stopPropagation()}
             >
               {/* Handle */}
               <div className="flex justify-center py-3">
@@ -224,7 +232,7 @@ const MobileBottomNavbar: React.FC<MobileBottomNavbarProps> = ({
               </div>
 
               {/* Menu Content */}
-              <div className="overflow-y-auto flex-1 pb-24 sm:pb-20">
+              <div className="flex-1 overflow-y-auto pb-24 sm:pb-20">
                 <div className="p-4 space-y-2">
                   {sidebarItems.map((item) => {
                     const isActive = isActiveParent(item);

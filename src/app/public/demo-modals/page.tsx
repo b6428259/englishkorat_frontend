@@ -1,7 +1,7 @@
 "use client";
 
-import ModernScheduleModal from "@/app/schedule/components/ModernScheduleModal";
 import { ModernSessionsModal } from "@/app/schedule/components/ModernSessionsModal";
+import ScheduleModalWrapper from "@/app/schedule/components/ScheduleModalWrapper";
 import { useState } from "react";
 import { HiCalendarDays, HiSparkles } from "react-icons/hi2";
 
@@ -261,7 +261,7 @@ export default function ModalsDemo() {
         ]}
       />
 
-      <ModernScheduleModal
+      <ScheduleModalWrapper
         isOpen={showScheduleModal}
         onClose={() => setShowScheduleModal(false)}
         onConfirm={async (form) => {

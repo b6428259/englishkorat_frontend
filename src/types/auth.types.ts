@@ -9,24 +9,31 @@ export interface RegisterRequest {
   email: string;
   phone?: string;
   line_id?: string;
-  role?: 'student' | 'teacher' | 'admin' | 'owner';
+  role?: "student" | "teacher" | "admin" | "owner";
   branch_id?: number;
+}
+
+export interface StudentInfo {
+  first_name: string;
+  last_name: string;
+  nickname: string;
 }
 
 export interface User {
   id: number;
   username: string;
-  email: string;
+  email: string | null;
   phone?: string;
   line_id?: string;
-  role: 'student' | 'teacher' | 'admin' | 'owner';
+  role: "student" | "teacher" | "admin" | "owner";
   branch_id?: number;
   branch_name?: string;
   branch_code?: string;
-  status: 'active' | 'inactive';
-  created_at: string;
+  status: "active" | "inactive";
+  created_at?: string;
   updated_at?: string;
   avatar?: string;
+  student?: StudentInfo;
 }
 
 export interface AuthResponse {
