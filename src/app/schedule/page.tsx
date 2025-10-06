@@ -332,7 +332,10 @@ const WeekView: React.FC<{
                                                 ? "bg-yellow-500"
                                                 : "bg-gray-400" // invited
                                             }`}
-                                            title={`${participant.user?.username || participant.user_id} - ${participant.status}`}
+                                            title={`${
+                                              participant.user?.username ||
+                                              participant.user_id
+                                            } - ${participant.status}`}
                                           />
                                         ))}
                                       {session.participants.length > 5 && (
