@@ -2,7 +2,6 @@
 
 import SidebarLayout from "@/components/common/SidebarLayout";
 import { NotificationItem } from "@/components/notifications/NotificationItem";
-import { useLanguage } from "@/contexts/LanguageContext";
 import { useNotifications } from "@/contexts/NotificationContext";
 import type { Notification } from "@/types/notification";
 import { AnimatePresence, motion } from "framer-motion";
@@ -31,7 +30,6 @@ const getNotificationRoute = (notification: Notification): string => {
 
 export default function NotificationsPage() {
   const router = useRouter();
-  const { language } = useLanguage();
   const {
     notifications,
     unreadCount,
