@@ -248,6 +248,7 @@ export interface TeacherBranch {
 export interface TeacherSession {
   id: number;
   schedule_id: number;
+  schedule_name?: string;
   date: string;
   start_time: string;
   end_time: string;

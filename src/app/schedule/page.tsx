@@ -455,6 +455,11 @@ export default function SchedulePage() {
   // Prevent overlapping or looping fetches
   const isFetchingRef = useRef(false);
 
+  // Drag-to-scroll states
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartPos = useRef({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
+
   const openModal = useCallback((modal: "createSchedule" | "createSession") => {
     // Close others first
     setIsCreateModalOpen(false);
@@ -561,6 +566,42 @@ export default function SchedulePage() {
     const interval = setInterval(updateCurrentTime, 60000); // 60 seconds
 
     return () => clearInterval(interval);
+  }, []);
+
+  // Drag-to-scroll handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    setIsDragging(true);
+    dragStartPos.current = {
+      x: e.pageX,
+      y: e.pageY,
+      scrollLeft: container.scrollLeft,
+      scrollTop: container.scrollTop,
+    };
+  }, []);
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!isDragging) return;
+
+      const container = scrollContainerRef.current;
+      if (!container) return;
+
+      e.preventDefault();
+
+      const deltaX = e.pageX - dragStartPos.current.x;
+      const deltaY = e.pageY - dragStartPos.current.y;
+
+      container.scrollLeft = dragStartPos.current.scrollLeft - deltaX;
+      container.scrollTop = dragStartPos.current.scrollTop - deltaY;
+    },
+    [isDragging]
+  );
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
   }, []);
 
   // Optimize fetchData to avoid unnecessary re-renders
@@ -1397,8 +1438,16 @@ export default function SchedulePage() {
             ) : viewMode === "day" ? (
               /* Day View - Improved Horizontal Scrollable Table */
               <div className="h-full relative min-h-0">
-                {/* Horizontal scroll container */}
-                <div className="h-full overflow-auto relative z-0">
+                {/* Horizontal scroll container with drag-to-scroll */}
+                <div
+                  ref={scrollContainerRef}
+                  className="h-full overflow-auto relative z-0 select-none"
+                  style={{ cursor: isDragging ? "grabbing" : "grab" }}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                >
                   <div
                     className="relative min-h-full"
                     style={{
@@ -1564,7 +1613,7 @@ export default function SchedulePage() {
                                           handleSessionClick(session)
                                         }
                                       >
-                                        <div className="space-y-1.5">
+                                        <div className="space-y-1">
                                           {/* Time Display */}
                                           <div className="flex items-center gap-1.5">
                                             <div className="w-1 h-1 rounded-full bg-indigo-500"></div>
@@ -1578,8 +1627,18 @@ export default function SchedulePage() {
                                             </p>
                                           </div>
 
+                                          {/* Course/Schedule Name */}
+                                          {session.schedule_name && (
+                                            <p
+                                              className="font-bold text-[11px] text-gray-900 line-clamp-1"
+                                              title={session.schedule_name}
+                                            >
+                                              {session.schedule_name}
+                                            </p>
+                                          )}
+
                                           {/* Session Number */}
-                                          <p className="font-bold text-sm text-gray-800 line-clamp-1">
+                                          <p className="font-semibold text-xs text-gray-700 line-clamp-1">
                                             {language === "th"
                                               ? "ครั้งที่"
                                               : "Session"}{" "}
@@ -1608,7 +1667,7 @@ export default function SchedulePage() {
                                                   d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                                                 />
                                               </svg>
-                                              <p className="text-xs text-gray-600 line-clamp-1">
+                                              <p className="text-[10px] text-gray-600 line-clamp-1">
                                                 {session.room.name}
                                               </p>
                                             </div>
