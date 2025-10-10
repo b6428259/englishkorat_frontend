@@ -1392,9 +1392,9 @@ export default function SchedulePage() {
               </div>
             ) : viewMode === "day" ? (
               /* Day View - Improved Horizontal Scrollable Table */
-              <div className="h-full overflow-hidden">
+              <div className="h-full relative min-h-0">
                 {/* Horizontal scroll container */}
-                <div className="h-full overflow-x-auto overflow-y-visible">
+                <div className="h-full overflow-auto relative z-0">
                   <div
                     className="relative min-h-full"
                     style={{
@@ -1444,12 +1444,26 @@ export default function SchedulePage() {
                       </div>
                     </div>
 
-                    <table className="w-full text-sm border-collapse">
-                      <thead className="sticky top-0 z-20">
-                        <tr>
-                          <th className="text-center font-bold text-white bg-gradient-to-br from-indigo-600 to-purple-700 border border-gray-300 p-3 text-sm w-[70px] sticky left-0 z-30 shadow-lg">
+                    <table className="w-full text-sm border-collapse relative">
+                      <thead className="sticky top-0 z-50 bg-gradient-to-br from-indigo-600 to-purple-700 text-white backdrop-blur-md shadow-lg">
+                        <tr className="sticky top-0 z-40">
+                          {/* คอลัมน์เวลา - sticky ด้านซ้าย */}
+                          <th
+                            className="
+                              text-center font-bold text-white
+                              bg-gradient-to-br from-indigo-600 to-purple-700
+                              border border-gray-300
+                              p-3 text-sm
+                              w-[90px]
+                              sticky left-0
+                              z-50
+                              shadow-lg
+                            "
+                          >
                             {t.time}
                           </th>
+
+                          {/* หัวตารางชื่อครู - sticky ด้านบน */}
                           {filteredTeachers.length === 0 ? (
                             <th className="text-center font-bold text-white bg-gray-400 border border-gray-300 p-4 min-w-[300px]">
                               {t.noScheduleData}
@@ -1458,7 +1472,13 @@ export default function SchedulePage() {
                             filteredTeachers.map((teacher) => (
                               <th
                                 key={teacher.id}
-                                className={`text-center font-bold text-white border border-gray-300 p-3 text-sm min-w-[90px] bg-gradient-to-br from-indigo-600 to-purple-700`}
+                                className="
+                                  text-center font-bold text-white
+                                  border border-gray-300
+                                  p-3 text-sm min-w-[160px]
+                                  bg-gradient-to-br from-indigo-600 to-purple-700
+                                  sticky top-0 z-50
+                                "
                               >
                                 <div className="p-2">
                                   <div className="font-bold">
@@ -1479,6 +1499,7 @@ export default function SchedulePage() {
                           )}
                         </tr>
                       </thead>
+
                       <tbody>
                         {filteredTeachers.length === 0 ? (
                           <tr>
@@ -1495,14 +1516,19 @@ export default function SchedulePage() {
                               key={`${timeSlot.hour}-${timeSlot.minute}`}
                               className="h-8"
                             >
-                              <td className="font-medium text-gray-700 bg-gray-50 text-xs border border-gray-300 text-center p-2 relative">
-                                <div className="font-semibold">
-                                  {timeSlot.label}
-                                </div>
+                              {/* เวลา - sticky ด้านซ้าย */}
+                              <td
+                                className="
+              font-medium text-gray-700 bg-gray-50 text-xs
+              border border-gray-300 text-center p-2
+              sticky left-0 z-30 shadow-md
+            "
+                              >
+                                {timeSlot.label}
                               </td>
 
+                              {/* ตารางครู */}
                               {filteredTeachers.map((teacher) => {
-                                // Find session that starts at this time slot
                                 const session = teacher.sessions.find((s) => {
                                   const [startHour, startMinute] = s.start_time
                                     .split(":")
@@ -1537,58 +1563,19 @@ export default function SchedulePage() {
                                           <p className="font-bold text-xs text-black line-clamp-1">
                                             Session #{session.session_number}
                                           </p>
-
                                           <p className="text-xs text-gray-600 line-clamp-1">
                                             {session.room.name || "No Room"}
                                           </p>
-
                                           <p className="text-xs text-gray-500">
                                             Status: {session.status}
                                           </p>
-
-                                          {session.is_makeup && (
-                                            <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-yellow-200 text-yellow-800">
-                                              Makeup
-                                            </span>
-                                          )}
-
-                                          {session.notes && rowSpan > 4 && (
-                                            <p className="text-[10px] italic text-gray-500 mt-1 line-clamp-1">
-                                              {session.notes}
-                                            </p>
-                                          )}
                                         </div>
                                       </div>
                                     </td>
                                   );
                                 }
 
-                                // Check if this cell is blocked by a session that spans multiple rows
-                                const isBlocked = teacher.sessions.some((s) => {
-                                  const [startHour, startMinute] = s.start_time
-                                    .split(":")
-                                    .map(Number);
-                                  const [endHour, endMinute] = s.end_time
-                                    .split(":")
-                                    .map(Number);
-                                  const sessionStartMinutes =
-                                    startHour * 60 + startMinute;
-                                  const sessionEndMinutes =
-                                    endHour * 60 + endMinute;
-                                  const currentSlotMinutes =
-                                    timeSlot.hour * 60 + timeSlot.minute;
-
-                                  return (
-                                    currentSlotMinutes > sessionStartMinutes &&
-                                    currentSlotMinutes < sessionEndMinutes
-                                  );
-                                });
-
-                                if (isBlocked) {
-                                  return null; // This cell is part of a multi-row session
-                                }
-
-                                // Empty cell
+                                // ช่องว่าง
                                 return (
                                   <td
                                     key={teacher.id}
