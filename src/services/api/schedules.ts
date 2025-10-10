@@ -165,9 +165,49 @@ export interface CreateSessionCommentRequest {
   comment: string;
 }
 
+// New API response structure for session detail
+export interface SessionDetailGroupMember {
+  student_id: number;
+  user_id: number;
+  username: string;
+  first_name: string;
+  first_name_en: string;
+  last_name: string;
+  last_name_en: string;
+  payment_status: string;
+  status: string;
+}
+
+export interface SessionDetailGroup {
+  group_id: number;
+  group_name: string;
+  level: string;
+  max_students: number;
+  status: string;
+  course_id: number;
+  course_name: string;
+  student_count: number;
+  members: SessionDetailGroupMember[];
+}
+
+export interface SessionDetailSession {
+  id: number;
+  schedule_id: number;
+  schedule_name: string;
+  session_date: string;
+  start_time: string;
+  end_time: string;
+  session_number: number;
+  week_number: number;
+  status: string;
+  is_makeup: boolean;
+}
+
 export interface SessionDetailResponse {
   comments: SessionComment[];
-  session: SessionDetail;
+  group: SessionDetailGroup | null;
+  session: SessionDetailSession;
+  students: SessionDetailGroupMember[];
 }
 
 export interface SessionCommentsResponse {
@@ -1792,7 +1832,9 @@ export const scheduleService = {
     if (response.data) {
       return {
         comments: response.data.comments || [],
+        group: response.data.group || null,
         session: response.data.session,
+        students: response.data.students || [],
       };
     } else {
       throw new Error("Failed to fetch session details");

@@ -643,18 +643,8 @@ export default function NotificationPopupModal({
   const typeColor = getTypeColor(currentNotification.type);
   const isAcceptedView = !!viewingAccepted;
 
-  // Safe teacher name (language-aware). Falls back to '-' when no teacher assigned.
-  const teacherName = (() => {
-    const teacher = sessionDetail?.session?.assigned_teacher;
-    if (!teacher) return "-";
-    // SessionDetailUser doesn't contain localized first/last names in current types.
-    // Prefer `username`, then branch name, else fallback to '-' to be type-safe.
-    if (teacher.username) return teacher.username;
-    if (language === "th" && teacher.branch?.name_th)
-      return teacher.branch.name_th;
-    if (teacher.branch?.name_en) return teacher.branch.name_en;
-    return "-";
-  })();
+  // Teacher info removed from new API response structure
+  const teacherName = "-";
 
   return (
     <>
@@ -860,9 +850,7 @@ export default function NotificationPopupModal({
                               {language === "th" ? "ห้องเรียน:" : "Room:"}
                             </span>
                             <br />
-                            <span className="text-gray-800">
-                              {sessionDetail.session.room?.room_name || "-"}
-                            </span>
+                            <span className="text-gray-800">-</span>
                           </div>
                         </>
                       )}

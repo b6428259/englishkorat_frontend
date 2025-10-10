@@ -17,13 +17,15 @@ import {
   CreateSessionCommentRequest,
   scheduleService,
   SessionComment,
-  SessionDetail,
+  SessionDetailResponse,
   teacherConfirmSession,
   teacherDeclineSession,
 } from "@/services/api/schedules";
 import {
   AlertCircle,
+  Award,
   Ban,
+  BookOpen,
   Calendar,
   CheckCircle,
   Clock,
@@ -31,7 +33,6 @@ import {
   MapPin,
   MessageSquare,
   RefreshCw,
-  User,
   Users,
   UserX,
   XCircle,
@@ -52,9 +53,8 @@ export default function SessionDetailModal({
 }: SessionDetailModalProps) {
   const { language } = useLanguage();
 
-  const [sessionDetail, setSessionDetail] = useState<SessionDetail | null>(
-    null
-  );
+  const [sessionDetail, setSessionDetail] =
+    useState<SessionDetailResponse | null>(null);
   const [sessionComments, setSessionComments] = useState<SessionComment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -72,7 +72,7 @@ export default function SessionDetailModal({
       const response = await scheduleService.getSessionDetail(
         sessionId.toString()
       );
-      setSessionDetail(response.session);
+      setSessionDetail(response);
     } catch (error) {
       console.error("Failed to fetch session detail:", error);
     } finally {
@@ -252,11 +252,20 @@ export default function SessionDetailModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden bg-white">
         <DialogHeader className="border-b border-gray-300 pb-4">
-          <DialogTitle className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <Calendar className="h-6 w-6 text-indigo-600" />
-            {language === "th" ? "รายละเอียดคาบเรียน" : "Session Details"}
-            <span className="text-lg text-black">#{sessionId}</span>
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+              <Calendar className="h-6 w-6 text-indigo-600" />
+              {language === "th" ? "รายละเอียดคาบเรียน" : "Session Details"}
+              <span className="text-lg text-black">#{sessionId}</span>
+            </DialogTitle>
+            <button
+              onClick={onClose}
+              className="h-8 w-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
+              aria-label="Close"
+            >
+              <XCircle className="h-5 w-5 text-gray-500" />
+            </button>
+          </div>
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden min-h-0">
@@ -265,13 +274,20 @@ export default function SessionDetailModal({
             onValueChange={setActiveTab}
             className="h-full flex flex-col"
           >
-            <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsList className="grid w-full grid-cols-3 mb-6">
               <TabsTrigger
                 value="details"
                 className="flex items-center gap-2 text-black"
               >
                 <FileText className="h-4 w-4 text-black" />
                 {language === "th" ? "รายละเอียด" : "Details"}
+              </TabsTrigger>
+              <TabsTrigger
+                value="group"
+                className="flex items-center gap-2 text-black"
+              >
+                <Users className="h-4 w-4 text-black" />
+                {language === "th" ? "กลุ่ม" : "Group"}
               </TabsTrigger>
               <TabsTrigger
                 value="comments"
@@ -297,11 +313,11 @@ export default function SessionDetailModal({
                   <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-xl border border-indigo-200">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-xl font-semibold text-gray-900">
-                        {sessionDetail.schedule?.schedule_name}
+                        {sessionDetail.session.schedule_name}
                       </h3>
                       <div className="flex items-center gap-3">
-                        {getStatusBadge(sessionDetail.status)}
-                        {sessionDetail.status === "pending" && (
+                        {getStatusBadge(sessionDetail.session.status)}
+                        {sessionDetail.session.status === "pending" && (
                           <div className="flex gap-2">
                             <Button
                               onClick={handleDeclineSession}
@@ -346,7 +362,10 @@ export default function SessionDetailModal({
                             {language === "th" ? "วันที่" : "Date"}
                           </p>
                           <p className="font-medium text-gray-700">
-                            {formatDateTime(sessionDetail.session_date).date}
+                            {
+                              formatDateTime(sessionDetail.session.session_date)
+                                .date
+                            }
                           </p>
                         </div>
                       </div>
@@ -358,8 +377,15 @@ export default function SessionDetailModal({
                             {language === "th" ? "เวลา" : "Time"}
                           </p>
                           <p className="font-medium text-gray-700">
-                            {formatDateTime(sessionDetail.start_time).time} -{" "}
-                            {formatDateTime(sessionDetail.end_time).time}
+                            {
+                              formatDateTime(sessionDetail.session.start_time)
+                                .time
+                            }{" "}
+                            -{" "}
+                            {
+                              formatDateTime(sessionDetail.session.end_time)
+                                .time
+                            }
                           </p>
                         </div>
                       </div>
@@ -370,9 +396,7 @@ export default function SessionDetailModal({
                           <p className="text-sm text-black">
                             {language === "th" ? "ห้องเรียน" : "Room"}
                           </p>
-                          <p className="font-medium text-gray-700">
-                            {sessionDetail.room?.room_name}
-                          </p>
+                          <p className="font-medium text-gray-700">N/A</p>
                         </div>
                       </div>
 
@@ -383,273 +407,218 @@ export default function SessionDetailModal({
                             {language === "th" ? "ครั้งที่" : "Session"}
                           </p>
                           <p className="font-medium text-gray-700">
-                            {sessionDetail.session_number} /{" "}
+                            {sessionDetail.session.session_number} /{" "}
                             {language === "th"
-                              ? `สัปดาห์ ${sessionDetail.week_number}`
-                              : `Week ${sessionDetail.week_number}`}
+                              ? `สัปดาห์ ${sessionDetail.session.week_number}`
+                              : `Week ${sessionDetail.session.week_number}`}
                           </p>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Teacher & Room Details */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Teacher Information */}
-                    <div className="bg-white p-6 rounded-xl border border-gray-300 shadow-sm">
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                        <User className="h-5 w-5 text-indigo-600" />
-                        {language === "th"
-                          ? "ข้อมูลอาจารย์"
-                          : "Teacher Information"}
-                      </h4>
+                  {/* Additional Session Information */}
+                  <div className="bg-white p-6 rounded-xl border border-gray-300 shadow-sm">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-indigo-600" />
+                      {language === "th"
+                        ? "ข้อมูลเพิ่มเติม"
+                        : "Additional Information"}
+                    </h4>
 
-                      {sessionDetail.assigned_teacher && (
-                        <div className="flex items-start gap-4">
-                          <Avatar className="h-12 w-12">
-                            <AvatarImage
-                              src={
-                                sessionDetail.assigned_teacher.avatar
-                                  ? `${
-                                      process.env.NEXT_PUBLIC_API_URL ||
-                                      "http://localhost:8080"
-                                    }/${sessionDetail.assigned_teacher.avatar}`
-                                  : undefined
-                              }
-                              alt={sessionDetail.assigned_teacher.username}
-                            />
-                            <AvatarFallback className="bg-indigo-100 text-indigo-600 font-semibold">
-                              {sessionDetail.assigned_teacher.username
-                                .charAt(0)
-                                .toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-black">
+                          {language === "th" ? "Schedule ID" : "Schedule ID"}
+                        </p>
+                        <p className="font-medium text-gray-700">
+                          #{sessionDetail.session.schedule_id}
+                        </p>
+                      </div>
 
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-900">
-                              {sessionDetail.assigned_teacher.username}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              {sessionDetail.assigned_teacher.email}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              {sessionDetail.assigned_teacher.phone}
-                            </p>
-                            {sessionDetail.assigned_teacher.branch && (
-                              <p className="text-sm text-indigo-600 mt-1">
-                                {sessionDetail.assigned_teacher.branch.name_en}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Room Information */}
-                    <div className="bg-white p-6 rounded-xl border border-gray-300 shadow-sm">
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                        <MapPin className="h-5 w-5 text-indigo-600" />
-                        {language === "th"
-                          ? "ข้อมูลห้องเรียน"
-                          : "Room Information"}
-                      </h4>
-
-                      {sessionDetail.room && (
-                        <div className="space-y-3">
-                          <div>
-                            <p className="font-medium text-gray-900">
-                              {sessionDetail.room.room_name}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              {language === "th" ? "ความจุ" : "Capacity"}:{" "}
-                              {sessionDetail.room.capacity}{" "}
-                              {language === "th" ? "คน" : "people"}
-                            </p>
-                          </div>
-
-                          {sessionDetail.room.equipment &&
-                            sessionDetail.room.equipment.length > 0 && (
-                              <div>
-                                <p className="text-sm font-medium text-gray-900 mb-2">
-                                  {language === "th" ? "อุปกรณ์" : "Equipment"}:
-                                </p>
-                                <div className="flex flex-wrap gap-1">
-                                  {sessionDetail.room.equipment.map(
-                                    (equipment, index) => (
-                                      <Badge
-                                        key={index}
-                                        variant="secondary"
-                                        className="text-xs"
-                                      >
-                                        {equipment}
-                                      </Badge>
-                                    )
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                        </div>
-                      )}
+                      <div>
+                        <p className="text-sm text-black">
+                          {language === "th"
+                            ? "คาบเรียนชดเชย"
+                            : "Makeup Session"}
+                        </p>
+                        <Badge
+                          variant={
+                            sessionDetail.session.is_makeup
+                              ? "warning"
+                              : "secondary"
+                          }
+                          className="text-gray-700"
+                        >
+                          {sessionDetail.session.is_makeup
+                            ? language === "th"
+                              ? "ใช่"
+                              : "Yes"
+                            : language === "th"
+                            ? "ไม่ใช่"
+                            : "No"}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
-
-                  {/* Schedule Information */}
-                  {sessionDetail.schedule && (
-                    <div className="bg-white p-6 rounded-xl border border-gray-300 shadow-sm">
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-indigo-600" />
-                        {language === "th"
-                          ? "ข้อมูลตารางเรียน"
-                          : "Schedule Information"}
-                      </h4>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div>
-                          <p className="text-sm text-black">
-                            {language === "th"
-                              ? "ชื่อตารางเรียน"
-                              : "Schedule Name"}
-                          </p>
-                          <p className="font-medium text-gray-700">
-                            {sessionDetail.schedule.schedule_name}
-                          </p>
-                        </div>
-
-                        <div>
-                          <p className="text-sm text-black">
-                            {language === "th" ? "ประเภท" : "Type"}
-                          </p>
-                          <Badge variant="outline" className="text-gray-700">
-                            {sessionDetail.schedule.schedule_type}
-                          </Badge>
-                        </div>
-
-                        <div>
-                          <p className="text-sm text-black">
-                            {language === "th" ? "รูปแบบ" : "Pattern"}
-                          </p>
-                          <p className="font-medium text-gray-700">
-                            {sessionDetail.schedule.recurring_pattern}
-                          </p>
-                        </div>
-
-                        <div>
-                          <p className="text-sm text-black">
-                            {language === "th"
-                              ? "จำนวนชั่วโมงรวม"
-                              : "Total Hours"}
-                          </p>
-                          <p className="font-medium text-gray-700">
-                            {sessionDetail.schedule.total_hours}{" "}
-                            {language === "th" ? "ชั่วโมง" : "hours"}
-                          </p>
-                        </div>
-
-                        <div>
-                          <p className="text-sm text-black">
-                            {language === "th"
-                              ? "ชั่วโมงต่อครั้ง"
-                              : "Hours per Session"}
-                          </p>
-                          <p className="font-medium text-gray-700">
-                            {sessionDetail.schedule.hours_per_session}{" "}
-                            {language === "th" ? "ชั่วโมง" : "hours"}
-                          </p>
-                        </div>
-
-                        <div>
-                          <p className="text-sm text-black">
-                            {language === "th"
-                              ? "ครั้งต่อสัปดาห์"
-                              : "Sessions per Week"}
-                          </p>
-                          <p className="font-medium text-gray-700">
-                            {sessionDetail.schedule.session_per_week}
-                          </p>
-                        </div>
-                      </div>
-
-                      {sessionDetail.schedule.notes && (
-                        <div className="mt-4">
-                          <p className="text-sm text-black mb-1">
-                            {language === "th" ? "หมายเหตุ" : "Notes"}
-                          </p>
-                          <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">
-                            {sessionDetail.schedule.notes}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Confirmation Details */}
-                  {sessionDetail.confirmed_by && (
-                    <div className="bg-green-50 p-6 rounded-xl border border-green-300">
-                      <h4 className="text-lg font-semibold text-green-800 mb-4 flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                        {language === "th"
-                          ? "ข้อมูลการยืนยัน"
-                          : "Confirmation Details"}
-                      </h4>
-
-                      <div className="flex items-start gap-4">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage
-                            src={
-                              sessionDetail.confirmed_by.avatar
-                                ? `${
-                                    process.env.NEXT_PUBLIC_API_URL ||
-                                    "http://localhost:8080"
-                                  }/${sessionDetail.confirmed_by.avatar}`
-                                : undefined
-                            }
-                            alt={sessionDetail.confirmed_by.username}
-                          />
-                          <AvatarFallback className="bg-green-100 text-green-600 font-semibold">
-                            {sessionDetail.confirmed_by.username
-                              .charAt(0)
-                              .toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-
-                        <div>
-                          <p className="font-medium text-green-800">
-                            {sessionDetail.confirmed_by.username}
-                          </p>
-                          <p className="text-sm text-green-600">
-                            {language === "th" ? "ยืนยันเมื่อ" : "Confirmed at"}
-                            :{" "}
-                            {
-                              formatDateTime(sessionDetail.confirmed_at || "")
-                                .date
-                            }{" "}
-                            {
-                              formatDateTime(sessionDetail.confirmed_at || "")
-                                .time
-                            }
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Makeup Session Info */}
-                  {sessionDetail.is_makeup && (
-                    <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-300">
-                      <p className="text-yellow-800 font-medium flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        {language === "th"
-                          ? "นี่คือคาบเรียนชดเชย"
-                          : "This is a makeup session"}
-                      </p>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="flex justify-center items-center h-64 text-black">
                   {language === "th"
                     ? "ไม่พบข้อมูลคาบเรียน"
                     : "Session not found"}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Group Tab */}
+            <TabsContent
+              value="group"
+              className="flex-1 overflow-hidden min-h-0"
+            >
+              {isLoading ? (
+                <div className="flex justify-center items-center h-64">
+                  <LoadingSpinner size="md" />
+                </div>
+              ) : sessionDetail?.group ? (
+                <div className="space-y-6 overflow-y-auto max-h-[65vh] p-2">
+                  {/* Group Information */}
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Users className="h-6 w-6 text-blue-600" />
+                      <h3 className="text-xl font-semibold text-gray-900">
+                        {sessionDetail.group.group_name}
+                      </h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
+                        <Award className="h-5 w-5 text-blue-600" />
+                        <div>
+                          <p className="text-sm text-black">
+                            {language === "th" ? "ระดับ" : "Level"}
+                          </p>
+                          <p className="font-medium text-gray-700">
+                            {sessionDetail.group.level}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
+                        <BookOpen className="h-5 w-5 text-blue-600" />
+                        <div>
+                          <p className="text-sm text-black">
+                            {language === "th" ? "คอร์ส" : "Course"}
+                          </p>
+                          <p className="font-medium text-gray-700">
+                            {sessionDetail.group.course_name}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
+                        <Users className="h-5 w-5 text-blue-600" />
+                        <div>
+                          <p className="text-sm text-black">
+                            {language === "th" ? "นักเรียน" : "Students"}
+                          </p>
+                          <p className="font-medium text-gray-700">
+                            {sessionDetail.group.student_count} /{" "}
+                            {sessionDetail.group.max_students}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Group Members */}
+                  <div className="bg-white p-6 rounded-xl border border-gray-300 shadow-sm">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <Users className="h-5 w-5 text-blue-600" />
+                      {language === "th" ? "สมาชิกในกลุ่ม" : "Group Members"}
+                      <Badge variant="secondary" className="ml-2">
+                        {sessionDetail.group.members.length}
+                      </Badge>
+                    </h4>
+
+                    <div className="space-y-3">
+                      {sessionDetail.group.members.map((member) => (
+                        <div
+                          key={member.student_id}
+                          className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                        >
+                          <Avatar className="h-12 w-12">
+                            <AvatarFallback className="bg-blue-100 text-blue-600 font-semibold">
+                              {member.first_name.charAt(0).toUpperCase()}
+                              {member.last_name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">
+                              {member.first_name} {member.last_name}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {member.first_name_en} {member.last_name_en}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              @{member.username}
+                            </p>
+                          </div>
+
+                          <div className="flex flex-col items-end gap-2">
+                            <Badge
+                              variant={
+                                member.payment_status === "paid"
+                                  ? "success"
+                                  : member.payment_status === "pending"
+                                  ? "warning"
+                                  : "destructive"
+                              }
+                              className="text-xs"
+                            >
+                              {member.payment_status === "paid"
+                                ? language === "th"
+                                  ? "ชำระแล้ว"
+                                  : "Paid"
+                                : member.payment_status === "pending"
+                                ? language === "th"
+                                  ? "รอชำระ"
+                                  : "Pending"
+                                : language === "th"
+                                ? "ค้างชำระ"
+                                : "Overdue"}
+                            </Badge>
+                            <Badge
+                              variant={
+                                member.status === "active"
+                                  ? "success"
+                                  : "secondary"
+                              }
+                              className="text-xs"
+                            >
+                              {member.status === "active"
+                                ? language === "th"
+                                  ? "เรียนอยู่"
+                                  : "Active"
+                                : language === "th"
+                                ? "ไม่ได้เรียน"
+                                : "Inactive"}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col justify-center items-center h-64 text-gray-500">
+                  <Users className="h-16 w-16 text-gray-300 mb-4" />
+                  <p className="text-lg">
+                    {language === "th"
+                      ? "ไม่มีข้อมูลกลุ่ม"
+                      : "No group information"}
+                  </p>
                 </div>
               )}
             </TabsContent>
