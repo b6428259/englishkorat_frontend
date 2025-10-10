@@ -415,13 +415,14 @@ interface ExtendedCreateSessionRequest {
   repeat_frequency?: "daily" | "weekly" | "monthly";
 }
 
-// Time slots from 8:00 AM to 10:00 PM
+// Time slots from 8:00 AM to 10:00 PM - แสดงเวลาแบบไทย (24 ชม.)
 const timeSlots = Array.from({ length: (22 - 8) * 2 + 1 }, (_, i) => {
   const hour = 8 + Math.floor(i / 2);
   const minute = i % 2 === 0 ? 0 : 30;
-  const label = `${hour % 12 === 0 ? 12 : hour % 12}:${
-    minute === 0 ? "00" : "30"
-  }${hour < 12 ? "am" : "pm"}`;
+  // แสดงเวลาแบบไทย 24 ชั่วโมง เช่น 08:00, 09:30, 14:00
+  const label = `${hour.toString().padStart(2, "0")}:${minute
+    .toString()
+    .padStart(2, "0")}`;
   return { hour, minute, label };
 });
 
@@ -835,7 +836,7 @@ export default function SchedulePage() {
     setSelectedTeachers([]);
   };
 
-  // Calculate row span for sessions
+  // Calculate row span for sessions - แก้ไขให้คำนวณถูกต้อง
   const getRowSpan = (startTime: string, endTime: string): number => {
     const [startHour, startMinute] = startTime.split(":").map(Number);
     const [endHour, endMinute] = endTime.split(":").map(Number);
@@ -844,7 +845,10 @@ export default function SchedulePage() {
     const endInMinutes = endHour * 60 + endMinute;
     const diffMinutes = endInMinutes - startInMinutes;
 
-    return Math.max(1, diffMinutes / 30); // 30 minutes per slot
+    // แก้ไข: ต้องบวก 1 เพราะ rowSpan นับรวมช่องแรกด้วย
+    // เช่น 09:30-10:00 = 30 นาที = 1 slot แต่ต้องใช้ rowSpan=1
+    // เช่น 09:30-11:00 = 90 นาที = 3 slots แต่ต้องใช้ rowSpan=3
+    return Math.max(1, Math.ceil(diffMinutes / 30)); // 30 minutes per slot
   };
 
   // Handle session click for details
@@ -1445,9 +1449,10 @@ export default function SchedulePage() {
                     </div>
 
                     <table className="w-full text-sm border-collapse relative">
-                      <thead className="sticky top-0 z-50 bg-gradient-to-br from-indigo-600 to-purple-700 text-white backdrop-blur-md shadow-lg">
-                        <tr className="sticky top-0 z-40">
-                          {/* คอลัมน์เวลา - sticky ด้านซ้าย */}
+                      {/* thead ไม่ sticky - scroll ลงไปด้วย */}
+                      <thead className="relative bg-gradient-to-br from-indigo-600 to-purple-700 text-white shadow-lg">
+                        <tr className="relative">
+                          {/* คอลัมน์เวลา - sticky ด้านซ้ายเท่านั้น */}
                           <th
                             className="
                               text-center font-bold text-white
@@ -1456,16 +1461,16 @@ export default function SchedulePage() {
                               p-3 text-sm
                               w-[90px]
                               sticky left-0
-                              z-50
+                              z-40
                               shadow-lg
                             "
                           >
                             {t.time}
                           </th>
 
-                          {/* หัวตารางชื่อครู - sticky ด้านบน */}
+                          {/* หัวตารางชื่อครู - relative, ไม่ sticky */}
                           {filteredTeachers.length === 0 ? (
-                            <th className="text-center font-bold text-white bg-gray-400 border border-gray-300 p-4 min-w-[300px]">
+                            <th className="relative text-center font-bold text-white bg-gray-400 border border-gray-300 p-4 min-w-[300px]">
                               {t.noScheduleData}
                             </th>
                           ) : (
@@ -1473,11 +1478,11 @@ export default function SchedulePage() {
                               <th
                                 key={teacher.id}
                                 className="
+                                  relative
                                   text-center font-bold text-white
                                   border border-gray-300
                                   p-3 text-sm min-w-[160px]
                                   bg-gradient-to-br from-indigo-600 to-purple-700
-                                  sticky top-0 z-50
                                 "
                               >
                                 <div className="p-2">
@@ -1548,27 +1553,102 @@ export default function SchedulePage() {
                                     <td
                                       key={teacher.id}
                                       rowSpan={rowSpan}
-                                      className="p-1 border border-gray-300 align-top relative"
+                                      className="p-0 border border-gray-300 align-top relative"
                                     >
                                       <div
-                                        className="w-full h-full p-2 rounded cursor-pointer hover:shadow-lg transition-shadow duration-200 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 hover:from-indigo-100 hover:to-purple-100 overflow-hidden relative z-10"
+                                        className="w-full h-full m-1 p-2.5 rounded-lg cursor-pointer transition-all duration-200 bg-white border-l-4 border-indigo-500 shadow-sm hover:shadow-md hover:border-indigo-600 overflow-hidden relative z-10 flex flex-col"
                                         style={{
-                                          minHeight: `${rowSpan * 32 - 4}px`,
+                                          height: `${rowSpan * 32 - 8}px`,
                                         }}
                                         onClick={() =>
                                           handleSessionClick(session)
                                         }
                                       >
-                                        <div className="space-y-1">
-                                          <p className="font-bold text-xs text-black line-clamp-1">
-                                            Session #{session.session_number}
+                                        <div className="space-y-1.5">
+                                          {/* Time Display */}
+                                          <div className="flex items-center gap-1.5">
+                                            <div className="w-1 h-1 rounded-full bg-indigo-500"></div>
+                                            <p className="font-semibold text-xs text-indigo-700">
+                                              {session.start_time.substring(
+                                                0,
+                                                5
+                                              )}{" "}
+                                              -{" "}
+                                              {session.end_time.substring(0, 5)}
+                                            </p>
+                                          </div>
+
+                                          {/* Session Number */}
+                                          <p className="font-bold text-sm text-gray-800 line-clamp-1">
+                                            {language === "th"
+                                              ? "ครั้งที่"
+                                              : "Session"}{" "}
+                                            {session.session_number}
                                           </p>
-                                          <p className="text-xs text-gray-600 line-clamp-1">
-                                            {session.room.name || "No Room"}
-                                          </p>
-                                          <p className="text-xs text-gray-500">
-                                            Status: {session.status}
-                                          </p>
+
+                                          {/* Room Info */}
+                                          {session.room?.name && (
+                                            <div className="flex items-center gap-1">
+                                              <svg
+                                                className="w-3 h-3 text-gray-500"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                              >
+                                                <path
+                                                  strokeLinecap="round"
+                                                  strokeLinejoin="round"
+                                                  strokeWidth={2}
+                                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                                                />
+                                                <path
+                                                  strokeLinecap="round"
+                                                  strokeLinejoin="round"
+                                                  strokeWidth={2}
+                                                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                                                />
+                                              </svg>
+                                              <p className="text-xs text-gray-600 line-clamp-1">
+                                                {session.room.name}
+                                              </p>
+                                            </div>
+                                          )}
+
+                                          {/* Status Badge */}
+                                          <div className="flex items-center gap-1.5">
+                                            <span
+                                              className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                                                session.status === "scheduled"
+                                                  ? "bg-blue-100 text-blue-700"
+                                                  : session.status ===
+                                                    "completed"
+                                                  ? "bg-green-100 text-green-700"
+                                                  : session.status ===
+                                                    "cancelled"
+                                                  ? "bg-red-100 text-red-700"
+                                                  : "bg-gray-100 text-gray-700"
+                                              }`}
+                                            >
+                                              {session.status === "scheduled" &&
+                                                (language === "th"
+                                                  ? "กำหนดการ"
+                                                  : "Scheduled")}
+                                              {session.status === "completed" &&
+                                                (language === "th"
+                                                  ? "เสร็จสิ้น"
+                                                  : "Completed")}
+                                              {session.status === "cancelled" &&
+                                                (language === "th"
+                                                  ? "ยกเลิก"
+                                                  : "Cancelled")}
+                                              {![
+                                                "scheduled",
+                                                "completed",
+                                                "cancelled",
+                                              ].includes(session.status) &&
+                                                session.status}
+                                            </span>
+                                          </div>
                                         </div>
                                       </div>
                                     </td>
@@ -1727,40 +1807,6 @@ export default function SchedulePage() {
           className="shadow-lg hover:shadow-xl transition-shadow duration-200 px-4 py-3 text-sm font-medium rounded-full min-w-[160px] cursor-pointer"
         >
           + {t.createNewSchedule}
-        </Button>
-
-        {/* Create New Session Button */}
-        <Button
-          onClick={() => {
-            // Reset session form and open create session modal
-            setSessionForm({
-              mode: "single",
-              schedule_id: 0,
-              session_date: new Date().toISOString().split("T")[0],
-              start_time: "09:00",
-              end_time: "11:00",
-              repeat: {
-                enabled: false,
-                frequency: "weekly",
-                interval: 1,
-                end: { type: "after", count: 10 },
-                days_of_week: [],
-              },
-              is_makeup_session: false,
-              notes: "",
-              appointment_notes: "",
-              session_count: 1,
-              repeat_frequency: "weekly",
-            });
-            setFormError(null);
-            // Clear any previous prefill so modal starts fresh
-            setPrefilledSessionsForm(undefined);
-            openModal("createSession");
-          }}
-          variant="weekViewClicked"
-          className="shadow-lg hover:shadow-xl transition-shadow duration-200 px-4 py-3 text-sm font-medium rounded-full min-w-[160px] cursor-pointer"
-        >
-          + {language === "th" ? "สร้างครั้งเรียนใหม่" : "Create New Session"}
         </Button>
       </div>
     </SidebarLayout>

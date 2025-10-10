@@ -12,14 +12,19 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
   CreateSessionCommentRequest,
+  Room,
   scheduleService,
   SessionComment,
   SessionDetailResponse,
   teacherConfirmSession,
   teacherDeclineSession,
+  TeacherOption,
+  updateSession,
+  UpdateSessionRequest,
 } from "@/services/api/schedules";
 import {
   AlertCircle,
@@ -29,12 +34,15 @@ import {
   Calendar,
   CheckCircle,
   Clock,
+  Edit2,
   FileText,
   MapPin,
   MessageSquare,
   RefreshCw,
+  Save,
   Users,
   UserX,
+  X,
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -52,6 +60,7 @@ export default function SessionDetailModal({
   sessionId,
 }: SessionDetailModalProps) {
   const { language } = useLanguage();
+  const { hasRole } = useAuth();
 
   const [sessionDetail, setSessionDetail] =
     useState<SessionDetailResponse | null>(null);
@@ -63,6 +72,17 @@ export default function SessionDetailModal({
   const [activeTab, setActiveTab] = useState("details");
   const [isConfirming, setIsConfirming] = useState(false);
   const [isDeclining, setIsDeclining] = useState(false);
+
+  // Edit mode states
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editForm, setEditForm] = useState<UpdateSessionRequest>({});
+  const [teachers, setTeachers] = useState<TeacherOption[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [isLoadingOptions, setIsLoadingOptions] = useState(false);
+
+  // Check if user is admin or owner
+  const canEdit = hasRole(["admin", "owner"]);
 
   const fetchSessionDetail = async () => {
     if (!sessionId) return;
@@ -167,6 +187,110 @@ export default function SessionDetailModal({
       );
     } finally {
       setIsDeclining(false);
+    }
+  };
+
+  // Load teachers and rooms for edit mode
+  const loadEditOptions = async () => {
+    try {
+      setIsLoadingOptions(true);
+      const [teachersData, roomsData] = await Promise.all([
+        scheduleService.getTeachers(),
+        scheduleService.getRooms(),
+      ]);
+      setTeachers(teachersData.data);
+      setRooms(roomsData.data);
+    } catch (error) {
+      console.error("Failed to load edit options:", error);
+      toast.error(
+        language === "th" ? "ไม่สามารถโหลดข้อมูลได้" : "Failed to load data",
+        { position: "top-center" }
+      );
+    } finally {
+      setIsLoadingOptions(false);
+    }
+  };
+
+  // Enter edit mode
+  const handleEnterEditMode = async () => {
+    if (!sessionDetail) return;
+
+    await loadEditOptions();
+
+    setEditForm({
+      session_date: sessionDetail.session.session_date.split("T")[0],
+      start_time:
+        sessionDetail.session.start_time.split("T")[1]?.substring(0, 5) || "",
+      end_time:
+        sessionDetail.session.end_time.split("T")[1]?.substring(0, 5) || "",
+      status: sessionDetail.session.status as UpdateSessionRequest["status"],
+      notes: "",
+    });
+    setIsEditMode(true);
+  };
+
+  // Exit edit mode
+  const handleCancelEdit = () => {
+    setIsEditMode(false);
+    setEditForm({});
+  };
+
+  // Save session updates
+  const handleSaveSession = async () => {
+    if (!sessionId || !editForm) return;
+
+    try {
+      setIsSaving(true);
+
+      // Build update payload - only include changed fields
+      const updates: UpdateSessionRequest = {};
+
+      if (editForm.session_date) {
+        updates.session_date = editForm.session_date;
+      }
+      if (editForm.start_time) {
+        updates.start_time = editForm.start_time;
+      }
+      if (editForm.end_time) {
+        updates.end_time = editForm.end_time;
+      }
+      if (editForm.assigned_teacher_id !== undefined) {
+        updates.assigned_teacher_id = editForm.assigned_teacher_id;
+      }
+      if (editForm.room_id !== undefined) {
+        updates.room_id = editForm.room_id;
+      }
+      if (editForm.status) {
+        updates.status = editForm.status;
+      }
+      if (editForm.notes) {
+        updates.notes = editForm.notes;
+      }
+      if (editForm.cancelling_reason) {
+        updates.cancelling_reason = editForm.cancelling_reason;
+      }
+
+      await updateSession(sessionId, updates);
+
+      toast.success(
+        language === "th"
+          ? "อัปเดตคาบเรียนสำเร็จ"
+          : "Session updated successfully",
+        { position: "top-center", icon: "✅" }
+      );
+
+      setIsEditMode(false);
+      await fetchSessionDetail();
+    } catch (error) {
+      console.error("Failed to update session:", error);
+      toast.error(
+        language === "th"
+          ? "ไม่สามารถอัปเดตคาบเรียนได้"
+          : "Failed to update session",
+        { position: "top-center" }
+      );
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -316,105 +440,388 @@ export default function SessionDetailModal({
                         {sessionDetail.session.schedule_name}
                       </h3>
                       <div className="flex items-center gap-3">
-                        {getStatusBadge(sessionDetail.session.status)}
-                        {sessionDetail.session.status === "pending" && (
+                        {!isEditMode &&
+                          getStatusBadge(sessionDetail.session.status)}
+
+                        {/* Edit Mode Controls */}
+                        {isEditMode ? (
                           <div className="flex gap-2">
                             <Button
-                              onClick={handleDeclineSession}
-                              disabled={isDeclining || isConfirming}
+                              onClick={handleCancelEdit}
+                              disabled={isSaving}
                               variant="cancel"
                               className="px-4 py-2 text-sm"
                             >
-                              {isDeclining ? (
-                                <LoadingSpinner size="sm" />
-                              ) : (
-                                <>
-                                  <Ban className="h-4 w-4 mr-1" />
-                                  {language === "th" ? "ปฏิเสธ" : "Decline"}
-                                </>
-                              )}
+                              <X className="h-4 w-4 mr-1" />
+                              {language === "th" ? "ยกเลิก" : "Cancel"}
                             </Button>
                             <Button
-                              onClick={handleConfirmSession}
-                              disabled={isConfirming || isDeclining}
+                              onClick={handleSaveSession}
+                              disabled={isSaving}
                               variant="monthViewClicked"
                               className="px-4 py-2 text-sm"
                             >
-                              {isConfirming ? (
+                              {isSaving ? (
                                 <LoadingSpinner size="sm" />
                               ) : (
                                 <>
-                                  <CheckCircle className="h-4 w-4 mr-1" />
-                                  {language === "th" ? "ยืนยัน" : "Confirm"}
+                                  <Save className="h-4 w-4 mr-1" />
+                                  {language === "th" ? "บันทึก" : "Save"}
                                 </>
                               )}
                             </Button>
                           </div>
+                        ) : (
+                          <>
+                            {/* Admin Edit Button - ปรับปรุงให้สวยขึ้น */}
+                            {canEdit && (
+                              <Button
+                                onClick={handleEnterEditMode}
+                                variant="monthViewClicked"
+                                className="px-6 py-2.5 text-sm font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                                {language === "th"
+                                  ? "แก้ไขเซสชัน"
+                                  : "Edit Session"}
+                              </Button>
+                            )}
+
+                            {/* Teacher Confirm/Decline */}
+                            {sessionDetail.session.status === "pending" && (
+                              <div className="flex gap-2">
+                                <Button
+                                  onClick={handleDeclineSession}
+                                  disabled={isDeclining || isConfirming}
+                                  variant="cancel"
+                                  className="px-4 py-2 text-sm"
+                                >
+                                  {isDeclining ? (
+                                    <LoadingSpinner size="sm" />
+                                  ) : (
+                                    <>
+                                      <Ban className="h-4 w-4 mr-1" />
+                                      {language === "th" ? "ปฏิเสธ" : "Decline"}
+                                    </>
+                                  )}
+                                </Button>
+                                <Button
+                                  onClick={handleConfirmSession}
+                                  disabled={isConfirming || isDeclining}
+                                  variant="monthViewClicked"
+                                  className="px-4 py-2 text-sm"
+                                >
+                                  {isConfirming ? (
+                                    <LoadingSpinner size="sm" />
+                                  ) : (
+                                    <>
+                                      <CheckCircle className="h-4 w-4 mr-1" />
+                                      {language === "th" ? "ยืนยัน" : "Confirm"}
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
-                        <Calendar className="h-5 w-5 text-indigo-600" />
+                    {isEditMode ? (
+                      /* Edit Mode Form */
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Date */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              {language === "th" ? "วันที่" : "Date"}
+                            </label>
+                            <input
+                              type="date"
+                              value={editForm.session_date || ""}
+                              onChange={(e) =>
+                                setEditForm({
+                                  ...editForm,
+                                  session_date: e.target.value,
+                                })
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                            />
+                          </div>
+
+                          {/* Start Time */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              {language === "th" ? "เวลาเริ่ม" : "Start Time"}
+                            </label>
+                            <input
+                              type="time"
+                              value={editForm.start_time || ""}
+                              onChange={(e) =>
+                                setEditForm({
+                                  ...editForm,
+                                  start_time: e.target.value,
+                                })
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                            />
+                          </div>
+
+                          {/* End Time */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              {language === "th" ? "เวลาสิ้นสุด" : "End Time"}
+                            </label>
+                            <input
+                              type="time"
+                              value={editForm.end_time || ""}
+                              onChange={(e) =>
+                                setEditForm({
+                                  ...editForm,
+                                  end_time: e.target.value,
+                                })
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                            />
+                          </div>
+
+                          {/* Status */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              {language === "th" ? "สถานะ" : "Status"}
+                            </label>
+                            <select
+                              value={editForm.status || ""}
+                              onChange={(e) =>
+                                setEditForm({
+                                  ...editForm,
+                                  status: e.target
+                                    .value as UpdateSessionRequest["status"],
+                                })
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                            >
+                              <option value="scheduled">
+                                {language === "th"
+                                  ? "กำหนดการแล้ว"
+                                  : "Scheduled"}
+                              </option>
+                              <option value="confirmed">
+                                {language === "th" ? "ยืนยันแล้ว" : "Confirmed"}
+                              </option>
+                              <option value="pending">
+                                {language === "th" ? "รอการยืนยัน" : "Pending"}
+                              </option>
+                              <option value="completed">
+                                {language === "th" ? "เสร็จสิ้น" : "Completed"}
+                              </option>
+                              <option value="cancelled">
+                                {language === "th" ? "ยกเลิก" : "Cancelled"}
+                              </option>
+                              <option value="rescheduled">
+                                {language === "th"
+                                  ? "เลื่อนกำหนดการ"
+                                  : "Rescheduled"}
+                              </option>
+                              <option value="no-show">
+                                {language === "th" ? "ไม่มาเรียน" : "No-show"}
+                              </option>
+                            </select>
+                          </div>
+
+                          {/* Teacher */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              {language === "th" ? "ครู" : "Teacher"}
+                            </label>
+                            {isLoadingOptions ? (
+                              <div className="flex items-center justify-center py-2">
+                                <LoadingSpinner size="sm" />
+                              </div>
+                            ) : (
+                              <select
+                                value={editForm.assigned_teacher_id || ""}
+                                onChange={(e) =>
+                                  setEditForm({
+                                    ...editForm,
+                                    assigned_teacher_id:
+                                      parseInt(e.target.value) || undefined,
+                                  })
+                                }
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                              >
+                                <option value="">
+                                  {language === "th"
+                                    ? "เลือกครู"
+                                    : "Select Teacher"}
+                                </option>
+                                {teachers.map((teacher) => (
+                                  <option key={teacher.id} value={teacher.id}>
+                                    {teacher.teacher_name}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+
+                          {/* Room */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              {language === "th" ? "ห้องเรียน" : "Room"}
+                            </label>
+                            {isLoadingOptions ? (
+                              <div className="flex items-center justify-center py-2">
+                                <LoadingSpinner size="sm" />
+                              </div>
+                            ) : (
+                              <select
+                                value={editForm.room_id || ""}
+                                onChange={(e) =>
+                                  setEditForm({
+                                    ...editForm,
+                                    room_id:
+                                      parseInt(e.target.value) || undefined,
+                                  })
+                                }
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                              >
+                                <option value="">
+                                  {language === "th"
+                                    ? "เลือกห้อง"
+                                    : "Select Room"}
+                                </option>
+                                {rooms.map((room) => (
+                                  <option key={room.id} value={room.id}>
+                                    {room.room_name}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Notes */}
                         <div>
-                          <p className="text-sm text-black">
-                            {language === "th" ? "วันที่" : "Date"}
-                          </p>
-                          <p className="font-medium text-gray-700">
-                            {
-                              formatDateTime(sessionDetail.session.session_date)
-                                .date
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {language === "th" ? "หมายเหตุ" : "Notes"}
+                          </label>
+                          <textarea
+                            value={editForm.notes || ""}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                notes: e.target.value,
+                              })
                             }
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
-                        <Clock className="h-5 w-5 text-indigo-600" />
-                        <div>
-                          <p className="text-sm text-black">
-                            {language === "th" ? "เวลา" : "Time"}
-                          </p>
-                          <p className="font-medium text-gray-700">
-                            {
-                              formatDateTime(sessionDetail.session.start_time)
-                                .time
-                            }{" "}
-                            -{" "}
-                            {
-                              formatDateTime(sessionDetail.session.end_time)
-                                .time
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 resize-none"
+                            placeholder={
+                              language === "th"
+                                ? "เพิ่มหมายเหตุ..."
+                                : "Add notes..."
                             }
-                          </p>
+                          />
                         </div>
-                      </div>
 
-                      <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
-                        <MapPin className="h-5 w-5 text-indigo-600" />
-                        <div>
-                          <p className="text-sm text-black">
-                            {language === "th" ? "ห้องเรียน" : "Room"}
-                          </p>
-                          <p className="font-medium text-gray-700">N/A</p>
-                        </div>
+                        {/* Cancelling Reason (if status is cancelled) */}
+                        {editForm.status === "cancelled" && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              {language === "th"
+                                ? "เหตุผลการยกเลิก"
+                                : "Cancelling Reason"}
+                            </label>
+                            <textarea
+                              value={editForm.cancelling_reason || ""}
+                              onChange={(e) =>
+                                setEditForm({
+                                  ...editForm,
+                                  cancelling_reason: e.target.value,
+                                })
+                              }
+                              rows={2}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 resize-none"
+                              placeholder={
+                                language === "th"
+                                  ? "ระบุเหตุผล..."
+                                  : "Specify reason..."
+                              }
+                            />
+                          </div>
+                        )}
                       </div>
+                    ) : (
+                      /* View Mode */
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
+                          <Calendar className="h-5 w-5 text-indigo-600" />
+                          <div>
+                            <p className="text-sm text-black">
+                              {language === "th" ? "วันที่" : "Date"}
+                            </p>
+                            <p className="font-medium text-gray-700">
+                              {
+                                formatDateTime(
+                                  sessionDetail.session.session_date
+                                ).date
+                              }
+                            </p>
+                          </div>
+                        </div>
 
-                      <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
-                        <Users className="h-5 w-5 text-indigo-600" />
-                        <div>
-                          <p className="text-sm text-black">
-                            {language === "th" ? "ครั้งที่" : "Session"}
-                          </p>
-                          <p className="font-medium text-gray-700">
-                            {sessionDetail.session.session_number} /{" "}
-                            {language === "th"
-                              ? `สัปดาห์ ${sessionDetail.session.week_number}`
-                              : `Week ${sessionDetail.session.week_number}`}
-                          </p>
+                        <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
+                          <Clock className="h-5 w-5 text-indigo-600" />
+                          <div>
+                            <p className="text-sm text-black">
+                              {language === "th" ? "เวลา" : "Time"}
+                            </p>
+                            <p className="font-medium text-gray-700">
+                              {
+                                formatDateTime(sessionDetail.session.start_time)
+                                  .time
+                              }{" "}
+                              -{" "}
+                              {
+                                formatDateTime(sessionDetail.session.end_time)
+                                  .time
+                              }
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
+                          <MapPin className="h-5 w-5 text-indigo-600" />
+                          <div>
+                            <p className="text-sm text-black">
+                              {language === "th" ? "ห้องเรียน" : "Room"}
+                            </p>
+                            <p className="font-medium text-gray-700">
+                              {sessionDetail.session.room?.room_name ||
+                                (sessionDetail.session.room_id
+                                  ? `Room ID: ${sessionDetail.session.room_id}`
+                                  : language === "th"
+                                  ? "ไม่ระบุ"
+                                  : "Not specified")}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
+                          <Users className="h-5 w-5 text-indigo-600" />
+                          <div>
+                            <p className="text-sm text-black">
+                              {language === "th" ? "ครั้งที่" : "Session"}
+                            </p>
+                            <p className="font-medium text-gray-700">
+                              {sessionDetail.session.session_number} /{" "}
+                              {language === "th"
+                                ? `สัปดาห์ ${sessionDetail.session.week_number}`
+                                : `Week ${sessionDetail.session.week_number}`}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Additional Session Information */}
@@ -426,7 +833,7 @@ export default function SessionDetailModal({
                         : "Additional Information"}
                     </h4>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div>
                         <p className="text-sm text-black">
                           {language === "th" ? "Schedule ID" : "Schedule ID"}
@@ -459,7 +866,89 @@ export default function SessionDetailModal({
                             : "No"}
                         </Badge>
                       </div>
+
+                      {/* Branch Information */}
+                      {(sessionDetail.session.branch ||
+                        sessionDetail.session.room?.branch) && (
+                        <div>
+                          <p className="text-sm text-black">
+                            {language === "th" ? "สาขา" : "Branch"}
+                          </p>
+                          <p className="font-medium text-gray-700">
+                            {language === "th"
+                              ? sessionDetail.session.branch?.name_th ||
+                                sessionDetail.session.room?.branch?.name_th
+                              : sessionDetail.session.branch?.name_en ||
+                                sessionDetail.session.room?.branch?.name_en}
+                          </p>
+                        </div>
+                      )}
                     </div>
+
+                    {/* Room Details Section */}
+                    {sessionDetail.session.room && (
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <h5 className="text-md font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-indigo-600" />
+                          {language === "th"
+                            ? "รายละเอียดห้องเรียน"
+                            : "Room Details"}
+                        </h5>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          <div>
+                            <p className="text-sm text-gray-600">
+                              {language === "th" ? "ความจุ" : "Capacity"}
+                            </p>
+                            <p className="font-medium text-gray-700">
+                              {sessionDetail.session.room.capacity}{" "}
+                              {language === "th" ? "คน" : "people"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">
+                              {language === "th" ? "สถานะ" : "Status"}
+                            </p>
+                            <Badge
+                              variant={
+                                sessionDetail.session.room.status ===
+                                "available"
+                                  ? "success"
+                                  : "secondary"
+                              }
+                            >
+                              {sessionDetail.session.room.status === "available"
+                                ? language === "th"
+                                  ? "ว่าง"
+                                  : "Available"
+                                : language === "th"
+                                ? "ไม่ว่าง"
+                                : "Occupied"}
+                            </Badge>
+                          </div>
+                          {sessionDetail.session.room.equipment &&
+                            sessionDetail.session.room.equipment.length > 0 && (
+                              <div className="md:col-span-2 lg:col-span-1">
+                                <p className="text-sm text-gray-600 mb-1">
+                                  {language === "th" ? "อุปกรณ์" : "Equipment"}
+                                </p>
+                                <div className="flex flex-wrap gap-1">
+                                  {sessionDetail.session.room.equipment.map(
+                                    (item, index) => (
+                                      <Badge
+                                        key={index}
+                                        variant="secondary"
+                                        className="text-xs"
+                                      >
+                                        {item}
+                                      </Badge>
+                                    )
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -484,11 +973,30 @@ export default function SessionDetailModal({
                 <div className="space-y-6 overflow-y-auto max-h-[65vh] p-2">
                   {/* Group Information */}
                   <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
-                    <div className="flex items-center gap-3 mb-4">
-                      <Users className="h-6 w-6 text-blue-600" />
-                      <h3 className="text-xl font-semibold text-gray-900">
-                        {sessionDetail.group.group_name}
-                      </h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <Users className="h-6 w-6 text-blue-600" />
+                        <h3 className="text-xl font-semibold text-gray-900">
+                          {sessionDetail.group.group_name}
+                        </h3>
+                      </div>
+
+                      {/* Admin Edit Group Button */}
+                      {canEdit && sessionDetail?.group && (
+                        <Button
+                          onClick={() => {
+                            // Navigate to group edit page
+                            if (sessionDetail.group) {
+                              window.location.href = `/groups?edit=${sessionDetail.group.group_id}`;
+                            }
+                          }}
+                          variant="secondary"
+                          className="px-4 py-2 text-sm font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-2 bg-white border-2 border-blue-300 hover:border-blue-400 text-blue-700 hover:text-blue-800"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                          {language === "th" ? "แก้ไขกลุ่ม" : "Edit Group"}
+                        </Button>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

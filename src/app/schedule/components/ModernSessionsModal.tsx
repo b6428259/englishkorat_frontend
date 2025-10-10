@@ -301,8 +301,17 @@ export function ModernSessionsModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="flex flex-col max-w-4xl max-h-[90vh] bg-white text-gray-700">
-        <DialogHeader className="border-b border-gray-200 pb-4">
-          <DialogTitle className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+        <DialogHeader className="border-b border-gray-200 pb-4 relative">
+          {/* ปุ่มปิด (X) */}
+          <button
+            onClick={onClose}
+            className="absolute right-0 top-0 p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 group"
+            aria-label="Close"
+          >
+            <XIcon className="h-5 w-5 text-gray-500 group-hover:text-gray-700" />
+          </button>
+
+          <DialogTitle className="text-2xl font-bold text-gray-900 flex items-center gap-3 pr-10">
             <SparklesIcon className="h-6 w-6 text-indigo-600" />
             {language === "th" ? "สร้างเซสชันใหม่" : "Create New Sessions"}
           </DialogTitle>

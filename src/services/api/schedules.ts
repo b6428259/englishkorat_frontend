@@ -201,6 +201,14 @@ export interface SessionDetailSession {
   week_number: number;
   status: string;
   is_makeup: boolean;
+  room_id?: number | null;
+  room?: SessionDetailRoom | null;
+  branch?: {
+    id: number;
+    name_th: string;
+    name_en: string;
+    code: string;
+  } | null;
 }
 
 export interface SessionDetailResponse {
@@ -2365,5 +2373,59 @@ export const teacherDeclineSession = async (
     };
   } else {
     throw new Error(response.data.message || "Failed to decline session");
+  }
+};
+
+/**
+ * Update Session Request Interface - Full Update Endpoint
+ * PATCH /api/schedules/sessions/:id
+ */
+export interface UpdateSessionRequest {
+  session_date?: string;
+  start_time?: string;
+  end_time?: string;
+  assigned_teacher_id?: number;
+  room_id?: number;
+  status?:
+    | "scheduled"
+    | "confirmed"
+    | "pending"
+    | "completed"
+    | "cancelled"
+    | "rescheduled"
+    | "no-show";
+  notes?: string;
+  cancelling_reason?: string;
+  session_number?: number;
+  week_number?: number;
+}
+
+/**
+ * Update Session Response Interface
+ */
+export interface UpdateSessionResponse {
+  message: string;
+  session: SessionDetail;
+}
+
+/**
+ * Admin/Owner update session (full update endpoint)
+ * PATCH /api/schedules/sessions/:id
+ * Allows updating time, room, teacher, status, notes, etc.
+ * Permissions: Admin, Owner (Teachers can only update status & notes via this endpoint)
+ */
+export const updateSession = async (
+  sessionId: number,
+  updates: UpdateSessionRequest
+): Promise<UpdateSessionResponse> => {
+  const response = await api.patch(`/schedules/sessions/${sessionId}`, updates);
+
+  if (response.data) {
+    return {
+      message: response.data.message || "Session updated successfully",
+      session: response.data.session || response.data.data?.session,
+    };
+  } else {
+    throw new Error(response.data.message || "Failed to update session");
   }
 };

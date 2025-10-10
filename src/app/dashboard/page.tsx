@@ -5,7 +5,6 @@ import { getAvatarUrl } from "@/utils/config";
 import { validateImageUrl } from "@/utils/validateImageUrl";
 import Image from "next/image";
 import Link from "next/link";
-import AdminOnlyHealthDashboard from "../../components/common/AdminOnlyHealthDashboard";
 import { ProtectedRoute } from "../../components/common/ProtectedRoute";
 import SidebarLayout from "../../components/common/SidebarLayout";
 import { useAuth } from "../../contexts/AuthContext";
@@ -35,7 +34,7 @@ export default function DashboardPage() {
       <SidebarLayout breadcrumbItems={[{ label: t.dashboard }]}>
         <div className="space-y-6">
           {/* Admin/Owner System Health Dashboard */}
-          <AdminOnlyHealthDashboard />
+          {/* <AdminOnlyHealthDashboard /> */}
 
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h1 className="text-3xl font-bold text-gray-900 mb-6">
