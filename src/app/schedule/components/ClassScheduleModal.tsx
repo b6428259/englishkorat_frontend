@@ -1378,11 +1378,21 @@ export default function ClassScheduleModal({
 
     let isRecommended = false;
 
+    // Safely detect "zoom_pro" support: equipment might be an array, a string, or an object
+    const hasZoom =
+      Array.isArray(room.equipment)
+        ? room.equipment.some((e) =>
+            String(e).toLowerCase().includes("zoom_pro")
+          )
+        : typeof room.equipment === "string"
+        ? room.equipment.toLowerCase().includes("zoom_pro")
+        : false;
+
     if (branchId === 3) {
   // 🔹 สาขาออนไลน์ → แนะนำเฉพาะห้องที่ชื่อหรืออุปกรณ์เกี่ยวกับ Online
   isRecommended =
     room.room_name.toLowerCase().includes("online") ||
-    room.equipment?.includes("zoom_pro");
+    hasZoom;
 } else {
   // 🔹 สาขาปกติ → แนะนำตามจำนวนคน แต่ไม่ห้องที่เล็กเกินไป
   if (groupSize > 0) {
