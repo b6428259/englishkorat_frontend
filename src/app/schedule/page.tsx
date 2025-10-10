@@ -1631,7 +1631,7 @@ export default function SchedulePage() {
                                             >
                                               {session.status === "scheduled" &&
                                                 (language === "th"
-                                                  ? "กำหนดการ"
+                                                  ? "กำหนดการแล้ว"
                                                   : "Scheduled")}
                                               {session.status === "completed" &&
                                                 (language === "th"

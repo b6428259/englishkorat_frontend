@@ -54,7 +54,8 @@ export default function CompactDayViewModal({
   });
 
   // Ensure date is rendered as a string for React
-  const formattedDate = typeof date === "string" ? date : date.toLocaleDateString();
+  const formattedDate =
+    typeof date === "string" ? date : date.toLocaleDateString();
 
   const handleOverlayKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
@@ -75,21 +76,26 @@ export default function CompactDayViewModal({
         onKeyDown={handleOverlayKeyDown}
       ></div>
 
+      {/* Modal Content */}
+      <div className="relative bg-white rounded-lg shadow-2xl max-w-[95vw] max-h-[90vh] w-full flex flex-col overflow-hidden">
+        {/* Header */}
         <div className="p-4 border-b flex justify-between items-center bg-gray-100">
           <h2 className="font-bold text-lg text-gray-800">
             ตารางเรียน (Overview) วันที่ {formattedDate}
           </h2>
           <button
-            className="text-white bg-red-500 hover:bg-red-600 px-3 py-1 rounded-md text-sm font-semibold"
+            className="text-white bg-red-500 hover:bg-red-600 px-3 py-1 rounded-md text-sm font-semibold transition-colors"
             onClick={onClose}
+            aria-label="Close modal"
           >
             ✕
           </button>
         </div>
+
         {/* ตาราง */}
-        <div className="flex-1">
-          <table className="w-full h-full border border-gray-400 border-collapse table-fixed text-[12px]">
-            <thead className="bg-white">
+        <div className="flex-1 overflow-auto">
+          <table className="w-full border border-gray-400 border-collapse table-fixed text-[12px]">
+            <thead className="bg-white sticky top-0 z-10">
               <tr>
                 <th className="border border-gray-400 p-2 w-[60px] text-center font-bold bg-gray-100">
                   เวลา
@@ -97,7 +103,7 @@ export default function CompactDayViewModal({
                 {teachers.map((t) => (
                   <th
                     key={t.id}
-                    className="border border-gray-400 text-center font-semibold whitespace-nowrap bg-gray-100"
+                    className="border border-gray-400 p-2 text-center font-semibold whitespace-nowrap bg-gray-100"
                   >
                     {t.name.nickname_en || t.name.first_en}
                   </th>
@@ -106,8 +112,8 @@ export default function CompactDayViewModal({
             </thead>
             <tbody>
               {timeSlots.map((time) => (
-                <tr key={time} style={{ height: `${100 / timeSlots.length}%` }}>
-                  <td className="border border-gray-400 text-center font-medium bg-gray-50">
+                <tr key={time}>
+                  <td className="border border-gray-400 p-2 text-center font-medium bg-gray-50">
                     {time}
                   </td>
                   {teachers.map((t) => {
@@ -117,7 +123,7 @@ export default function CompactDayViewModal({
                     return (
                       <td
                         key={t.id}
-                        className={`border border-gray-400 text-center ${
+                        className={`border border-gray-400 p-2 text-center ${
                           hasSession ? "bg-indigo-100" : "bg-white"
                         }`}
                       >
@@ -131,5 +137,6 @@ export default function CompactDayViewModal({
           </table>
         </div>
       </div>
+    </div>
   );
 }
