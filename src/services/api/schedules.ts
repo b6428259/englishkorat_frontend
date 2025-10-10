@@ -530,6 +530,7 @@ export interface Course {
 
 // Room interface for dropdowns
 export interface Room {
+  equipment: unknown;
   id: number;
   room_name: string;
   capacity: number;
