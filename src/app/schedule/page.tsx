@@ -1355,32 +1355,32 @@ export default function SchedulePage() {
         </div>
 
         {/* Main Content */}
-        <div className="flex gap-4 flex-1 min-h-0">
+        <div className="flex gap-2 flex-1 min-h-0">
           {/* Teacher Filters - Only show for day view */}
           {viewMode === "day" && (
-            <div className="w-48 h-280 bg-white border border-gray-200 rounded-lg p-3 flex flex-col flex-shrink-0">
-              <h2 className="font-bold mb-3 text-[#334293] border-b border-[#334293] pb-2 text-sm">
+            <div className="w-35 h-280 bg-white border border-gray-200 rounded-lg p-1 flex flex-col flex-shrink-0">
+              <h2 className="font-bold mb-3 text-[#334293] border-b border-[#334293] p-2 text-sm">
                 {t.SelectTeachers}
               </h2>
 
-              <div className="mb-3 flex gap-2">
+              <div className="mb-3 flex gap-1">
                 <Button
                   variant="monthView"
                   onClick={selectAllTeachers}
-                  className="text-xs px-3 py-1 flex-1"
+                  className="text-[10px] rounded-md flex-1"
                 >
                   {t.selectAllTeachers}
                 </Button>
                 <Button
                   variant="monthView"
                   onClick={clearSelection}
-                  className="text-xs px-3 py-1 flex-1"
+                  className="text-[10px] rounded-md flex-1"
                 >
                   {t.clearSelection}
                 </Button>
               </div>
 
-              <div className="flex-1 overflow-y-auto space-y-2">
+              <div className="flex-1 overflow-y-auto">
                 {teachers.length === 0 ? (
                   <p className="text-sm text-gray-500 text-center py-4">
                     {t.noScheduleData}
@@ -1395,7 +1395,7 @@ export default function SchedulePage() {
                         type="checkbox"
                         checked={selectedTeachers.includes(teacher.id)}
                         onChange={() => toggleTeacher(teacher.id)}
-                        className="h-4 w-4 rounded focus:ring-0"
+                        className="h-3 w-3 rounded focus:ring-0"
                         style={{ accentColor: colors.yellowLogo }}
                       />
                       <div className="min-w-0 flex-1">
@@ -1403,15 +1403,15 @@ export default function SchedulePage() {
                           className="text-sm font-medium block truncate"
                           style={{ color: colors.blueLogo }}
                         >
-                          {teacher.name.nickname_en || teacher.name.first_en}
+                          T. {teacher.name.nickname_en || teacher.name.first_en}
                         </span>
-                        <p className="text-xs text-gray-500 truncate">
+                        {/* <p className="text-xs text-gray-500 truncate">
                           {`${teacher.name.first_en} ${teacher.name.last_en}`.trim()}
-                        </p>
-                        <p className="text-xs text-green-600">
+                        </p> */}
+                        {/* <p className="text-xs text-green-600">
                           {teacher.sessions.length}{" "}
                           {language === "th" ? "ครั้งเรียน" : "sessions"}
-                        </p>
+                        </p> */}
                         {teacher.branch.name_en && (
                           <p className="text-xs text-blue-600 truncate">
                             {teacher.branch.name_en}
@@ -1499,16 +1499,17 @@ export default function SchedulePage() {
 
                     <table className="w-full text-sm border-collapse relative">
                       {/* thead ไม่ sticky - scroll ลงไปด้วย */}
-                      <thead className="relative bg-gradient-to-br from-indigo-600 to-purple-700 text-white shadow-lg">
-                        <tr className="relative">
+                      <thead className="sticky top-0 z-30 bg-gradient-to-br from-indigo-600 to-purple-700 text-white shadow-lg">
+                        <tr className="relative h-[40px]">
                           {/* คอลัมน์เวลา - sticky ด้านซ้ายเท่านั้น */}
                           <th
                             className="
                               text-center font-bold text-white
                               bg-gradient-to-br from-indigo-600 to-purple-700
                               border border-gray-300
-                              p-3 text-sm
-                              w-[90px]
+                              text-xs
+                              w-[50px]
+                              h-[30px]
                               sticky left-0
                               z-40
                               shadow-lg
@@ -1519,7 +1520,7 @@ export default function SchedulePage() {
 
                           {/* หัวตารางชื่อครู - relative, ไม่ sticky */}
                           {filteredTeachers.length === 0 ? (
-                            <th className="relative text-center font-bold text-white bg-gray-400 border border-gray-300 p-4 min-w-[300px]">
+                            <th className="relative text-center font-bold text-white bg-gray-400 border border-gray-300 p-4 w-[55px]">
                               {t.noScheduleData}
                             </th>
                           ) : (
@@ -1527,21 +1528,22 @@ export default function SchedulePage() {
                               <th
                                 key={teacher.id}
                                 className="
-                                  relative
+                                  sticky top-0
                                   text-center font-bold text-white
                                   border border-gray-300
-                                  p-3 text-sm min-w-[160px]
+                                  text-[10px] w-[55px] h-[30px]
                                   bg-gradient-to-br from-indigo-600 to-purple-700
                                 "
                               >
-                                <div className="p-2">
+                                <div className="p-1">
                                   <div className="font-bold">
+                                    T.{" "}
                                     {teacher.name.nickname_en ||
                                       teacher.name.first_en}
                                   </div>
-                                  <div className="text-xs opacity-90 mt-1">
+                                  {/* <div className="text-xs opacity-90 mt-1">
                                     {`${teacher.name.first_en} ${teacher.name.last_en}`.trim()}
-                                  </div>
+                                  </div> */}
                                   {teacher.branch.name_en && (
                                     <div className="text-xs opacity-75 mt-1">
                                       {teacher.branch.name_en}
@@ -1573,10 +1575,10 @@ export default function SchedulePage() {
                               {/* เวลา - sticky ด้านซ้าย */}
                               <td
                                 className="
-              font-medium text-gray-700 bg-gray-50 text-xs
-              border border-gray-300 text-center p-2
-              sticky left-0 z-30 shadow-md
-            "
+                                font-medium text-gray-700 bg-gray-50 text-xs
+                                border border-gray-300 text-center p-1
+                                sticky left-0 z-30 shadow-md
+                              "
                               >
                                 {timeSlot.label}
                               </td>
@@ -1605,7 +1607,7 @@ export default function SchedulePage() {
                                       className="p-0 border border-gray-300 align-top relative"
                                     >
                                       <div
-                                        className="w-full h-full m-1 p-2.5 rounded-lg cursor-pointer transition-all duration-200 bg-white border-l-4 border-indigo-500 shadow-sm hover:shadow-md hover:border-indigo-600 overflow-hidden relative z-10 flex flex-col"
+                                        className="w-[55px] h-full p-1.5 rounded-lg cursor-pointer transition-all duration-200 bg-white border-l-4 border-indigo-500 shadow-sm hover:shadow-md hover:border-indigo-600 overflow-hidden relative z-10 flex flex-col"
                                         style={{
                                           height: `${rowSpan * 32 - 8}px`,
                                         }}
@@ -1613,11 +1615,11 @@ export default function SchedulePage() {
                                           handleSessionClick(session)
                                         }
                                       >
-                                        <div className="space-y-1">
+                                        <div className="space-y-0.5 leading-tight text-[10px]">
                                           {/* Time Display */}
-                                          <div className="flex items-center gap-1.5">
+                                          <div className="flex items-center gap-1">
                                             <div className="w-1 h-1 rounded-full bg-indigo-500"></div>
-                                            <p className="font-semibold text-xs text-indigo-700">
+                                            <p className="font-medium text-[8px] text-indigo-700">
                                               {session.start_time.substring(
                                                 0,
                                                 5
@@ -1630,7 +1632,7 @@ export default function SchedulePage() {
                                           {/* Course/Schedule Name */}
                                           {session.schedule_name && (
                                             <p
-                                              className="font-bold text-[11px] text-gray-900 line-clamp-1"
+                                              className="font-semibold text-[9px] text-gray-900 whitespace-normal break-words"
                                               title={session.schedule_name}
                                             >
                                               {session.schedule_name}
@@ -1638,7 +1640,7 @@ export default function SchedulePage() {
                                           )}
 
                                           {/* Session Number */}
-                                          <p className="font-semibold text-xs text-gray-700 line-clamp-1">
+                                          <p className="font-medium text-[9px] text-gray-700">
                                             {language === "th"
                                               ? "ครั้งที่"
                                               : "Session"}{" "}
