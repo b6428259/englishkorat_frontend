@@ -79,6 +79,41 @@ interface WeekCalendarData {
   };
 }
 
+const getBranchColorById = (branchId?: number): string => {
+  switch (branchId) {
+    case 1:
+      return "bg-[#334293] text-white border-[#334293]"; // Branch 1
+    case 2:
+      return "bg-[#EFE957] text-black border-[#EFE957]"; // Branch 2
+    case 3:
+      return "bg-[#58B2FF] text-white border-[#58B2FF]"; // Online
+    case 4:
+      return "bg-[#FF90B3] text-white border-[#FF90B3]"; // Chinese
+    default:
+      return "bg-gradient-to-br from-indigo-300 to-purple-400 text-white border-indigo-200"; // Default
+  }
+};
+
+const getBranchBorderColorFromSession = (session: any): string => {
+  const id = Number(
+    session?.branch_id ?? session?.branch?.id ?? session?.room?.branch_id
+  );
+
+  if (id === 1) return "#334293"; // Branch 1
+  if (id === 2) return "#EFE957"; // Branch 2
+  if (id === 3) return "#58B2FF"; // Online
+  if (id === 4) return "#FF90B3"; // Chinese
+
+  // ถ้ายังไม่มี id ให้เดาเบื้องต้นจากชื่อสาขา (กันตาย)
+  const name = (session?.branch_name || "").toLowerCase();
+  if (name.includes("branch 1")) return "#334293";
+  if (name.includes("branch 3")) return "#EFE957";
+  if (name.includes("online")) return "#58B2FF";
+  if (name.includes("chinese")) return "#FF90B3";
+
+  return "gray"; // default
+};
+
 // Simple WeekView component inline
 const WeekView: React.FC<{
   calendarData: WeekCalendarData;
@@ -110,21 +145,6 @@ const WeekView: React.FC<{
       return `${h.toString().padStart(2, "0")}:${minute}`;
     }
     return `${h % 12 === 0 ? 12 : h % 12}:${minute}${h < 12 ? "am" : "pm"}`;
-  };
-
-  const getBranchColor = (branchName: string): string => {
-    const colors: Record<string, string> = {
-      "Branch 1 The Mall Branch":
-        "bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-indigo-300",
-      Online:
-        "bg-gradient-to-br from-indigo-400 to-purple-500 text-white border-indigo-200",
-      "Branch 3":
-        "bg-gradient-to-br from-indigo-600 to-purple-700 text-white border-indigo-400",
-    };
-    return (
-      colors[branchName as keyof typeof colors] ||
-      "bg-gradient-to-br from-indigo-300 to-purple-400 text-white border-indigo-200"
-    );
   };
 
   // Group sessions by time for better clustering
@@ -808,6 +828,12 @@ export default function SchedulePage() {
     fetchData();
   }, [fetchData]);
 
+  useEffect(() => {
+    if (calendarData?.sessions) {
+      console.log("Calendar data:", calendarData.sessions);
+    }
+  }, [calendarData]);
+
   // Fetch static form options once on mount
   useEffect(() => {
     fetchFormOptions();
@@ -1241,6 +1267,26 @@ export default function SchedulePage() {
               {t.scheduleManagement}
             </h1>
 
+            {/* color label for each branches */}
+            <div className="flex items-center gap-3 mt-4 text-xs">
+              <div className="flex items-center gap-1">
+                <span className="w-3 h-3 rounded-full bg-[#334293]"></span>{" "}
+                Branch 1
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="w-3 h-3 rounded-full bg-[#EFE957]"></span>{" "}
+                Branch 3
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="w-3 h-3 rounded-full bg-[#58B2FF]"></span>{" "}
+                Online
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="w-3 h-3 rounded-full bg-[#FF90B3]"></span>{" "}
+                Chinese
+              </div>
+            </div>
+
             {/* View Mode Buttons */}
             <div className="flex bg-gray-100 rounded-xl p-1 shadow-inner">
               <Button
@@ -1408,10 +1454,10 @@ export default function SchedulePage() {
                         {/* <p className="text-xs text-gray-500 truncate">
                           {`${teacher.name.first_en} ${teacher.name.last_en}`.trim()}
                         </p> */}
-                        {/* <p className="text-xs text-green-600">
+                        <p className="text-[9px] text-gray-600">
                           {teacher.sessions.length}{" "}
                           {language === "th" ? "ครั้งเรียน" : "sessions"}
-                        </p> */}
+                        </p>
                         {teacher.branch.name_en && (
                           <p className="text-xs text-blue-600 truncate">
                             {teacher.branch.name_en}
@@ -1607,9 +1653,13 @@ export default function SchedulePage() {
                                       className="p-0 border border-gray-300 align-top relative"
                                     >
                                       <div
-                                        className="w-[55px] h-full p-1.5 rounded-lg cursor-pointer transition-all duration-200 bg-white border-l-4 border-indigo-500 shadow-sm hover:shadow-md hover:border-indigo-600 overflow-hidden relative z-10 flex flex-col"
+                                        className="w-[55px] h-full p-1.5 rounded-lg cursor-pointer transition-all duration-200
+                                        shadow-sm hover:shadow-md overflow-hidden relative z-10 flex flex-col"
                                         style={{
                                           height: `${rowSpan * 32 - 8}px`,
+                                          borderLeft: `4px solid ${getBranchBorderColorFromSession(
+                                            session
+                                          )}`,
                                         }}
                                         onClick={() =>
                                           handleSessionClick(session)
