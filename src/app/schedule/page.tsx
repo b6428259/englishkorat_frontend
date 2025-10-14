@@ -137,7 +137,7 @@ const getBranchBorderColorFromSession = (
   return "gray"; // default
 };
 
-// Simple WeekView component inline
+// Ultra User-Friendly WeekView - Simple, Clean, Easy to Understand
 const WeekView: React.FC<{
   calendarData: WeekCalendarData;
   onSessionClick: (session: CalendarSession) => void;
@@ -157,6 +157,19 @@ const WeekView: React.FC<{
   const weekDates = Object.keys(calendarData).sort();
 
   const weekDayNames =
+    language === "th"
+      ? ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"]
+      : [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday",
+        ];
+
+  const weekDayNamesShort =
     language === "th"
       ? ["จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส.", "อา."]
       : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -182,69 +195,207 @@ const WeekView: React.FC<{
     return Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
   };
 
-  const getDayName = (dateStr: string) => {
+  const getDayName = (dateStr: string, short: boolean = false) => {
     const date = new Date(dateStr);
     const dayIndex = date.getDay();
     // Convert Sunday (0) to be last (6)
     const mondayBasedIndex = dayIndex === 0 ? 6 : dayIndex - 1;
-    return weekDayNames[mondayBasedIndex];
+    return short
+      ? weekDayNamesShort[mondayBasedIndex]
+      : weekDayNames[mondayBasedIndex];
   };
 
-  const padY = density === "compact" ? "py-1.5 sm:py-2" : "py-2 sm:py-3";
-  const gap = density === "compact" ? "gap-1 sm:gap-1.5" : "gap-1.5 sm:gap-2";
-  const cardPad = density === "compact" ? "p-1.5 sm:p-2" : "p-2 sm:p-3";
+  // Calculate week summary
+  const weekSummary = useMemo(() => {
+    let totalSessions = 0;
+    let totalStudents = 0;
+    const branchCounts: Record<number, number> = {};
+
+    Object.values(calendarData).forEach((dayData) => {
+      if (dayData?.sessions) {
+        totalSessions += dayData.sessions.length;
+        dayData.sessions.forEach((session) => {
+          if (session.students) {
+            totalStudents += session.students.length;
+          }
+          const branchId = session.teacher?.branch_id;
+          if (branchId) {
+            branchCounts[branchId] = (branchCounts[branchId] || 0) + 1;
+          }
+        });
+      }
+    });
+
+    return { totalSessions, totalStudents, branchCounts };
+  }, [calendarData]);
+
+  // Enhanced responsive sizing - more generous
+  const headerPadY = density === "compact" ? "py-3 sm:py-4" : "py-4 sm:py-5";
+  const gap = density === "compact" ? "gap-2 sm:gap-3" : "gap-3 sm:gap-4";
+  const cardPad = density === "compact" ? "p-3 sm:p-4" : "p-4 sm:p-5";
   const cardText =
-    density === "compact"
-      ? "text-[10px] sm:text-[11px]"
-      : "text-[11px] sm:text-xs";
+    density === "compact" ? "text-sm sm:text-base" : "text-base sm:text-lg";
+  const cardTextSmall =
+    density === "compact" ? "text-xs sm:text-sm" : "text-sm sm:text-base";
 
   return (
-    <div className="flex flex-col bg-white rounded-lg sm:rounded-xl overflow-hidden shadow-lg border border-gray-200">
+    <div className="flex flex-col bg-gradient-to-br from-gray-50 to-white rounded-xl sm:rounded-2xl overflow-hidden shadow-xl border-2 border-gray-200 h-full">
+      {/* Week Summary Bar - Quick Overview */}
+      <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white px-4 sm:px-6 py-3 sm:py-4 shadow-lg">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">📅</span>
+              <div>
+                <div className="text-xs opacity-90">
+                  {language === "th" ? "ทั้งหมด" : "Total"}
+                </div>
+                <div className="text-xl sm:text-2xl font-bold">
+                  {weekSummary.totalSessions}
+                </div>
+              </div>
+              <div className="text-xs opacity-90 ml-1">
+                {language === "th" ? "คาบ" : "sessions"}
+              </div>
+            </div>
+
+            <div className="w-px h-8 bg-white/30 hidden sm:block" />
+
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">👥</span>
+              <div>
+                <div className="text-xs opacity-90">
+                  {language === "th" ? "นักเรียน" : "Students"}
+                </div>
+                <div className="text-xl sm:text-2xl font-bold">
+                  {weekSummary.totalStudents}
+                </div>
+              </div>
+            </div>
+
+            {Object.keys(weekSummary.branchCounts).length > 0 && (
+              <>
+                <div className="w-px h-8 bg-white/30 hidden lg:block" />
+                <div className="flex items-center gap-2 flex-wrap">
+                  {Object.entries(weekSummary.branchCounts).map(
+                    ([branchId, count]) => {
+                      const id = parseInt(branchId);
+                      let color = "bg-gray-500";
+
+                      if (id === 1) {
+                        color = "bg-[#334293]";
+                      } else if (id === 2) {
+                        color = "bg-[#EFE957]";
+                      } else if (id === 3) {
+                        color = "bg-[#58B2FF]";
+                      } else if (id === 4) {
+                        color = "bg-[#FF90B3]";
+                      }
+
+                      return (
+                        <div
+                          key={branchId}
+                          className="flex items-center gap-1.5 px-2 py-1 bg-white/20 rounded-full"
+                        >
+                          <div
+                            className={`w-2 h-2 rounded-full ${color} shadow-sm`}
+                          />
+                          <span className="text-xs font-semibold">{count}</span>
+                        </div>
+                      );
+                    }
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="text-xs opacity-90 italic hidden sm:block">
+            {language === "th"
+              ? "🔍 คลิกคาบเรียนเพื่อดูรายละเอียด"
+              : "🔍 Click session for details"}
+          </div>
+        </div>
+      </div>
+
       {/* Scroll container with sticky header */}
       <div className="flex-1 overflow-auto">
-        {/* Week Header - Fully Responsive */}
+        {/* Week Header - Clean & Simple */}
         <div
-          className={`grid grid-cols-7 ${gap} p-2 sm:p-3 lg:p-4 pb-1 sm:pb-2 sticky top-0 z-20 bg-white/80 backdrop-blur-sm border-b border-gray-200`}
+          className={`grid grid-cols-7 ${gap} p-4 sm:p-5 pb-3 sm:pb-4 sticky top-0 z-20 bg-white/98 backdrop-blur-lg border-b-2 border-gray-200 shadow-md`}
         >
           {weekDates.map((date) => {
             const today = date === new Date().toISOString().split("T")[0];
-            const dayName = getDayName(date);
+            const dayName = getDayName(date, true);
+            const dayNameFull = getDayName(date, false);
             const dayData = calendarData[date];
 
             return (
               <div
                 key={date}
-                className={`${padY} text-center font-bold text-xs sm:text-sm rounded-md sm:rounded-lg cursor-pointer transition-all duration-200 tracking-wide ${
+                className={`${headerPadY} text-center font-bold rounded-xl sm:rounded-2xl cursor-pointer transition-all duration-300 shadow-md hover:shadow-xl hover:-translate-y-1 active:translate-y-0 group ${
                   today
-                    ? "bg-gradient-to-br from-indigo-600 to-purple-700 text-white shadow-md sm:shadow-lg"
+                    ? "bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 text-white ring-4 ring-indigo-200 scale-105"
                     : dayData?.is_holiday
-                    ? "bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 opacity-70"
-                    : "bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700"
+                    ? "bg-gradient-to-br from-red-400 to-pink-500 text-white"
+                    : "bg-gradient-to-br from-white to-gray-50 text-gray-800 border-2 border-gray-200 hover:border-indigo-300"
                 }`}
                 onClick={() => onDayClick?.(date)}
+                title={dayNameFull}
               >
-                <div className="font-bold text-[10px] sm:text-sm mb-1 sm:mb-2">
-                  {dayName}
-                </div>
+                {/* Day Name */}
                 <div
-                  className={`text-lg sm:text-2xl font-bold ${
-                    today ? "text-white" : "text-gray-900"
+                  className={`font-bold text-sm sm:text-base mb-2 ${
+                    today ? "text-white" : "text-gray-600"
                   }`}
                 >
-                  {new Date(date).getDate()}
+                  <span className="hidden lg:inline">{dayNameFull}</span>
+                  <span className="lg:hidden">{dayName}</span>
                 </div>
-                {dayData?.session_count > 0 && (
+
+                {/* Date Number with Month */}
+                <div className="mb-2">
                   <div
-                    className={`text-[9px] sm:text-xs mt-1 sm:mt-2 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full ${
-                      today
-                        ? "bg-white/20 text-white"
-                        : "bg-blue-500 text-white"
+                    className={`text-3xl sm:text-4xl font-black ${
+                      today ? "text-white" : "text-gray-900"
                     }`}
                   >
-                    {dayData.session_count}{" "}
-                    <span className="hidden sm:inline">
-                      {language === "th" ? "คาบ" : "sessions"}
+                    {new Date(date).getDate()}
+                  </div>
+                  <div
+                    className={`text-xs mt-1 ${
+                      today ? "text-white/80" : "text-gray-500"
+                    }`}
+                  >
+                    {new Date(date).toLocaleDateString(
+                      language === "th" ? "th-TH" : "en-US",
+                      { month: "short" }
+                    )}
+                  </div>
+                </div>
+
+                {/* Session Count Badge */}
+                {dayData?.session_count > 0 ? (
+                  <div
+                    className={`text-sm sm:text-base px-3 py-1.5 rounded-full font-bold inline-flex items-center gap-1 shadow-md ${
+                      today
+                        ? "bg-white text-indigo-600"
+                        : "bg-indigo-600 text-white group-hover:bg-indigo-700"
+                    }`}
+                  >
+                    <span>📚</span>
+                    <span>{dayData.session_count}</span>
+                    <span className="hidden sm:inline text-xs">
+                      {language === "th" ? "คาบ" : ""}
                     </span>
+                  </div>
+                ) : (
+                  <div
+                    className={`text-xs ${
+                      today ? "text-white/70" : "text-gray-400"
+                    }`}
+                  >
+                    {language === "th" ? "ว่าง" : "Free"}
                   </div>
                 )}
               </div>
@@ -252,11 +403,9 @@ const WeekView: React.FC<{
           })}
         </div>
 
-        {/* Sessions Grid - Responsive Scrollable */}
+        {/* Sessions Grid - Ultra User-Friendly Layout */}
         <div
-          className={`grid grid-cols-7 gap-px bg-gray-200 ${
-            density === "compact" ? "p-1 sm:p-2" : "p-1 sm:p-2"
-          }`}
+          className={`grid grid-cols-7 gap-2 sm:gap-3 bg-gradient-to-b from-gray-100 to-gray-50 p-3 sm:p-4`}
         >
           {weekDates.map((date) => {
             const dayData = calendarData[date];
@@ -266,204 +415,237 @@ const WeekView: React.FC<{
             return (
               <div
                 key={date}
-                className={`min-h-full p-2 sm:p-3 ${
+                className={`min-h-[350px] sm:min-h-[450px] p-3 sm:p-4 rounded-xl shadow-md border-2 ${
                   today
-                    ? "bg-gradient-to-b from-blue-50 to-indigo-50"
+                    ? "bg-gradient-to-b from-indigo-50 to-purple-50 border-indigo-300"
                     : dayData?.is_holiday
-                    ? "bg-gradient-to-b from-red-50 to-red-100"
-                    : "bg-white"
+                    ? "bg-gradient-to-b from-red-50 to-pink-50 border-red-300"
+                    : "bg-white border-gray-200"
                 }`}
               >
-                <div className="space-y-2 sm:space-y-3">
+                <div className="space-y-3 sm:space-y-4">
                   {timeGroups.length === 0 ? (
-                    /* Empty day placeholder - Responsive */
+                    /* Empty day - Friendly invitation */
                     <div
-                      className="h-24 sm:h-32 flex items-center justify-center opacity-0 hover:opacity-60 active:opacity-80 transition-all duration-300 cursor-pointer border-2 border-dashed border-indigo-200 rounded-md sm:rounded-lg hover:border-indigo-300 hover:bg-indigo-50"
+                      className="h-40 sm:h-52 flex flex-col items-center justify-center opacity-40 hover:opacity-100 active:opacity-80 transition-all duration-300 cursor-pointer border-3 border-dashed border-gray-300 rounded-2xl hover:border-indigo-400 hover:bg-gradient-to-br hover:from-indigo-50 hover:to-purple-50 hover:scale-[1.02] group"
                       onClick={() => onAddSession?.(date)}
                     >
-                      <div className="text-center">
-                        <div className="text-2xl sm:text-3xl mb-1 sm:mb-2 text-gray-400">
-                          +
+                      <div className="text-center transform group-hover:scale-110 transition-transform">
+                        <div className="text-5xl sm:text-6xl mb-3 group-hover:rotate-90 transition-transform duration-300">
+                          ➕
                         </div>
-                        <div className="text-xs sm:text-sm text-gray-500 font-medium">
+                        <div className="text-base sm:text-lg text-gray-600 font-bold group-hover:text-indigo-600">
                           {language === "th" ? "เพิ่มคาบเรียน" : "Add Session"}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-1 group-hover:text-indigo-400">
+                          {language === "th"
+                            ? "คลิกเพื่อเริ่มต้น"
+                            : "Click to start"}
                         </div>
                       </div>
                     </div>
                   ) : (
-                    /* Sessions grouped by time - Responsive */
+                    /* Sessions - Clean & Simple Cards */
                     timeGroups.map(([timeRange, sessions]) => (
-                      <div key={timeRange} className="space-y-1.5 sm:space-y-2">
-                        {/* Time header for clustered sessions - Responsive */}
-                        <div className="text-[10px] sm:text-xs font-bold text-gray-600 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-gray-100 rounded-md">
-                          {formatTime(sessions[0].start_time)} -{" "}
-                          {formatTime(sessions[0].end_time)}
+                      <div key={timeRange} className="space-y-2.5 sm:space-y-3">
+                        {/* Time Badge - Clear & Prominent */}
+                        <div className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-3 py-2 rounded-xl shadow-md">
+                          <span className="text-lg">⏰</span>
+                          <span className="font-bold text-sm sm:text-base">
+                            {formatTime(sessions[0].start_time)} -{" "}
+                            {formatTime(sessions[0].end_time)}
+                          </span>
+                          {sessions.length > 1 && (
+                            <span className="ml-auto bg-white text-indigo-600 text-xs font-bold px-2 py-1 rounded-full">
+                              {sessions.length}{" "}
+                              {language === "th" ? "คาบ" : "sessions"}
+                            </span>
+                          )}
                         </div>
 
-                        {/* Multiple sessions at same time */}
-                        {sessions.map((session, index) => {
-                          // Get branch color from teacher's branch_id
-                          const teacherBranchId =
-                            session.teacher?.branch_id || null;
-                          let branchBgColor = "bg-gray-100";
-                          let branchTextColor = "text-gray-800";
-                          let branchBorderColor = "border-gray-300";
+                        {/* Session Cards - Ultra Simple */}
+                        <div className="space-y-2.5">
+                          {sessions.map((session, index) => {
+                            // Branch styling
+                            const teacherBranchId =
+                              session.teacher?.branch_id || null;
+                            let branchColor = "#9CA3AF"; // gray
+                            let branchBg = "bg-gray-50";
+                            let branchBorder = "border-gray-300";
 
-                          if (teacherBranchId === 1) {
-                            branchBgColor = "bg-[#334293]/10";
-                            branchTextColor = "text-[#334293]";
-                            branchBorderColor = "border-[#334293]";
-                          } else if (teacherBranchId === 2) {
-                            branchBgColor = "bg-[#EFE957]/20";
-                            branchTextColor = "text-gray-800";
-                            branchBorderColor = "border-[#EFE957]";
-                          } else if (teacherBranchId === 3) {
-                            branchBgColor = "bg-[#58B2FF]/10";
-                            branchTextColor = "text-[#58B2FF]";
-                            branchBorderColor = "border-[#58B2FF]";
-                          } else if (teacherBranchId === 4) {
-                            branchBgColor = "bg-[#FF90B3]/10";
-                            branchTextColor = "text-[#FF90B3]";
-                            branchBorderColor = "border-[#FF90B3]";
-                          }
+                            if (teacherBranchId === 1) {
+                              branchColor = "#334293";
+                              branchBg = "bg-blue-50";
+                              branchBorder = "border-[#334293]/20";
+                            } else if (teacherBranchId === 2) {
+                              branchColor = "#EFE957";
+                              branchBg = "bg-yellow-50";
+                              branchBorder = "border-yellow-300";
+                            } else if (teacherBranchId === 3) {
+                              branchColor = "#58B2FF";
+                              branchBg = "bg-blue-50";
+                              branchBorder = "border-blue-300";
+                            } else if (teacherBranchId === 4) {
+                              branchColor = "#FF90B3";
+                              branchBg = "bg-pink-50";
+                              branchBorder = "border-pink-300";
+                            }
 
-                          return (
-                            <div
-                              key={session.id}
-                              className={`${cardPad} rounded-lg sm:rounded-xl shadow-sm sm:shadow-md border sm:border-2 cursor-pointer transition-all duration-200 hover:shadow-md sm:hover:shadow-lg active:scale-95 overflow-hidden relative z-10 ${branchBgColor} ${branchBorderColor} ${
-                                sessions.length > 1
-                                  ? `ml-${index * 2} -mt-1`
-                                  : ""
-                              }`}
-                              onClick={() => onSessionClick(session)}
-                            >
-                              {/* Schedule Name - Responsive */}
+                            return (
                               <div
-                                className={`font-bold text-xs sm:text-sm mb-1 sm:mb-2 leading-tight ${branchTextColor}`}
+                                key={session.id}
+                                className={`${cardPad} rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 active:translate-y-0 ${branchBg} ${branchBorder} hover:border-opacity-70 relative overflow-hidden group`}
+                                onClick={() => onSessionClick(session)}
+                                style={{
+                                  borderLeftWidth: "6px",
+                                  borderLeftColor: branchColor,
+                                }}
                               >
-                                {session.schedule_name}
-                              </div>
+                                {/* Hover overlay effect */}
+                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 to-purple-500/0 group-hover:from-indigo-500/5 group-hover:to-purple-500/5 transition-all duration-300 pointer-events-none" />
 
-                              {/* Course Name - Responsive */}
-                              <div
-                                className={`${cardText} opacity-90 mb-1 sm:mb-2 font-medium`}
-                              >
-                                {session.course_name}
-                              </div>
-
-                              {/* Teacher - Responsive, hidden on very small screens */}
-                              {session.teacher_name && (
-                                <div
-                                  className={`hidden sm:flex items-center ${cardText} mb-1 sm:mb-2 opacity-90`}
-                                >
-                                  <span className="mr-1">👩‍🏫</span>
-                                  <span className="truncate font-medium">
-                                    {session.teacher_name}
-                                  </span>
-                                </div>
-                              )}
-
-                              {/* Students - Responsive */}
-                              {session.students &&
-                                session.students.length > 0 && (
-                                  <div
-                                    className={`flex items-center ${cardText} mb-1 sm:mb-2 opacity-90`}
-                                  >
-                                    <span className="mr-0.5 sm:mr-1">👥</span>
-                                    <span className="font-medium">
-                                      {session.students.length}
-                                      <span className="hidden sm:inline">
-                                        {" "}
-                                        {language === "th" ? "คน" : "students"}
+                                {/* Content */}
+                                <div className="relative">
+                                  {/* Header: Schedule Name */}
+                                  <div className="flex items-start justify-between gap-2 mb-3">
+                                    <h3
+                                      className={`font-bold ${cardText} leading-snug text-gray-900 flex-1`}
+                                    >
+                                      {session.schedule_name}
+                                    </h3>
+                                    {sessions.length > 1 && index === 0 && (
+                                      <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md shrink-0">
+                                        +{sessions.length - 1}
                                       </span>
+                                    )}
+                                  </div>
+
+                                  {/* Course */}
+                                  <div
+                                    className={`flex items-center gap-2 mb-2.5 ${cardTextSmall} text-gray-700`}
+                                  >
+                                    <span className="text-xl">📚</span>
+                                    <span className="font-semibold">
+                                      {session.course_name}
                                     </span>
                                   </div>
-                                )}
 
-                              {/* Participants for non-class schedules - Responsive */}
-                              {session.participants &&
-                                session.participants.length > 0 && (
-                                  <div
-                                    className={`flex items-center ${cardText} mb-1 sm:mb-2 opacity-90`}
-                                  >
-                                    <span className="mr-0.5 sm:mr-1">👤</span>
-                                    <div className="flex items-center gap-0.5 sm:gap-1">
-                                      <span className="font-medium">
-                                        {session.participants.length}
-                                        <span className="hidden sm:inline">
-                                          {" "}
-                                          {language === "th"
-                                            ? "คน"
-                                            : "participants"}
+                                  {/* Info Grid - 2 columns on larger screens */}
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                                    {/* Teacher */}
+                                    {session.teacher_name && (
+                                      <div
+                                        className={`flex items-center gap-2 ${cardTextSmall}`}
+                                      >
+                                        <span className="text-lg">👨‍🏫</span>
+                                        <span className="truncate font-medium text-gray-700">
+                                          {session.teacher_name}
                                         </span>
-                                      </span>
-                                      <div className="flex gap-0.5 sm:gap-1 ml-1 sm:ml-2">
-                                        {session.participants
-                                          .slice(0, 3)
-                                          .map((participant, pIndex) => (
-                                            <div
-                                              key={`${participant.user_id}-${pIndex}`}
-                                              className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
-                                                participant.status ===
-                                                "confirmed"
-                                                  ? "bg-green-500"
-                                                  : participant.status ===
-                                                    "declined"
-                                                  ? "bg-red-500"
-                                                  : participant.status ===
-                                                    "tentative"
-                                                  ? "bg-yellow-500"
-                                                  : "bg-gray-400" // invited
-                                              }`}
-                                              title={`${
-                                                participant.user?.username ||
-                                                participant.user_id
-                                              } - ${participant.status}`}
-                                            />
-                                          ))}
-                                        {session.participants.length > 3 && (
-                                          <span className="text-[9px] sm:text-xs ml-0.5 sm:ml-1">
-                                            +{session.participants.length - 3}
-                                          </span>
-                                        )}
                                       </div>
-                                    </div>
+                                    )}
+
+                                    {/* Students Count */}
+                                    {session.students &&
+                                      session.students.length > 0 && (
+                                        <div
+                                          className={`flex items-center gap-2 ${cardTextSmall}`}
+                                        >
+                                          <span className="text-lg">👥</span>
+                                          <span className="font-bold text-indigo-600 text-base">
+                                            {session.students.length}
+                                          </span>
+                                          <span className="text-gray-600">
+                                            {language === "th"
+                                              ? "คน"
+                                              : "students"}
+                                          </span>
+                                        </div>
+                                      )}
+
+                                    {/* Participants */}
+                                    {session.participants &&
+                                      session.participants.length > 0 && (
+                                        <div
+                                          className={`flex items-center gap-2 ${cardTextSmall} sm:col-span-2`}
+                                        >
+                                          <span className="text-lg">👤</span>
+                                          <span className="font-bold text-indigo-600">
+                                            {session.participants.length}
+                                          </span>
+                                          <span className="text-gray-600 mr-2">
+                                            {language === "th"
+                                              ? "ผู้เข้าร่วม"
+                                              : "participants"}
+                                          </span>
+                                          <div className="flex gap-1.5">
+                                            {session.participants
+                                              .slice(0, 5)
+                                              .map((participant, pIndex) => (
+                                                <div
+                                                  key={`${participant.user_id}-${pIndex}`}
+                                                  className={`w-3 h-3 rounded-full shadow-md border-2 border-white ${
+                                                    participant.status ===
+                                                    "confirmed"
+                                                      ? "bg-green-500"
+                                                      : participant.status ===
+                                                        "declined"
+                                                      ? "bg-red-500"
+                                                      : participant.status ===
+                                                        "tentative"
+                                                      ? "bg-yellow-400"
+                                                      : "bg-gray-400"
+                                                  }`}
+                                                  title={`${
+                                                    participant.user
+                                                      ?.username ||
+                                                    participant.user_id
+                                                  } - ${participant.status}`}
+                                                />
+                                              ))}
+                                            {session.participants.length >
+                                              5 && (
+                                              <span className="text-xs font-bold text-gray-600 ml-1">
+                                                +
+                                                {session.participants.length -
+                                                  5}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                    {/* Room */}
+                                    {session.room_name && (
+                                      <div
+                                        className={`flex items-center gap-2 ${cardTextSmall} sm:col-span-2`}
+                                      >
+                                        <span className="text-lg">📍</span>
+                                        <span className="font-medium text-gray-700">
+                                          {session.room_name}
+                                        </span>
+                                      </div>
+                                    )}
                                   </div>
-                                )}
-
-                              {/* Room - Hidden on very small screens */}
-                              {session.room_name && (
-                                <div
-                                  className={`hidden sm:block ${cardText} opacity-80 font-medium`}
-                                >
-                                  📍 {session.room_name}
                                 </div>
-                              )}
-
-                              {/* Multiple sessions indicator - Responsive */}
-                              {sessions.length > 1 && index === 0 && (
-                                <div className="absolute top-0.5 sm:top-1 right-0.5 sm:right-1 bg-black bg-opacity-20 text-white text-[9px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
-                                  +{sessions.length - 1}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     ))
                   )}
 
-                  {/* Holiday message */}
+                  {/* Holiday Banner - Fun & Friendly */}
                   {dayData?.is_holiday && (
-                    <div className="mt-2 sm:mt-4 p-2 sm:p-3 bg-red-100 border border-red-200 sm:border-2 rounded sm:rounded-lg text-center">
-                      <div className="text-xl sm:text-2xl mb-0.5 sm:mb-1">
-                        🎌
+                    <div className="mt-4 p-4 sm:p-5 bg-gradient-to-br from-red-400 via-pink-400 to-red-500 rounded-2xl shadow-xl text-center transform hover:scale-105 transition-transform">
+                      <div className="text-4xl sm:text-5xl mb-2 animate-bounce">
+                        �
                       </div>
-                      <div className="text-xs sm:text-sm font-bold text-red-800">
-                        {language === "th" ? "วันหยุด" : "Holiday"}
+                      <div className="text-lg sm:text-xl font-black text-white mb-1 drop-shadow-lg">
+                        {language === "th" ? "🎌 วันหยุด 🎌" : "🎌 Holiday 🎌"}
                       </div>
                       {dayData.holiday_info && (
-                        <div className="text-[10px] sm:text-xs text-red-600 mt-0.5 sm:mt-1">
+                        <div className="text-sm sm:text-base text-white/95 font-semibold mt-2 bg-white/20 px-3 py-1.5 rounded-full inline-block">
                           {(dayData.holiday_info as { name?: string })?.name ||
                             ""}
                         </div>
@@ -474,6 +656,32 @@ const WeekView: React.FC<{
               </div>
             );
           })}
+        </div>
+      </div>
+
+      {/* Bottom Helper Bar - Quick Tips */}
+      <div className="bg-gradient-to-r from-gray-50 to-white border-t-2 border-gray-200 px-4 sm:px-6 py-3 text-center">
+        <div className="flex items-center justify-center gap-6 flex-wrap text-xs sm:text-sm text-gray-600">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">💡</span>
+            <span className="font-medium">
+              {language === "th" ? "เคล็ดลับ:" : "Tip:"}
+            </span>
+            <span>
+              {language === "th"
+                ? "คลิกที่คาบเรียนเพื่อดูรายละเอียดเพิ่มเติม"
+                : "Click sessions for more details"}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-[#334293]" />
+            <div className="w-3 h-3 rounded-full bg-[#EFE957]" />
+            <div className="w-3 h-3 rounded-full bg-[#58B2FF]" />
+            <div className="w-3 h-3 rounded-full bg-[#FF90B3]" />
+            <span className="ml-1">
+              {language === "th" ? "= สาขาต่างๆ" : "= Branches"}
+            </span>
+          </div>
         </div>
       </div>
     </div>
