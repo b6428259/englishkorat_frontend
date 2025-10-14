@@ -79,39 +79,37 @@ interface WeekCalendarData {
   };
 }
 
-const getBranchColorById = (branchId?: number): string => {
-  switch (branchId) {
-    case 1:
-      return "bg-[#334293] text-white border-[#334293]"; // Branch 1
-    case 2:
-      return "bg-[#EFE957] text-black border-[#EFE957]"; // Branch 2
-    case 3:
-      return "bg-[#58B2FF] text-white border-[#58B2FF]"; // Online
-    case 4:
-      return "bg-[#FF90B3] text-white border-[#FF90B3]"; // Chinese
-    default:
-      return "bg-gradient-to-br from-indigo-300 to-purple-400 text-white border-indigo-200"; // Default
-  }
-};
+const getBranchBorderColorFromSession = (
+  session: CalendarSession | TeacherSession
+): string => {
+  // Try to get branch name from session
+  const branchName = session?.branch_name || "";
+  const name = branchName.toLowerCase();
 
-const getBranchBorderColorFromSession = (session: any): string => {
-  const id = Number(
-    session?.branch_id ?? session?.branch?.id ?? session?.room?.branch_id
-  );
-
-  if (id === 1) return "#334293"; // Branch 1
-  if (id === 2) return "#EFE957"; // Branch 2
-  if (id === 3) return "#58B2FF"; // Online
-  if (id === 4) return "#FF90B3"; // Chinese
-
-  // ถ้ายังไม่มี id ให้เดาเบื้องต้นจากชื่อสาขา (กันตาย)
-  const name = (session?.branch_name || "").toLowerCase();
   if (name.includes("branch 1")) return "#334293";
   if (name.includes("branch 3")) return "#EFE957";
   if (name.includes("online")) return "#58B2FF";
   if (name.includes("chinese")) return "#FF90B3";
 
   return "gray"; // default
+};
+
+const getBranchColor = (branchName?: string): string => {
+  if (!branchName)
+    return "bg-gradient-to-br from-indigo-300 to-purple-400 text-white border-indigo-200";
+
+  const name = branchName.toLowerCase();
+
+  if (name.includes("branch 1"))
+    return "bg-[#334293] text-white border-[#334293]";
+  if (name.includes("branch 3"))
+    return "bg-[#EFE957] text-black border-[#EFE957]";
+  if (name.includes("online"))
+    return "bg-[#58B2FF] text-white border-[#58B2FF]";
+  if (name.includes("chinese"))
+    return "bg-[#FF90B3] text-white border-[#FF90B3]";
+
+  return "bg-gradient-to-br from-indigo-300 to-purple-400 text-white border-indigo-200";
 };
 
 // Simple WeekView component inline
@@ -829,8 +827,8 @@ export default function SchedulePage() {
   }, [fetchData]);
 
   useEffect(() => {
-    if (calendarData?.sessions) {
-      console.log("Calendar data:", calendarData.sessions);
+    if (calendarData?.data?.calendar) {
+      console.log("Calendar data:", calendarData.data.calendar);
     }
   }, [calendarData]);
 
