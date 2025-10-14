@@ -5,7 +5,6 @@ import CryptoJS from 'crypto-js';
 const ENCRYPTION_KEY = process.env.NEXT_PUBLIC_ENCRYPTION_KEY || 'englishkorat-secret-key-2024';
 // Use a distinct client-only cookie name to avoid collision with backend cookies
 const TOKEN_COOKIE_NAME = 'ek_auth_secure';
-const LEGACY_COOKIE_NAME = 'auth_token';
 const TOKEN_EXPIRY_HOURS = 2;
 
 export interface TokenData {
@@ -34,7 +33,7 @@ const decrypt = (encryptedData: string): string => {
  */
 export const setSecureToken = (token: string, userId?: string): void => {
   const expiresAt = Date.now() + (TOKEN_EXPIRY_HOURS * 60 * 60 * 1000); // 2 hours from now
-  
+
   const tokenData: TokenData = {
     token,
     expiresAt,
@@ -42,7 +41,7 @@ export const setSecureToken = (token: string, userId?: string): void => {
   };
 
   const encryptedData = encrypt(JSON.stringify(tokenData));
-  
+
   Cookies.set(TOKEN_COOKIE_NAME, encryptedData, {
     expires: TOKEN_EXPIRY_HOURS / 24, // Convert hours to days for js-cookie
     httpOnly: false, // Note: js-cookie can't set httpOnly cookies from client-side
@@ -58,8 +57,8 @@ export const setSecureToken = (token: string, userId?: string): void => {
 export const getSecureToken = (): string | null => {
   try {
   // Prefer new cookie; fallback to legacy name during migration
-  const encryptedData = Cookies.get(TOKEN_COOKIE_NAME) || Cookies.get(LEGACY_COOKIE_NAME);
-    
+  const encryptedData = Cookies.get(TOKEN_COOKIE_NAME);
+
     if (!encryptedData) {
       return null;
     }
@@ -90,12 +89,7 @@ export const removeSecureToken = (): void => {
   sameSite: 'strict',
   path: '/', // Ensure removal across all paths
   });
-  // Also remove legacy cookie if present
-  Cookies.remove(LEGACY_COOKIE_NAME, {
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    path: '/',
-  });
+
 };
 
 /**
@@ -110,8 +104,8 @@ export const hasValidToken = (): boolean => {
  */
 export const getTokenExpiryTime = (): Date | null => {
   try {
-  const encryptedData = Cookies.get(TOKEN_COOKIE_NAME) || Cookies.get(LEGACY_COOKIE_NAME);
-    
+  const encryptedData = Cookies.get(TOKEN_COOKIE_NAME);
+
     if (!encryptedData) {
       return null;
     }
@@ -132,7 +126,7 @@ export const getTokenExpiryTime = (): Date | null => {
 export const isTokenExpiringSoon = (): boolean => {
   const expiryTime = getTokenExpiryTime();
   if (!expiryTime) return false;
-  
+
   const fifteenMinutes = 15 * 60 * 1000; // 15 minutes in milliseconds
   return expiryTime.getTime() - Date.now() < fifteenMinutes;
 };

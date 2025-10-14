@@ -24,16 +24,43 @@ interface MonthViewProps {
   density?: "comfortable" | "compact";
 }
 
-const branchColors: Record<string, string> = {
-  "Branch 1 The Mall Branch": "bg-indigo-500",
-  Online: "bg-indigo-400",
-  "Branch 3": "bg-indigo-600",
-};
-
-const branchColorLight: Record<string, string> = {
-  "Branch 1 The Mall Branch": "bg-indigo-50 border-indigo-200",
-  Online: "bg-indigo-50 border-indigo-200",
-  "Branch 3": "bg-indigo-50 border-indigo-200",
+// Helper functions to get branch colors based on teacher's branch_id
+const getBranchColorFromTeacher = (
+  branchId: number | null
+): { dot: string; light: string; text: string } => {
+  if (branchId === 1) {
+    return {
+      dot: "bg-[#334293]",
+      light: "bg-[#334293]/10 border-[#334293]",
+      text: "text-[#334293]",
+    };
+  }
+  if (branchId === 2) {
+    return {
+      dot: "bg-[#EFE957]",
+      light: "bg-[#EFE957]/20 border-[#EFE957]",
+      text: "text-gray-800",
+    };
+  }
+  if (branchId === 3) {
+    return {
+      dot: "bg-[#58B2FF]",
+      light: "bg-[#58B2FF]/10 border-[#58B2FF]",
+      text: "text-[#58B2FF]",
+    };
+  }
+  if (branchId === 4) {
+    return {
+      dot: "bg-[#FF90B3]",
+      light: "bg-[#FF90B3]/10 border-[#FF90B3]",
+      text: "text-[#FF90B3]",
+    };
+  }
+  return {
+    dot: "bg-gray-400",
+    light: "bg-gray-100 border-gray-200",
+    text: "text-gray-800",
+  };
 };
 
 export default function MonthView({
@@ -108,20 +135,13 @@ export default function MonthView({
     return `${h % 12 === 0 ? 12 : h % 12}:${minute}${h < 12 ? "am" : "pm"}`;
   };
 
-  const getBranchColorDot = (branchName: string) => {
-    return branchColors[branchName] || "bg-gray-400";
-  };
-
-  const getBranchColorLight = (branchName: string) => {
-    return branchColorLight[branchName] || "bg-gray-100 border-gray-200";
-  };
-
-  // Group sessions by branch for better display
+  // Group sessions by teacher's branch for better display
   const getSessionsByBranch = (sessions: CalendarSession[]) => {
     const grouped = sessions.reduce((acc, session) => {
-      const branch = session.branch_name;
-      if (!acc[branch]) acc[branch] = [];
-      acc[branch].push(session);
+      const branchId = session.teacher?.branch_id || null;
+      const branchKey = branchId ? `branch-${branchId}` : "no-branch";
+      if (!acc[branchKey]) acc[branchKey] = [];
+      acc[branchKey].push(session);
       return acc;
     }, {} as Record<string, CalendarSession[]>);
 
@@ -222,105 +242,113 @@ export default function MonthView({
                   <div className="space-y-0.5 sm:space-y-1 overflow-hidden">
                     {Object.entries(sessionsByBranch)
                       .slice(0, 3)
-                      .map(([branchName, branchSessions]) => (
-                        <div key={branchName} className="space-y-0.5">
-                          {branchSessions.slice(0, 2).map((session) => (
-                            <div
-                              key={session.id}
-                              className={`text-[9px] sm:text-[10px] p-0.5 sm:p-1 rounded border cursor-pointer hover:shadow-sm active:scale-95 transition-all ${getBranchColorLight(
-                                branchName
-                              )}`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onSessionClick(session);
-                              }}
-                              role="button"
-                              tabIndex={0}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                  e.preventDefault();
+                      .map(([branchKey, branchSessions]) => {
+                        // Extract branch_id from the first session in this group
+                        const firstSession = branchSessions[0];
+                        const teacherBranchId =
+                          firstSession.teacher?.branch_id || null;
+                        const branchColors =
+                          getBranchColorFromTeacher(teacherBranchId);
+
+                        return (
+                          <div key={branchKey} className="space-y-0.5">
+                            {branchSessions.slice(0, 2).map((session) => (
+                              <div
+                                key={session.id}
+                                className={`text-[9px] sm:text-[10px] p-0.5 sm:p-1 rounded border cursor-pointer hover:shadow-sm active:scale-95 transition-all ${branchColors.light}`}
+                                onClick={(e) => {
                                   e.stopPropagation();
                                   onSessionClick(session);
-                                }
-                              }}
-                            >
-                              <div className="flex items-center justify-between mb-0.5">
-                                <span className="font-bold text-gray-800 truncate flex-1 text-[9px] sm:text-[10px]">
-                                  {formatTime(session.start_time)}
-                                </span>
-                                <div
-                                  className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ml-1 flex-shrink-0 ${getBranchColorDot(
-                                    branchName
-                                  )}`}
-                                ></div>
-                              </div>
-
-                              <div className="text-gray-700 font-medium truncate text-[8px] sm:text-[10px] leading-tight">
-                                {session.schedule_name}
-                              </div>
-
-                              {session.teacher_name && (
-                                <div className="text-gray-600 truncate text-[8px] sm:text-[10px] leading-tight hidden sm:block">
-                                  👩‍🏫 {session.teacher_name}
+                                }}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    onSessionClick(session);
+                                  }
+                                }}
+                              >
+                                <div className="flex items-center justify-between mb-0.5">
+                                  <span
+                                    className={`font-bold truncate flex-1 text-[9px] sm:text-[10px] ${branchColors.text}`}
+                                  >
+                                    {formatTime(session.start_time)}
+                                  </span>
+                                  <div
+                                    className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ml-1 flex-shrink-0 ${branchColors.dot}`}
+                                  ></div>
                                 </div>
-                              )}
 
-                              {session.students &&
-                                session.students.length > 0 && (
-                                  <div className="text-gray-600 text-[8px] sm:text-[10px] leading-tight">
-                                    👥 {session.students.length}
+                                <div className="text-gray-700 font-medium truncate text-[8px] sm:text-[10px] leading-tight">
+                                  {session.schedule_name}
+                                </div>
+
+                                {session.teacher_name && (
+                                  <div className="text-gray-600 truncate text-[8px] sm:text-[10px] leading-tight hidden sm:block">
+                                    👩‍🏫 {session.teacher_name}
                                   </div>
                                 )}
 
-                              {/* Show participants for non-class schedules with status colors - Responsive */}
-                              {session.participants &&
-                                session.participants.length > 0 && (
-                                  <div className="flex items-center gap-0.5 sm:gap-1 mt-0.5">
-                                    <span className="text-gray-600 text-[8px] sm:text-[9px] hidden sm:inline">
-                                      👤
-                                    </span>
-                                    <div className="flex gap-0.5">
-                                      {session.participants
-                                        .slice(0, 3)
-                                        .map((participant, pIndex) => (
-                                          <div
-                                            key={`${participant.user_id}-${pIndex}`}
-                                            className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${
-                                              participant.status === "confirmed"
-                                                ? "bg-green-500"
-                                                : participant.status ===
-                                                  "declined"
-                                                ? "bg-red-500"
-                                                : participant.status ===
-                                                  "tentative"
-                                                ? "bg-yellow-500"
-                                                : "bg-gray-400" // invited
-                                            }`}
-                                            title={`${
-                                              participant.user?.username ||
-                                              participant.user_id
-                                            } - ${participant.status}`}
-                                          />
-                                        ))}
-                                      {session.participants.length > 3 && (
-                                        <span className="text-gray-500 text-[7px] sm:text-[8px] ml-0.5">
-                                          +{session.participants.length - 3}
-                                        </span>
-                                      )}
+                                {session.students &&
+                                  session.students.length > 0 && (
+                                    <div className="text-gray-600 text-[8px] sm:text-[10px] leading-tight">
+                                      👥 {session.students.length}
                                     </div>
-                                  </div>
-                                )}
-                            </div>
-                          ))}
+                                  )}
 
-                          {/* Show remaining sessions count if more than 2 - Responsive */}
-                          {branchSessions.length > 2 && (
-                            <div className="text-[8px] sm:text-[10px] text-gray-500 text-center py-0.5">
-                              +{branchSessions.length - 2}
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                                {/* Show participants for non-class schedules with status colors - Responsive */}
+                                {session.participants &&
+                                  session.participants.length > 0 && (
+                                    <div className="flex items-center gap-0.5 sm:gap-1 mt-0.5">
+                                      <span className="text-gray-600 text-[8px] sm:text-[9px] hidden sm:inline">
+                                        👤
+                                      </span>
+                                      <div className="flex gap-0.5">
+                                        {session.participants
+                                          .slice(0, 3)
+                                          .map((participant, pIndex) => (
+                                            <div
+                                              key={`${participant.user_id}-${pIndex}`}
+                                              className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${
+                                                participant.status ===
+                                                "confirmed"
+                                                  ? "bg-green-500"
+                                                  : participant.status ===
+                                                    "declined"
+                                                  ? "bg-red-500"
+                                                  : participant.status ===
+                                                    "tentative"
+                                                  ? "bg-yellow-500"
+                                                  : "bg-gray-400" // invited
+                                              }`}
+                                              title={`${
+                                                participant.user?.username ||
+                                                participant.user_id
+                                              } - ${participant.status}`}
+                                            />
+                                          ))}
+                                        {session.participants.length > 3 && (
+                                          <span className="text-gray-500 text-[7px] sm:text-[8px] ml-0.5">
+                                            +{session.participants.length - 3}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                              </div>
+                            ))}
+
+                            {/* Show remaining sessions count if more than 2 - Responsive */}
+                            {branchSessions.length > 2 && (
+                              <div className="text-[8px] sm:text-[10px] text-gray-500 text-center py-0.5">
+                                +{branchSessions.length - 2}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
 
                     {/* Show remaining branches count if more than 3 - Responsive */}
                     {Object.keys(sessionsByBranch).length > 3 && (

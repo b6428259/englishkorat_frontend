@@ -260,6 +260,7 @@ export interface TeacherSession {
   room: {
     id: number | null;
     name: string;
+    branch_id?: number;
   };
   students?: unknown[];
   course_name?: string;
@@ -748,6 +749,12 @@ export interface CalendarSession {
   branch_name: string;
   teacher_phone?: string | null;
   teacher_email?: string | null;
+  teacher?: {
+    avatar: string | null;
+    branch_id: number | null;
+    id: number | null;
+    username: string | null;
+  };
   students?: Array<{ id: number; name: string; level: string | null }>;
   participants?: Array<{
     role: "participant" | "organizer" | "observer";

@@ -40,12 +40,13 @@ import {
   MessageSquare,
   RefreshCw,
   Save,
+  Smile,
   Users,
   UserX,
   X,
   XCircle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 interface SessionDetailModalProps {
@@ -80,6 +81,10 @@ export default function SessionDetailModal({
   const [teachers, setTeachers] = useState<TeacherOption[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
+
+  // Emoji picker state
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
 
   // Check if user is admin or owner
   const canEdit = hasRole(["admin", "owner"]);
@@ -122,6 +127,26 @@ export default function SessionDetailModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, sessionId]);
 
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        emojiPickerRef.current &&
+        !emojiPickerRef.current.contains(event.target as Node)
+      ) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    if (showEmojiPicker) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showEmojiPicker]);
+
   const handleAddComment = async () => {
     if (!newComment.trim() || !sessionId) return;
 
@@ -134,12 +159,18 @@ export default function SessionDetailModal({
 
       await scheduleService.createSessionComment(commentData);
       setNewComment("");
+      setShowEmojiPicker(false);
       await fetchSessionComments();
     } catch (error) {
       console.error("Failed to add comment:", error);
     } finally {
       setIsSubmittingComment(false);
     }
+  };
+
+  const handleEmojiClick = (emoji: string) => {
+    setNewComment((prev) => prev + emoji);
+    setShowEmojiPicker(false);
   };
 
   const handleConfirmSession = async () => {
@@ -1197,18 +1228,173 @@ export default function SessionDetailModal({
 
               {/* Add Comment Section */}
               <div className="bg-gray-100 p-4 rounded-xl">
-                <div className="flex gap-3">
-                  <textarea
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder={
-                      language === "th"
-                        ? "เพิ่มความคิดเห็น..."
-                        : "Add a comment..."
-                    }
-                    className="flex-1 p-3 border border-gray-300 rounded-lg resize-none h-20 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-black"
-                    rows={3}
-                  />
+                <div className="flex gap-3 relative">
+                  <div className="flex-1 relative">
+                    <textarea
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      placeholder={
+                        language === "th"
+                          ? "เพิ่มความคิดเห็น..."
+                          : "Add a comment..."
+                      }
+                      className="w-full p-3 pr-12 border border-gray-300 rounded-lg resize-none h-20 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-black"
+                      rows={3}
+                    />
+                    {/* Emoji Button */}
+                    <button
+                      type="button"
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      className="absolute right-2 bottom-2 p-2 hover:bg-gray-200 rounded-full transition-colors"
+                      title={language === "th" ? "เลือก Emoji" : "Pick Emoji"}
+                    >
+                      <Smile className="h-5 w-5 text-gray-500 hover:text-gray-700" />
+                    </button>
+
+                    {/* Emoji Picker */}
+                    {showEmojiPicker && (
+                      <div
+                        ref={emojiPickerRef}
+                        className="absolute bottom-full right-0 mb-2 bg-white border border-gray-300 rounded-lg shadow-xl p-3 z-50 w-72 max-h-64 overflow-y-auto"
+                      >
+                        <div className="grid grid-cols-8 gap-2">
+                          {[
+                            "😀",
+                            "😃",
+                            "😄",
+                            "😁",
+                            "😆",
+                            "😅",
+                            "🤣",
+                            "😂",
+                            "🙂",
+                            "🙃",
+                            "😉",
+                            "😊",
+                            "😇",
+                            "🥰",
+                            "😍",
+                            "🤩",
+                            "😘",
+                            "😗",
+                            "😚",
+                            "😙",
+                            "😋",
+                            "😛",
+                            "😜",
+                            "🤪",
+                            "😝",
+                            "🤑",
+                            "🤗",
+                            "🤭",
+                            "🤫",
+                            "🤔",
+                            "🤐",
+                            "🤨",
+                            "😐",
+                            "😑",
+                            "😶",
+                            "😏",
+                            "😒",
+                            "🙄",
+                            "😬",
+                            "🤥",
+                            "😌",
+                            "😔",
+                            "😪",
+                            "🤤",
+                            "😴",
+                            "😷",
+                            "🤒",
+                            "🤕",
+                            "🤢",
+                            "🤮",
+                            "🤧",
+                            "🥵",
+                            "🥶",
+                            "😎",
+                            "🤓",
+                            "🧐",
+                            "😕",
+                            "😟",
+                            "🙁",
+                            "😮",
+                            "😯",
+                            "😲",
+                            "😳",
+                            "🥺",
+                            "😦",
+                            "😧",
+                            "😨",
+                            "😰",
+                            "😥",
+                            "😢",
+                            "😭",
+                            "😱",
+                            "😖",
+                            "😣",
+                            "😞",
+                            "😓",
+                            "😩",
+                            "😫",
+                            "🥱",
+                            "😤",
+                            "😡",
+                            "😠",
+                            "🤬",
+                            "👍",
+                            "👎",
+                            "👏",
+                            "🙌",
+                            "👋",
+                            "🤝",
+                            "🙏",
+                            "💪",
+                            "❤️",
+                            "🧡",
+                            "💛",
+                            "💚",
+                            "💙",
+                            "💜",
+                            "🤎",
+                            "🖤",
+                            "🤍",
+                            "💯",
+                            "✨",
+                            "⭐",
+                            "🌟",
+                            "💫",
+                            "🔥",
+                            "💥",
+                            "✅",
+                            "❌",
+                            "⚠️",
+                            "📌",
+                            "📍",
+                            "🎉",
+                            "🎊",
+                            "🎈",
+                            "🎁",
+                            "🏆",
+                            "🥇",
+                            "🥈",
+                            "🥉",
+                          ].map((emoji, index) => (
+                            <button
+                              key={index}
+                              type="button"
+                              onClick={() => handleEmojiClick(emoji)}
+                              className="text-2xl hover:bg-gray-100 rounded p-1 transition-colors"
+                              title={emoji}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <Button
                     onClick={handleAddComment}
                     disabled={!newComment.trim() || isSubmittingComment}

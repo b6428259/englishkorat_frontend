@@ -27,6 +27,7 @@ import {
   validateScheduleForm,
   validateSessionForm,
 } from "@/utils/scheduleValidation";
+import { Users, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import { SessionDetailModal } from "./components";
 import CompactDayViewModal from "./components/CompactDayViewModal";
@@ -79,37 +80,61 @@ interface WeekCalendarData {
   };
 }
 
-const getBranchBorderColorFromSession = (
+const getBranchIdFromSession = (
   session: CalendarSession | TeacherSession
-): string => {
-  // Try to get branch name from session
+): number | null => {
+  // For TeacherSession, check room.branch_id first
+  if ("room" in session && session.room && typeof session.room === "object") {
+    const room = session.room as { branch_id?: number };
+    if (room.branch_id) return room.branch_id;
+  }
+
+  // Fallback: Try to guess from branch name
   const branchName = session?.branch_name || "";
   const name = branchName.toLowerCase();
 
-  if (name.includes("branch 1")) return "#334293";
-  if (name.includes("branch 3")) return "#EFE957";
-  if (name.includes("online")) return "#58B2FF";
-  if (name.includes("chinese")) return "#FF90B3";
+  if (name.includes("branch 1")) return 1;
+  if (name.includes("branch 3")) return 2;
+  if (name.includes("online")) return 3;
+  if (name.includes("chinese")) return 4;
 
-  return "gray"; // default
+  return null;
 };
 
-const getBranchColor = (branchName?: string): string => {
-  if (!branchName)
-    return "bg-gradient-to-br from-indigo-300 to-purple-400 text-white border-indigo-200";
+const getBranchIdFromTeacher = (teacher: Teacher): number | null => {
+  // Get branch ID from teacher object
+  if (
+    teacher.branch &&
+    typeof teacher.branch === "object" &&
+    "id" in teacher.branch
+  ) {
+    return teacher.branch.id ?? null;
+  }
+  return null;
+};
 
-  const name = branchName.toLowerCase();
+const getBranchColorByTeacher = (teacher: Teacher): string => {
+  const branchId = getBranchIdFromTeacher(teacher);
 
-  if (name.includes("branch 1"))
-    return "bg-[#334293] text-white border-[#334293]";
-  if (name.includes("branch 3"))
-    return "bg-[#EFE957] text-black border-[#EFE957]";
-  if (name.includes("online"))
-    return "bg-[#58B2FF] text-white border-[#58B2FF]";
-  if (name.includes("chinese"))
-    return "bg-[#FF90B3] text-white border-[#FF90B3]";
+  if (branchId === 1) return "bg-[#334293]"; // Branch 1
+  if (branchId === 2) return "bg-[#EFE957]"; // Branch 3
+  if (branchId === 3) return "bg-[#58B2FF]"; // Online
+  if (branchId === 4) return "bg-[#FF90B3]"; // Chinese
 
-  return "bg-gradient-to-br from-indigo-300 to-purple-400 text-white border-indigo-200";
+  return "bg-gray-400"; // default
+};
+
+const getBranchBorderColorFromSession = (
+  session: CalendarSession | TeacherSession
+): string => {
+  const branchId = getBranchIdFromSession(session);
+
+  if (branchId === 1) return "#334293"; // Branch 1
+  if (branchId === 2) return "#EFE957"; // Branch 3
+  if (branchId === 3) return "#58B2FF"; // Online
+  if (branchId === 4) return "#FF90B3"; // Chinese
+
+  return "gray"; // default
 };
 
 // Simple WeekView component inline
@@ -165,18 +190,21 @@ const WeekView: React.FC<{
     return weekDayNames[mondayBasedIndex];
   };
 
-  const padY = density === "compact" ? "py-2" : "py-3";
-  const gap = density === "compact" ? "gap-1.5" : "gap-2";
-  const cardPad = density === "compact" ? "p-2" : "p-3";
-  const cardText = density === "compact" ? "text-[11px]" : "text-xs";
+  const padY = density === "compact" ? "py-1.5 sm:py-2" : "py-2 sm:py-3";
+  const gap = density === "compact" ? "gap-1 sm:gap-1.5" : "gap-1.5 sm:gap-2";
+  const cardPad = density === "compact" ? "p-1.5 sm:p-2" : "p-2 sm:p-3";
+  const cardText =
+    density === "compact"
+      ? "text-[10px] sm:text-[11px]"
+      : "text-[11px] sm:text-xs";
 
   return (
-    <div className="min-h-0 flex flex-col bg-white rounded-xl overflow-hidden shadow-lg border border-gray-200">
+    <div className="flex flex-col bg-white rounded-lg sm:rounded-xl overflow-hidden shadow-lg border border-gray-200">
       {/* Scroll container with sticky header */}
-      <div className="flex-1 min-h-0 overflow-auto">
-        {/* Week Header (tone aligned with MonthView) */}
+      <div className="flex-1 overflow-auto">
+        {/* Week Header - Fully Responsive */}
         <div
-          className={`grid grid-cols-7 ${gap} p-4 pb-2 sticky top-0 z-20 bg-white/80 backdrop-blur-sm border-b border-gray-200`}
+          className={`grid grid-cols-7 ${gap} p-2 sm:p-3 lg:p-4 pb-1 sm:pb-2 sticky top-0 z-20 bg-white/80 backdrop-blur-sm border-b border-gray-200`}
         >
           {weekDates.map((date) => {
             const today = date === new Date().toISOString().split("T")[0];
@@ -186,18 +214,20 @@ const WeekView: React.FC<{
             return (
               <div
                 key={date}
-                className={`${padY} text-center font-bold text-sm rounded-lg cursor-pointer transition-all duration-200 tracking-wide ${
+                className={`${padY} text-center font-bold text-xs sm:text-sm rounded-md sm:rounded-lg cursor-pointer transition-all duration-200 tracking-wide ${
                   today
-                    ? "bg-gradient-to-br from-indigo-600 to-purple-700 text-white shadow-lg"
+                    ? "bg-gradient-to-br from-indigo-600 to-purple-700 text-white shadow-md sm:shadow-lg"
                     : dayData?.is_holiday
                     ? "bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 opacity-70"
                     : "bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700"
                 }`}
                 onClick={() => onDayClick?.(date)}
               >
-                <div className="font-bold text-sm mb-2">{dayName}</div>
+                <div className="font-bold text-[10px] sm:text-sm mb-1 sm:mb-2">
+                  {dayName}
+                </div>
                 <div
-                  className={`text-2xl font-bold ${
+                  className={`text-lg sm:text-2xl font-bold ${
                     today ? "text-white" : "text-gray-900"
                   }`}
                 >
@@ -205,14 +235,16 @@ const WeekView: React.FC<{
                 </div>
                 {dayData?.session_count > 0 && (
                   <div
-                    className={`text-xs mt-2 px-2 py-1 rounded-full ${
+                    className={`text-[9px] sm:text-xs mt-1 sm:mt-2 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full ${
                       today
                         ? "bg-white/20 text-white"
                         : "bg-blue-500 text-white"
                     }`}
                   >
                     {dayData.session_count}{" "}
-                    {language === "th" ? "คาบ" : "sessions"}
+                    <span className="hidden sm:inline">
+                      {language === "th" ? "คาบ" : "sessions"}
+                    </span>
                   </div>
                 )}
               </div>
@@ -220,10 +252,10 @@ const WeekView: React.FC<{
           })}
         </div>
 
-        {/* Sessions Grid - Scrollable */}
+        {/* Sessions Grid - Responsive Scrollable */}
         <div
           className={`grid grid-cols-7 gap-px bg-gray-200 ${
-            density === "compact" ? "p-2" : ""
+            density === "compact" ? "p-1 sm:p-2" : "p-1 sm:p-2"
           }`}
         >
           {weekDates.map((date) => {
@@ -234,7 +266,7 @@ const WeekView: React.FC<{
             return (
               <div
                 key={date}
-                className={`min-h-full p-3 ${
+                className={`min-h-full p-2 sm:p-3 ${
                   today
                     ? "bg-gradient-to-b from-blue-50 to-indigo-50"
                     : dayData?.is_holiday
@@ -242,160 +274,196 @@ const WeekView: React.FC<{
                     : "bg-white"
                 }`}
               >
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   {timeGroups.length === 0 ? (
-                    /* Empty day placeholder */
+                    /* Empty day placeholder - Responsive */
                     <div
-                      className="h-32 flex items-center justify-center opacity-0 hover:opacity-60 transition-all duration-300 cursor-pointer border-2 border-dashed border-indigo-200 rounded-lg hover:border-indigo-300 hover:bg-indigo-50"
+                      className="h-24 sm:h-32 flex items-center justify-center opacity-0 hover:opacity-60 active:opacity-80 transition-all duration-300 cursor-pointer border-2 border-dashed border-indigo-200 rounded-md sm:rounded-lg hover:border-indigo-300 hover:bg-indigo-50"
                       onClick={() => onAddSession?.(date)}
                     >
                       <div className="text-center">
-                        <div className="text-3xl mb-2 text-gray-400">+</div>
-                        <div className="text-sm text-gray-500 font-medium">
+                        <div className="text-2xl sm:text-3xl mb-1 sm:mb-2 text-gray-400">
+                          +
+                        </div>
+                        <div className="text-xs sm:text-sm text-gray-500 font-medium">
                           {language === "th" ? "เพิ่มคาบเรียน" : "Add Session"}
                         </div>
                       </div>
                     </div>
                   ) : (
-                    /* Sessions grouped by time */
+                    /* Sessions grouped by time - Responsive */
                     timeGroups.map(([timeRange, sessions]) => (
-                      <div key={timeRange} className="space-y-2">
-                        {/* Time header for clustered sessions */}
-                        <div className="text-xs font-bold text-gray-600 px-2 py-1 bg-gray-100 rounded-md">
+                      <div key={timeRange} className="space-y-1.5 sm:space-y-2">
+                        {/* Time header for clustered sessions - Responsive */}
+                        <div className="text-[10px] sm:text-xs font-bold text-gray-600 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-gray-100 rounded-md">
                           {formatTime(sessions[0].start_time)} -{" "}
                           {formatTime(sessions[0].end_time)}
                         </div>
 
                         {/* Multiple sessions at same time */}
-                        {sessions.map((session, index) => (
-                          <div
-                            key={session.id}
-                            className={`${cardPad} rounded-xl shadow-md border-2 cursor-pointer transition-shadow duration-200 hover:shadow-lg overflow-hidden relative z-10 ${getBranchColor(
-                              session.branch_name
-                            )} ${
-                              sessions.length > 1 ? `ml-${index * 2} -mt-1` : ""
-                            }`}
-                            onClick={() => onSessionClick(session)}
-                          >
-                            {/* Schedule Name */}
-                            <div
-                              className={`font-bold ${
-                                density === "compact" ? "text-sm" : "text-sm"
-                              } mb-2 leading-tight`}
-                            >
-                              {session.schedule_name}
-                            </div>
+                        {sessions.map((session, index) => {
+                          // Get branch color from teacher's branch_id
+                          const teacherBranchId =
+                            session.teacher?.branch_id || null;
+                          let branchBgColor = "bg-gray-100";
+                          let branchTextColor = "text-gray-800";
+                          let branchBorderColor = "border-gray-300";
 
-                            {/* Course Name */}
-                            <div
-                              className={`${cardText} opacity-90 mb-2 font-medium`}
-                            >
-                              {session.course_name}
-                            </div>
+                          if (teacherBranchId === 1) {
+                            branchBgColor = "bg-[#334293]/10";
+                            branchTextColor = "text-[#334293]";
+                            branchBorderColor = "border-[#334293]";
+                          } else if (teacherBranchId === 2) {
+                            branchBgColor = "bg-[#EFE957]/20";
+                            branchTextColor = "text-gray-800";
+                            branchBorderColor = "border-[#EFE957]";
+                          } else if (teacherBranchId === 3) {
+                            branchBgColor = "bg-[#58B2FF]/10";
+                            branchTextColor = "text-[#58B2FF]";
+                            branchBorderColor = "border-[#58B2FF]";
+                          } else if (teacherBranchId === 4) {
+                            branchBgColor = "bg-[#FF90B3]/10";
+                            branchTextColor = "text-[#FF90B3]";
+                            branchBorderColor = "border-[#FF90B3]";
+                          }
 
-                            {/* Teacher */}
-                            {session.teacher_name && (
+                          return (
+                            <div
+                              key={session.id}
+                              className={`${cardPad} rounded-lg sm:rounded-xl shadow-sm sm:shadow-md border sm:border-2 cursor-pointer transition-all duration-200 hover:shadow-md sm:hover:shadow-lg active:scale-95 overflow-hidden relative z-10 ${branchBgColor} ${branchBorderColor} ${
+                                sessions.length > 1
+                                  ? `ml-${index * 2} -mt-1`
+                                  : ""
+                              }`}
+                              onClick={() => onSessionClick(session)}
+                            >
+                              {/* Schedule Name - Responsive */}
                               <div
-                                className={`flex items-center ${cardText} mb-2 opacity-90`}
+                                className={`font-bold text-xs sm:text-sm mb-1 sm:mb-2 leading-tight ${branchTextColor}`}
                               >
-                                <span className="mr-1">👩‍🏫</span>
-                                <span className="truncate font-medium">
-                                  {session.teacher_name}
-                                </span>
+                                {session.schedule_name}
                               </div>
-                            )}
 
-                            {/* Students */}
-                            {session.students &&
-                              session.students.length > 0 && (
+                              {/* Course Name - Responsive */}
+                              <div
+                                className={`${cardText} opacity-90 mb-1 sm:mb-2 font-medium`}
+                              >
+                                {session.course_name}
+                              </div>
+
+                              {/* Teacher - Responsive, hidden on very small screens */}
+                              {session.teacher_name && (
                                 <div
-                                  className={`flex items-center ${cardText} mb-2 opacity-90`}
+                                  className={`hidden sm:flex items-center ${cardText} mb-1 sm:mb-2 opacity-90`}
                                 >
-                                  <span className="mr-1">👥</span>
-                                  <span className="font-medium">
-                                    {session.students.length}{" "}
-                                    {language === "th" ? "คน" : "students"}
+                                  <span className="mr-1">👩‍🏫</span>
+                                  <span className="truncate font-medium">
+                                    {session.teacher_name}
                                   </span>
                                 </div>
                               )}
 
-                            {/* Participants for non-class schedules */}
-                            {session.participants &&
-                              session.participants.length > 0 && (
-                                <div
-                                  className={`flex items-center ${cardText} mb-2 opacity-90`}
-                                >
-                                  <span className="mr-1">👤</span>
-                                  <div className="flex items-center gap-1">
+                              {/* Students - Responsive */}
+                              {session.students &&
+                                session.students.length > 0 && (
+                                  <div
+                                    className={`flex items-center ${cardText} mb-1 sm:mb-2 opacity-90`}
+                                  >
+                                    <span className="mr-0.5 sm:mr-1">👥</span>
                                     <span className="font-medium">
-                                      {session.participants.length}{" "}
-                                      {language === "th"
-                                        ? "คน"
-                                        : "participants"}
+                                      {session.students.length}
+                                      <span className="hidden sm:inline">
+                                        {" "}
+                                        {language === "th" ? "คน" : "students"}
+                                      </span>
                                     </span>
-                                    <div className="flex gap-1 ml-2">
-                                      {session.participants
-                                        .slice(0, 5)
-                                        .map((participant, pIndex) => (
-                                          <div
-                                            key={`${participant.user_id}-${pIndex}`}
-                                            className={`w-2 h-2 rounded-full ${
-                                              participant.status === "confirmed"
-                                                ? "bg-green-500"
-                                                : participant.status ===
-                                                  "declined"
-                                                ? "bg-red-500"
-                                                : participant.status ===
-                                                  "tentative"
-                                                ? "bg-yellow-500"
-                                                : "bg-gray-400" // invited
-                                            }`}
-                                            title={`${
-                                              participant.user?.username ||
-                                              participant.user_id
-                                            } - ${participant.status}`}
-                                          />
-                                        ))}
-                                      {session.participants.length > 5 && (
-                                        <span className="text-xs ml-1">
-                                          +{session.participants.length - 5}
+                                  </div>
+                                )}
+
+                              {/* Participants for non-class schedules - Responsive */}
+                              {session.participants &&
+                                session.participants.length > 0 && (
+                                  <div
+                                    className={`flex items-center ${cardText} mb-1 sm:mb-2 opacity-90`}
+                                  >
+                                    <span className="mr-0.5 sm:mr-1">👤</span>
+                                    <div className="flex items-center gap-0.5 sm:gap-1">
+                                      <span className="font-medium">
+                                        {session.participants.length}
+                                        <span className="hidden sm:inline">
+                                          {" "}
+                                          {language === "th"
+                                            ? "คน"
+                                            : "participants"}
                                         </span>
-                                      )}
+                                      </span>
+                                      <div className="flex gap-0.5 sm:gap-1 ml-1 sm:ml-2">
+                                        {session.participants
+                                          .slice(0, 3)
+                                          .map((participant, pIndex) => (
+                                            <div
+                                              key={`${participant.user_id}-${pIndex}`}
+                                              className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
+                                                participant.status ===
+                                                "confirmed"
+                                                  ? "bg-green-500"
+                                                  : participant.status ===
+                                                    "declined"
+                                                  ? "bg-red-500"
+                                                  : participant.status ===
+                                                    "tentative"
+                                                  ? "bg-yellow-500"
+                                                  : "bg-gray-400" // invited
+                                              }`}
+                                              title={`${
+                                                participant.user?.username ||
+                                                participant.user_id
+                                              } - ${participant.status}`}
+                                            />
+                                          ))}
+                                        {session.participants.length > 3 && (
+                                          <span className="text-[9px] sm:text-xs ml-0.5 sm:ml-1">
+                                            +{session.participants.length - 3}
+                                          </span>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
+                                )}
+
+                              {/* Room - Hidden on very small screens */}
+                              {session.room_name && (
+                                <div
+                                  className={`hidden sm:block ${cardText} opacity-80 font-medium`}
+                                >
+                                  📍 {session.room_name}
                                 </div>
                               )}
 
-                            {/* Room */}
-                            {session.room_name && (
-                              <div
-                                className={`${cardText} opacity-80 font-medium`}
-                              >
-                                📍 {session.room_name}
-                              </div>
-                            )}
-
-                            {/* Multiple sessions indicator */}
-                            {sessions.length > 1 && index === 0 && (
-                              <div className="absolute top-1 right-1 bg-black bg-opacity-20 text-white text-xs px-2 py-1 rounded-full">
-                                +{sessions.length - 1}
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                              {/* Multiple sessions indicator - Responsive */}
+                              {sessions.length > 1 && index === 0 && (
+                                <div className="absolute top-0.5 sm:top-1 right-0.5 sm:right-1 bg-black bg-opacity-20 text-white text-[9px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
+                                  +{sessions.length - 1}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     ))
                   )}
 
                   {/* Holiday message */}
                   {dayData?.is_holiday && (
-                    <div className="mt-4 p-3 bg-red-100 border-2 border-red-200 rounded-lg text-center">
-                      <div className="text-2xl mb-1">🎌</div>
-                      <div className="text-sm font-bold text-red-800">
+                    <div className="mt-2 sm:mt-4 p-2 sm:p-3 bg-red-100 border border-red-200 sm:border-2 rounded sm:rounded-lg text-center">
+                      <div className="text-xl sm:text-2xl mb-0.5 sm:mb-1">
+                        🎌
+                      </div>
+                      <div className="text-xs sm:text-sm font-bold text-red-800">
                         {language === "th" ? "วันหยุด" : "Holiday"}
                       </div>
                       {dayData.holiday_info && (
-                        <div className="text-xs text-red-600 mt-1">
+                        <div className="text-[10px] sm:text-xs text-red-600 mt-0.5 sm:mt-1">
                           {(dayData.holiday_info as { name?: string })?.name ||
                             ""}
                         </div>
@@ -466,12 +534,21 @@ export default function SchedulePage() {
   const [selectedSession, setSelectedSession] = useState<number | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
+  // Teacher filter visibility state
+  const [showTeacherFilter, setShowTeacherFilter] = useState(true);
+
   // Create/Edit schedule modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreateSessionModalOpen, setIsCreateSessionModalOpen] =
     useState(false);
   // Prevent overlapping or looping fetches
   const isFetchingRef = useRef(false);
+  const selectedTeachersRef = useRef<number[]>(selectedTeachers);
+
+  // Sync ref with state
+  useEffect(() => {
+    selectedTeachersRef.current = selectedTeachers;
+  }, [selectedTeachers]);
 
   // Drag-to-scroll states
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -634,10 +711,9 @@ export default function SchedulePage() {
 
       if (viewMode === "day") {
         // For day view, use the existing API to maintain compatibility
+        // Always fetch all teachers, filtering is done client-side
         const response = await scheduleService.getTeachersSchedule("day", {
           date: currentDate,
-          teacher_id:
-            selectedTeachers.length === 1 ? selectedTeachers[0] : undefined,
         });
 
         if (response.success) {
@@ -647,7 +723,10 @@ export default function SchedulePage() {
           setTeachers(teachersList);
 
           // Auto-select all teachers if none selected and data available
-          if (selectedTeachers.length === 0 && teachersList.length > 0) {
+          if (
+            selectedTeachersRef.current.length === 0 &&
+            teachersList.length > 0
+          ) {
             setSelectedTeachers(teachersList.map((t: Teacher) => t.id));
           }
         } else {
@@ -729,7 +808,7 @@ export default function SchedulePage() {
       setLoading(false);
       isFetchingRef.current = false;
     }
-  }, [viewMode, currentDate, language, selectedTeachers]); // Include all dependencies but use ref to prevent excessive calls
+  }, [viewMode, currentDate, language]); // selectedTeachers removed - filtering is client-side only
 
   // Optimized fetchFormOptions - using useRef to track loading state
   const fetchFormOptions = useCallback(async () => {
@@ -842,6 +921,29 @@ export default function SchedulePage() {
     () => teachers.filter((teacher) => selectedTeachers.includes(teacher.id)),
     [teachers, selectedTeachers]
   );
+
+  // Group filtered teachers by branch - memoized for performance
+  const teachersByBranch = useMemo(() => {
+    const grouped = filteredTeachers.reduce((acc, teacher) => {
+      const branchId = teacher.branch?.id || 0;
+      if (!acc[branchId]) {
+        acc[branchId] = [];
+      }
+      acc[branchId].push(teacher);
+      return acc;
+    }, {} as Record<number, Teacher[]>);
+
+    // Sort branches: 1, 2, 3, 4, then others
+    const sortedEntries = Object.entries(grouped).sort(([a], [b]) => {
+      const aNum = parseInt(a);
+      const bNum = parseInt(b);
+      if (aNum === 0) return 1; // Unassigned last
+      if (bNum === 0) return -1;
+      return aNum - bNum;
+    });
+
+    return sortedEntries;
+  }, [filteredTeachers]);
 
   // Memoize transformed data passed to ModernSessionsModal to avoid recreating arrays
   const memoCourses = useMemo(
@@ -1257,100 +1359,116 @@ export default function SchedulePage() {
 
   return (
     <SidebarLayout breadcrumbItems={[{ label: t.schedule }]}>
-      <div className="h-full flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
-        {/* Header Section */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-4 flex-shrink-0 border border-gray-200">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+      <div className="h-full flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100">
+        {/* Header Section - Responsive */}
+        <div className="bg-white rounded-lg sm:rounded-xl shadow-md sm:shadow-lg mb-2 sm:mb-3 flex-shrink-0 border border-gray-200 p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 mb-3 sm:mb-4">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
               {t.scheduleManagement}
             </h1>
 
-            {/* color label for each branches */}
-            <div className="flex items-center gap-3 mt-4 text-xs">
+            {/* color label for each branches - Hide on small mobile, show as grid on tablet */}
+            <div className="hidden sm:flex sm:flex-wrap lg:flex-nowrap items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-gray-700">
               <div className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded-full bg-[#334293]"></span>{" "}
-                Branch 1
+                <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#334293]"></span>
+                <span className="hidden lg:inline">Branch 1</span>
+                <span className="lg:hidden">B1</span>
               </div>
               <div className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded-full bg-[#EFE957]"></span>{" "}
-                Branch 3
+                <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#EFE957]"></span>
+                <span className="hidden lg:inline">Branch 3</span>
+                <span className="lg:hidden">B3</span>
               </div>
               <div className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded-full bg-[#58B2FF]"></span>{" "}
-                Online
+                <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#58B2FF]"></span>
+                <span className="hidden lg:inline">Online</span>
+                <span className="lg:hidden">OL</span>
               </div>
               <div className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded-full bg-[#FF90B3]"></span>{" "}
-                Chinese
+                <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#FF90B3]"></span>
+                <span className="hidden lg:inline">Chinese</span>
+                <span className="lg:hidden">CH</span>
               </div>
             </div>
 
-            {/* View Mode Buttons */}
-            <div className="flex bg-gray-100 rounded-xl p-1 shadow-inner">
+            {/* View Mode Buttons - Responsive */}
+            <div className="flex bg-gray-100 rounded-lg sm:rounded-xl p-0.5 sm:p-1 shadow-inner w-full sm:w-auto">
               <Button
                 variant={
                   viewMode === "month" ? "monthViewClicked" : "monthView"
                 }
                 onClick={() => setViewMode("month")}
-                className={
-                  "px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-200"
-                }
+                className="flex-1 sm:flex-none px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 lg:py-3 rounded-md sm:rounded-lg text-[11px] sm:text-xs lg:text-sm font-semibold transition-all duration-200"
               >
-                {t.monthView.toUpperCase()}
+                <span className="sm:hidden">
+                  {language === "th" ? "เดือน" : "MO"}
+                </span>
+                <span className="hidden sm:inline">
+                  {t.monthView.toUpperCase()}
+                </span>
               </Button>
               <Button
                 variant={viewMode === "week" ? "weekViewClicked" : "weekView"}
                 onClick={() => setViewMode("week")}
-                className={
-                  "px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-200"
-                }
+                className="flex-1 sm:flex-none px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 lg:py-3 rounded-md sm:rounded-lg text-[11px] sm:text-xs lg:text-sm font-semibold transition-all duration-200"
               >
-                {t.weekView.toUpperCase()}
+                <span className="sm:hidden">
+                  {language === "th" ? "สัปดาห์" : "WK"}
+                </span>
+                <span className="hidden sm:inline">
+                  {t.weekView.toUpperCase()}
+                </span>
               </Button>
               <Button
                 variant={viewMode === "day" ? "dayViewClicked" : "dayView"}
                 onClick={() => setViewMode("day")}
-                className={
-                  "px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-200"
-                }
+                className="flex-1 sm:flex-none px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 lg:py-3 rounded-md sm:rounded-lg text-[11px] sm:text-xs lg:text-sm font-semibold transition-all duration-200"
               >
-                {t.dayView.toUpperCase()}
+                <span className="sm:hidden">
+                  {language === "th" ? "วัน" : "DY"}
+                </span>
+                <span className="hidden sm:inline">
+                  {t.dayView.toUpperCase()}
+                </span>
               </Button>
             </div>
           </div>
 
-          {/* Date Navigation */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+          {/* Date Navigation - Responsive */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+            {/* Navigation Buttons */}
+            <div className="flex items-center space-x-2">
               <Button
                 variant="monthView"
                 onClick={() => navigateDate("prev")}
-                className="px-3 py-1 text-sm"
+                className="px-2 sm:px-3 py-1.5 sm:py-1 text-base sm:text-sm"
               >
                 ‹
               </Button>
               <Button
                 variant="monthViewClicked"
                 onClick={goToToday}
-                className="px-4 py-1 text-sm"
+                className="px-3 sm:px-4 py-1.5 sm:py-1 text-xs sm:text-sm"
               >
                 {language === "th" ? "วันนี้" : "Today"}
               </Button>
               <Button
                 variant="monthView"
                 onClick={() => navigateDate("next")}
-                className="px-3 py-1 text-sm"
+                className="px-2 sm:px-3 py-1.5 sm:py-1 text-base sm:text-sm"
               >
                 ›
               </Button>
             </div>
 
-            <div className="text-lg font-semibold text-gray-700">
+            {/* Current Date Display - Responsive */}
+            <div className="text-center sm:text-left text-base sm:text-lg font-semibold text-gray-700 order-first sm:order-none">
               {formatDateDisplay(currentDate)}
             </div>
 
-            <div className="flex items-center space-x-3">
-              <div className="text-sm text-gray-500">
+            {/* Time & Actions */}
+            <div className="flex items-center justify-between sm:justify-end space-x-2">
+              <div className="text-xs sm:text-sm text-gray-500">
                 {language === "th"
                   ? `${currentTime.hour
                       .toString()
@@ -1382,7 +1500,7 @@ export default function SchedulePage() {
               <Button
                 variant={density === "compact" ? "weekViewClicked" : "weekView"}
                 onClick={() => setIsCompactModalOpen(true)}
-                className="px-4 py-1 text-sm"
+                className="px-3 sm:px-4 py-1.5 sm:py-1 text-xs sm:text-sm"
               >
                 {language === "th" ? "ภาพรวม" : "Overview"}
               </Button>
@@ -1399,74 +1517,109 @@ export default function SchedulePage() {
         </div>
 
         {/* Main Content */}
-        <div className="flex gap-2 flex-1 min-h-0">
-          {/* Teacher Filters - Only show for day view */}
-          {viewMode === "day" && (
-            <div className="w-35 h-280 bg-white border border-gray-200 rounded-lg p-1 flex flex-col flex-shrink-0">
-              <h2 className="font-bold mb-3 text-[#334293] border-b border-[#334293] p-2 text-sm">
-                {t.SelectTeachers}
-              </h2>
+        <div className="flex gap-2 flex-1 min-h-0 relative">
+          {/* Teacher Filters - Only show for day view - Responsive */}
+          {viewMode === "day" && showTeacherFilter && (
+            <div
+              className="fixed sm:relative z-50 inset-0 sm:inset-auto bg-black/50 sm:bg-transparent flex sm:block"
+              onClick={(e) => {
+                // Close when clicking backdrop (only on mobile)
+                if (e.target === e.currentTarget && window.innerWidth < 640) {
+                  setShowTeacherFilter(false);
+                }
+              }}
+            >
+              <div className="w-80 sm:w-48 lg:w-52 xl:w-56 bg-white border-r sm:border border-gray-200 sm:rounded-lg p-3 sm:p-2 flex flex-col flex-shrink-0 mr-auto sm:ml-0 shadow-2xl sm:shadow-md h-full sm:h-auto max-h-screen sm:max-h-[calc(100vh-200px)] overflow-y-auto">
+                {/* Header with close button */}
+                <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-[#334293] sticky top-0 bg-white z-10">
+                  <h2 className="font-bold text-[#334293] text-sm sm:text-xs lg:text-sm">
+                    {t.SelectTeachers}
+                  </h2>
+                  <button
+                    onClick={() => setShowTeacherFilter(false)}
+                    className="p-1.5 hover:bg-gray-100 rounded-full transition-colors sm:hidden active:scale-95"
+                    aria-label="Close"
+                  >
+                    <X className="h-5 w-5 text-gray-500" />
+                  </button>
+                </div>
 
-              <div className="mb-3 flex gap-1">
-                <Button
-                  variant="monthView"
-                  onClick={selectAllTeachers}
-                  className="text-[10px] rounded-md flex-1"
-                >
-                  {t.selectAllTeachers}
-                </Button>
-                <Button
-                  variant="monthView"
-                  onClick={clearSelection}
-                  className="text-[10px] rounded-md flex-1"
-                >
-                  {t.clearSelection}
-                </Button>
-              </div>
+                <div className="mb-2 flex gap-1">
+                  <Button
+                    variant="monthView"
+                    onClick={selectAllTeachers}
+                    className="text-[10px] sm:text-[9px] rounded-md flex-1 px-1.5 py-1"
+                  >
+                    {t.selectAllTeachers}
+                  </Button>
+                  <Button
+                    variant="monthView"
+                    onClick={clearSelection}
+                    className="text-[10px] sm:text-[9px] rounded-md flex-1 px-1.5 py-1"
+                  >
+                    {t.clearSelection}
+                  </Button>
+                </div>
 
-              <div className="flex-1 overflow-y-auto">
-                {teachers.length === 0 ? (
-                  <p className="text-sm text-gray-500 text-center py-4">
-                    {t.noScheduleData}
-                  </p>
-                ) : (
-                  teachers.map((teacher) => (
-                    <label
-                      key={teacher.id}
-                      className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded cursor-pointer text-sm"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedTeachers.includes(teacher.id)}
-                        onChange={() => toggleTeacher(teacher.id)}
-                        className="h-3 w-3 rounded focus:ring-0"
-                        style={{ accentColor: colors.yellowLogo }}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <span
-                          className="text-sm font-medium block truncate"
-                          style={{ color: colors.blueLogo }}
-                        >
-                          T. {teacher.name.nickname_en || teacher.name.first_en}
-                        </span>
-                        {/* <p className="text-xs text-gray-500 truncate">
-                          {`${teacher.name.first_en} ${teacher.name.last_en}`.trim()}
-                        </p> */}
-                        <p className="text-[9px] text-gray-600">
-                          {teacher.sessions.length}{" "}
-                          {language === "th" ? "ครั้งเรียน" : "sessions"}
-                        </p>
-                        {teacher.branch.name_en && (
-                          <p className="text-xs text-blue-600 truncate">
-                            {teacher.branch.name_en}
+                <div className="flex-1 overflow-y-auto">
+                  {teachers.length === 0 ? (
+                    <p className="text-xs text-gray-500 text-center py-3">
+                      {t.noScheduleData}
+                    </p>
+                  ) : (
+                    teachers.map((teacher) => (
+                      <label
+                        key={teacher.id}
+                        className="flex items-center space-x-1.5 p-1.5 hover:bg-gray-50 rounded cursor-pointer text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedTeachers.includes(teacher.id)}
+                          onChange={() => toggleTeacher(teacher.id)}
+                          className="h-3 w-3 rounded focus:ring-0 flex-shrink-0"
+                          style={{ accentColor: colors.yellowLogo }}
+                        />
+                        {/* Branch color indicator */}
+                        <div
+                          className={`w-2 h-2 rounded-full flex-shrink-0 ${getBranchColorByTeacher(
+                            teacher
+                          )}`}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <span
+                            className="text-xs sm:text-[11px] font-medium block truncate"
+                            style={{ color: colors.blueLogo }}
+                          >
+                            T.{" "}
+                            {teacher.name.nickname_en || teacher.name.first_en}
+                          </span>
+                          <p className="text-[9px] text-gray-600">
+                            {teacher.sessions.length}{" "}
+                            {language === "th" ? "ครั้งเรียน" : "sessions"}
                           </p>
-                        )}
-                      </div>
-                    </label>
-                  ))
-                )}
+                          {teacher.branch.name_en && (
+                            <p className="text-[9px] sm:text-[10px] text-blue-600 truncate">
+                              {teacher.branch.name_en}
+                            </p>
+                          )}
+                        </div>
+                      </label>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
+          )}
+
+          {/* Toggle Teacher Filter Button - Mobile Only */}
+          {viewMode === "day" && !showTeacherFilter && (
+            <button
+              onClick={() => setShowTeacherFilter(true)}
+              className="fixed bottom-20 left-4 sm:hidden z-40 bg-indigo-600 text-white p-3 rounded-full shadow-lg hover:bg-indigo-700 transition-colors active:scale-95"
+              aria-label="Show Teacher Filter"
+            >
+              <Users className="h-5 w-5" />
+            </button>
           )}
 
           {/* Calendar Content - Scrollable */}
@@ -1496,8 +1649,8 @@ export default function SchedulePage() {
                     className="relative min-h-full"
                     style={{
                       minWidth: `${Math.max(
-                        filteredTeachers.length * 200 + 100,
-                        800
+                        filteredTeachers.length * 150 + 80,
+                        600
                       )}px`,
                     }}
                   >
@@ -1542,9 +1695,10 @@ export default function SchedulePage() {
                     </div>
 
                     <table className="w-full text-sm border-collapse relative">
-                      {/* thead ไม่ sticky - scroll ลงไปด้วย */}
-                      <thead className="sticky top-0 z-30 bg-gradient-to-br from-indigo-600 to-purple-700 text-white shadow-lg">
-                        <tr className="relative h-[40px]">
+                      {/* thead with branch groups */}
+                      <thead className="sticky top-0 z-30 text-white shadow-lg">
+                        {/* Branch header row */}
+                        <tr className="relative h-[35px]">
                           {/* คอลัมน์เวลา - sticky ด้านซ้ายเท่านั้น */}
                           <th
                             className="
@@ -1552,51 +1706,96 @@ export default function SchedulePage() {
                               bg-gradient-to-br from-indigo-600 to-purple-700
                               border border-gray-300
                               text-xs
-                              w-[50px]
-                              h-[30px]
+                              w-[60px] sm:w-[70px]
                               sticky left-0
                               z-40
                               shadow-lg
                             "
+                            rowSpan={2}
                           >
                             {t.time}
                           </th>
 
-                          {/* หัวตารางชื่อครู - relative, ไม่ sticky */}
+                          {/* Branch group headers */}
                           {filteredTeachers.length === 0 ? (
-                            <th className="relative text-center font-bold text-white bg-gray-400 border border-gray-300 p-4 w-[55px]">
+                            <th className="relative text-center font-bold text-white bg-gray-400 border border-gray-300 p-3 w-[120px] sm:w-[140px]">
                               {t.noScheduleData}
                             </th>
                           ) : (
-                            filteredTeachers.map((teacher) => (
-                              <th
-                                key={teacher.id}
-                                className="
-                                  sticky top-0
-                                  text-center font-bold text-white
-                                  border border-gray-300
-                                  text-[10px] w-[55px] h-[30px]
-                                  bg-gradient-to-br from-indigo-600 to-purple-700
-                                "
-                              >
-                                <div className="p-1">
-                                  <div className="font-bold">
-                                    T.{" "}
-                                    {teacher.name.nickname_en ||
-                                      teacher.name.first_en}
+                            teachersByBranch.map(([branchId, teachers]) => {
+                              const branchIdNum = parseInt(branchId);
+                              let branchBgColor = "bg-gray-500";
+                              let branchName = "Unknown";
+
+                              if (branchIdNum === 1) {
+                                branchBgColor = "bg-[#334293]";
+                                branchName = "Branch 1";
+                              } else if (branchIdNum === 2) {
+                                branchBgColor = "bg-[#EFE957]";
+                                branchName = "Branch 3";
+                              } else if (branchIdNum === 3) {
+                                branchBgColor = "bg-[#58B2FF]";
+                                branchName = "Online";
+                              } else if (branchIdNum === 4) {
+                                branchBgColor = "bg-[#FF90B3]";
+                                branchName = "Chinese";
+                              } else if (branchIdNum === 0) {
+                                branchBgColor = "bg-gray-500";
+                                branchName = "Unassigned";
+                              }
+
+                              return (
+                                <th
+                                  key={branchId}
+                                  colSpan={teachers.length}
+                                  className={`
+                                    sticky top-0
+                                    text-center font-bold text-white
+                                    border-2 border-white
+                                    text-sm
+                                    ${branchBgColor}
+                                  `}
+                                >
+                                  <div className="p-1.5 flex items-center justify-center gap-2">
+                                    <div
+                                      className={`w-3 h-3 rounded-full ${branchBgColor} border-2 border-white`}
+                                    />
+                                    <span>{branchName}</span>
+                                    <span className="text-xs opacity-80">
+                                      ({teachers.length})
+                                    </span>
                                   </div>
-                                  {/* <div className="text-xs opacity-90 mt-1">
-                                    {`${teacher.name.first_en} ${teacher.name.last_en}`.trim()}
-                                  </div> */}
-                                  {teacher.branch.name_en && (
-                                    <div className="text-xs opacity-75 mt-1">
-                                      {teacher.branch.name_en}
-                                    </div>
-                                  )}
-                                </div>
-                              </th>
-                            ))
+                                </th>
+                              );
+                            })
                           )}
+                        </tr>
+
+                        {/* Teacher names row */}
+                        <tr className="relative h-[30px]">
+                          {filteredTeachers.length > 0 &&
+                            teachersByBranch.map(([, teachers]) =>
+                              teachers.map((teacher) => (
+                                <th
+                                  key={teacher.id}
+                                  className="
+                                    sticky top-[35px]
+                                    text-center font-bold text-white
+                                    border border-gray-300
+                                    text-[11px] sm:text-xs w-[120px] sm:w-[140px]
+                                    bg-gradient-to-br from-indigo-600 to-purple-700
+                                  "
+                                >
+                                  <div className="p-1.5">
+                                    <div className="font-bold">
+                                      T.{" "}
+                                      {teacher.name.nickname_en ||
+                                        teacher.name.first_en}
+                                    </div>
+                                  </div>
+                                </th>
+                              ))
+                            )}
                         </tr>
                       </thead>
 
@@ -1627,162 +1826,172 @@ export default function SchedulePage() {
                                 {timeSlot.label}
                               </td>
 
-                              {/* ตารางครู */}
-                              {filteredTeachers.map((teacher) => {
-                                const session = teacher.sessions.find((s) => {
-                                  const [startHour, startMinute] = s.start_time
-                                    .split(":")
-                                    .map(Number);
-                                  return (
-                                    startHour === timeSlot.hour &&
-                                    startMinute === timeSlot.minute
-                                  );
-                                });
+                              {/* ตารางครู - grouped by branch */}
+                              {teachersByBranch.flatMap(([, teachers]) =>
+                                teachers.map((teacher) => {
+                                  const session = teacher.sessions.find((s) => {
+                                    const [startHour, startMinute] =
+                                      s.start_time.split(":").map(Number);
+                                    return (
+                                      startHour === timeSlot.hour &&
+                                      startMinute === timeSlot.minute
+                                    );
+                                  });
 
-                                if (session) {
-                                  const rowSpan = getRowSpan(
-                                    session.start_time,
-                                    session.end_time
-                                  );
+                                  if (session) {
+                                    const rowSpan = getRowSpan(
+                                      session.start_time,
+                                      session.end_time
+                                    );
+                                    return (
+                                      <td
+                                        key={teacher.id}
+                                        rowSpan={rowSpan}
+                                        className="p-0 border border-gray-300 align-top relative"
+                                      >
+                                        <div
+                                          className="w-[120px] sm:w-[140px] h-full p-2 rounded-lg cursor-pointer transition-all duration-200
+                                        shadow-sm hover:shadow-md overflow-hidden relative z-10 flex flex-col"
+                                          style={{
+                                            height: `${rowSpan * 32 - 8}px`,
+                                            borderLeft: `4px solid ${getBranchBorderColorFromSession(
+                                              session
+                                            )}`,
+                                          }}
+                                          onClick={() =>
+                                            handleSessionClick(session)
+                                          }
+                                        >
+                                          <div className="space-y-1 leading-tight">
+                                            {/* Time Display */}
+                                            <div className="flex items-center gap-1">
+                                              <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
+                                              <p className="font-medium text-[10px] sm:text-[11px] text-indigo-700">
+                                                {session.start_time.substring(
+                                                  0,
+                                                  5
+                                                )}{" "}
+                                                -{" "}
+                                                {session.end_time.substring(
+                                                  0,
+                                                  5
+                                                )}
+                                              </p>
+                                            </div>
+
+                                            {/* Course/Schedule Name */}
+                                            {session.schedule_name && (
+                                              <p
+                                                className="font-semibold text-[11px] sm:text-xs text-gray-900 whitespace-normal break-words line-clamp-2"
+                                                title={session.schedule_name}
+                                              >
+                                                {session.schedule_name}
+                                              </p>
+                                            )}
+
+                                            {/* Session Number */}
+                                            <p className="font-medium text-[10px] sm:text-[11px] text-gray-700">
+                                              {language === "th"
+                                                ? "ครั้งที่"
+                                                : "Session"}{" "}
+                                              {session.session_number}
+                                            </p>
+
+                                            {/* Room Info */}
+                                            {session.room?.name && (
+                                              <div className="flex items-center gap-1">
+                                                <svg
+                                                  className="w-3 h-3 text-gray-500 flex-shrink-0"
+                                                  fill="none"
+                                                  viewBox="0 0 24 24"
+                                                  stroke="currentColor"
+                                                >
+                                                  <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                                                  />
+                                                  <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                                                  />
+                                                </svg>
+                                                <p className="text-[10px] sm:text-[11px] text-gray-600 truncate">
+                                                  {session.room.name}
+                                                </p>
+                                              </div>
+                                            )}
+
+                                            {/* Status Badge */}
+                                            <div className="flex items-center gap-1">
+                                              <span
+                                                className={`inline-block px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium ${
+                                                  session.status === "scheduled"
+                                                    ? "bg-blue-100 text-blue-700"
+                                                    : session.status ===
+                                                      "completed"
+                                                    ? "bg-green-100 text-green-700"
+                                                    : session.status ===
+                                                      "cancelled"
+                                                    ? "bg-red-100 text-red-700"
+                                                    : "bg-gray-100 text-gray-700"
+                                                }`}
+                                              >
+                                                {session.status ===
+                                                  "scheduled" &&
+                                                  (language === "th"
+                                                    ? "กำหนดการแล้ว"
+                                                    : "Scheduled")}
+                                                {session.status ===
+                                                  "completed" &&
+                                                  (language === "th"
+                                                    ? "เสร็จสิ้น"
+                                                    : "Completed")}
+                                                {session.status ===
+                                                  "cancelled" &&
+                                                  (language === "th"
+                                                    ? "ยกเลิก"
+                                                    : "Cancelled")}
+                                                {![
+                                                  "scheduled",
+                                                  "completed",
+                                                  "cancelled",
+                                                ].includes(session.status) &&
+                                                  session.status}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </td>
+                                    );
+                                  }
+
+                                  // ช่องว่าง
                                   return (
                                     <td
                                       key={teacher.id}
-                                      rowSpan={rowSpan}
-                                      className="p-0 border border-gray-300 align-top relative"
+                                      className="border border-gray-300 bg-white hover:bg-gray-50 cursor-pointer transition-colors duration-200 w-[120px] sm:w-[140px]"
+                                      onClick={() =>
+                                        handleEmptyCellClick(
+                                          teacher.id,
+                                          timeSlot
+                                        )
+                                      }
                                     >
-                                      <div
-                                        className="w-[55px] h-full p-1.5 rounded-lg cursor-pointer transition-all duration-200
-                                        shadow-sm hover:shadow-md overflow-hidden relative z-10 flex flex-col"
-                                        style={{
-                                          height: `${rowSpan * 32 - 8}px`,
-                                          borderLeft: `4px solid ${getBranchBorderColorFromSession(
-                                            session
-                                          )}`,
-                                        }}
-                                        onClick={() =>
-                                          handleSessionClick(session)
-                                        }
-                                      >
-                                        <div className="space-y-0.5 leading-tight text-[10px]">
-                                          {/* Time Display */}
-                                          <div className="flex items-center gap-1">
-                                            <div className="w-1 h-1 rounded-full bg-indigo-500"></div>
-                                            <p className="font-medium text-[8px] text-indigo-700">
-                                              {session.start_time.substring(
-                                                0,
-                                                5
-                                              )}{" "}
-                                              -{" "}
-                                              {session.end_time.substring(0, 5)}
-                                            </p>
-                                          </div>
-
-                                          {/* Course/Schedule Name */}
-                                          {session.schedule_name && (
-                                            <p
-                                              className="font-semibold text-[9px] text-gray-900 whitespace-normal break-words"
-                                              title={session.schedule_name}
-                                            >
-                                              {session.schedule_name}
-                                            </p>
-                                          )}
-
-                                          {/* Session Number */}
-                                          <p className="font-medium text-[9px] text-gray-700">
-                                            {language === "th"
-                                              ? "ครั้งที่"
-                                              : "Session"}{" "}
-                                            {session.session_number}
-                                          </p>
-
-                                          {/* Room Info */}
-                                          {session.room?.name && (
-                                            <div className="flex items-center gap-1">
-                                              <svg
-                                                className="w-3 h-3 text-gray-500"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                              >
-                                                <path
-                                                  strokeLinecap="round"
-                                                  strokeLinejoin="round"
-                                                  strokeWidth={2}
-                                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                                />
-                                                <path
-                                                  strokeLinecap="round"
-                                                  strokeLinejoin="round"
-                                                  strokeWidth={2}
-                                                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                                                />
-                                              </svg>
-                                              <p className="text-[10px] text-gray-600 line-clamp-1">
-                                                {session.room.name}
-                                              </p>
-                                            </div>
-                                          )}
-
-                                          {/* Status Badge */}
-                                          <div className="flex items-center gap-1.5">
-                                            <span
-                                              className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                                                session.status === "scheduled"
-                                                  ? "bg-blue-100 text-blue-700"
-                                                  : session.status ===
-                                                    "completed"
-                                                  ? "bg-green-100 text-green-700"
-                                                  : session.status ===
-                                                    "cancelled"
-                                                  ? "bg-red-100 text-red-700"
-                                                  : "bg-gray-100 text-gray-700"
-                                              }`}
-                                            >
-                                              {session.status === "scheduled" &&
-                                                (language === "th"
-                                                  ? "กำหนดการแล้ว"
-                                                  : "Scheduled")}
-                                              {session.status === "completed" &&
-                                                (language === "th"
-                                                  ? "เสร็จสิ้น"
-                                                  : "Completed")}
-                                              {session.status === "cancelled" &&
-                                                (language === "th"
-                                                  ? "ยกเลิก"
-                                                  : "Cancelled")}
-                                              {![
-                                                "scheduled",
-                                                "completed",
-                                                "cancelled",
-                                              ].includes(session.status) &&
-                                                session.status}
-                                            </span>
-                                          </div>
+                                      <div className="w-full h-8 flex items-center justify-center">
+                                        <div className="w-7 h-7 rounded-full bg-gray-100 hover:bg-blue-100 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200">
+                                          <span className="text-sm text-gray-400 hover:text-blue-600 font-semibold">
+                                            +
+                                          </span>
                                         </div>
                                       </div>
                                     </td>
                                   );
-                                }
-
-                                // ช่องว่าง
-                                return (
-                                  <td
-                                    key={teacher.id}
-                                    className="border border-gray-300 bg-white hover:bg-gray-50 cursor-pointer transition-colors duration-200"
-                                    onClick={() =>
-                                      handleEmptyCellClick(teacher.id, timeSlot)
-                                    }
-                                  >
-                                    <div className="w-full h-8 flex items-center justify-center">
-                                      <div className="w-6 h-6 rounded-full bg-gray-100 hover:bg-blue-100 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200">
-                                        <span className="text-xs text-gray-400 hover:text-blue-600">
-                                          +
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </td>
-                                );
-                              })}
+                                })
+                              )}
                             </tr>
                           ))
                         )}
@@ -1890,7 +2099,7 @@ export default function SchedulePage() {
       )}
 
       {/* Floating Action Buttons */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
+      <div className="fixed bottom-20 right-6 z-20 flex flex-col gap-3">
         {/* Create New Schedule Button */}
         <Button
           onClick={() => {

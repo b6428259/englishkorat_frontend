@@ -212,7 +212,7 @@ const SidebarComponent: React.FC<SidebarProps> = ({
       {/* Expand/Collapse Button - fixed position relative to viewport */}
       <button
         onClick={handleToggleSidebar}
-        className="fixed p-2 rounded-full bg-white border border-gray-200 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer z-[60]"
+        className="fixed p-2 rounded-full bg-white border border-gray-200 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer z-[40]"
         style={{
           left: expanded ? 280 : 80,
           top: "50%",
