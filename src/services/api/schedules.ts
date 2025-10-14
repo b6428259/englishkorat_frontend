@@ -257,6 +257,7 @@ export interface TeacherSession {
   status: string;
   is_makeup: boolean;
   notes: string;
+  branch_id?: number;
   room: {
     id: number | null;
     name: string;
@@ -266,6 +267,25 @@ export interface TeacherSession {
   course_name?: string;
   course_code?: string;
   branch_name?: string;
+  group?: {
+    id: number;
+    name: string;
+    members: Array<{
+      id: number;
+      name: {
+        first_name: string;
+        last_name: string;
+        nickname_en: string;
+        nickname_th: string;
+      };
+      payment_status: string;
+      user: {
+        avatar: string;
+        id: number;
+        username: string;
+      };
+    }>;
+  };
 }
 
 export interface Teacher {

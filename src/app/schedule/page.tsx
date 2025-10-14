@@ -83,7 +83,12 @@ interface WeekCalendarData {
 const getBranchIdFromSession = (
   session: CalendarSession | TeacherSession
 ): number | null => {
-  // For TeacherSession, check room.branch_id first
+  // First priority: Check branch_id directly on session
+  if ("branch_id" in session && session.branch_id) {
+    return session.branch_id;
+  }
+
+  // Second priority: For TeacherSession, check room.branch_id
   if ("room" in session && session.room && typeof session.room === "object") {
     const room = session.room as { branch_id?: number };
     if (room.branch_id) return room.branch_id;
