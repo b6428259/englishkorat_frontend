@@ -11,8 +11,14 @@ export interface Group {
   course_id: number;
   level: string;
   max_students: number;
-  status: 'active' | 'inactive' | 'suspended' | 'full' | 'need-feeling' | 'empty';
-  payment_status: 'pending' | 'deposit_paid' | 'fully_paid';
+  status:
+    | "active"
+    | "inactive"
+    | "suspended"
+    | "full"
+    | "need-feeling"
+    | "empty";
+  payment_status: "pending" | "deposit_paid" | "fully_paid";
   description?: string;
   course?: Course;
   members?: GroupMember[];
@@ -68,9 +74,9 @@ export interface GroupMember {
   updated_at: string;
   group_id: number;
   student_id: number;
-  payment_status: 'pending' | 'deposit_paid' | 'fully_paid';
+  payment_status: "pending" | "deposit_paid" | "fully_paid";
   joined_at?: string;
-  status: 'active' | 'inactive' | 'suspended';
+  status: "active" | "inactive" | "suspended";
   student?: Student;
 }
 
@@ -90,10 +96,16 @@ export interface Student {
 export interface Schedule {
   id: number;
   schedule_name: string;
-  schedule_type: 'class' | 'meeting' | 'event' | 'holiday' | 'appointment';
+  schedule_type: "class" | "meeting" | "event" | "holiday" | "appointment";
   group_id?: number; // For class schedules
   created_by_user_id: number;
-  recurring_pattern: 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'yearly' | 'custom';
+  recurring_pattern:
+    | "daily"
+    | "weekly"
+    | "bi-weekly"
+    | "monthly"
+    | "yearly"
+    | "custom";
   total_hours: number;
   hours_per_session: number;
   session_per_week: number;
@@ -102,13 +114,13 @@ export interface Schedule {
   actual_end_date?: string;
   default_teacher_id?: number;
   default_room_id?: number;
-  status: 'scheduled' | 'paused' | 'completed' | 'cancelled' | 'assigned';
+  status: "scheduled" | "paused" | "completed" | "cancelled" | "assigned";
   auto_reschedule: boolean;
   notes?: string;
   admin_assigned?: string;
   session_start_time?: string;
   custom_recurring_days?: number[]; // 1=Monday, 2=Tuesday, etc.
-  
+
   // Relations
   group?: Group;
   participants?: ScheduleParticipant[];
@@ -129,8 +141,8 @@ export interface ScheduleParticipant {
   id: number;
   schedule_id: number;
   user_id: number;
-  role: 'organizer' | 'participant' | 'observer';
-  status: 'invited' | 'confirmed' | 'declined' | 'tentative';
+  role: "organizer" | "participant" | "observer";
+  status: "invited" | "confirmed" | "declined" | "tentative";
   user?: {
     id: number;
     username: string;
@@ -149,7 +161,14 @@ export interface Session {
   end_time: string;
   session_number: number;
   week_number: number;
-  status: 'scheduled' | 'confirmed' | 'pending' | 'completed' | 'cancelled' | 'rescheduled' | 'no-show';
+  status:
+    | "scheduled"
+    | "confirmed"
+    | "pending"
+    | "completed"
+    | "cancelled"
+    | "rescheduled"
+    | "no-show";
   cancelling_reason?: string;
   is_makeup: boolean;
   makeup_for_session_id?: number;
@@ -158,7 +177,7 @@ export interface Session {
   room_id?: number;
   confirmed_at?: string;
   confirmed_by_user_id?: number;
-  
+
   // Relations
   assigned_teacher?: {
     id: number;
@@ -200,27 +219,33 @@ export interface CreateGroupRequest {
   course_id: number;
   level: string;
   max_students: number;
-  payment_status: 'pending' | 'deposit_paid' | 'fully_paid';
+  payment_status: "pending" | "deposit_paid" | "fully_paid";
   description?: string;
 }
 
 export interface AddGroupMemberRequest {
   student_id: number;
-  payment_status: 'pending' | 'deposit_paid' | 'fully_paid';
+  payment_status: "pending" | "deposit_paid" | "fully_paid";
 }
 
 export interface UpdatePaymentStatusRequest {
-  payment_status: 'pending' | 'deposit_paid' | 'fully_paid';
+  payment_status: "pending" | "deposit_paid" | "fully_paid";
   student_id?: number; // Optional: update specific member, otherwise update group
 }
 
 // Enhanced Schedule Creation Request
 export interface CreateScheduleRequest {
   schedule_name: string;
-  schedule_type: 'class' | 'meeting' | 'event' | 'holiday' | 'appointment';
+  schedule_type: "class" | "meeting" | "event" | "holiday" | "appointment";
   group_id?: number; // For class schedules
   participant_user_ids?: number[]; // For event/appointment schedules
-  recurring_pattern: 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'yearly' | 'custom';
+  recurring_pattern:
+    | "daily"
+    | "weekly"
+    | "bi-weekly"
+    | "monthly"
+    | "yearly"
+    | "custom";
   total_hours: number;
   hours_per_session: number;
   session_per_week: number;
@@ -235,11 +260,18 @@ export interface CreateScheduleRequest {
 }
 
 export interface ConfirmScheduleRequest {
-  status: 'scheduled' | 'confirmed' | 'declined';
+  status: "scheduled" | "confirmed" | "declined";
 }
 
 export interface UpdateSessionStatusRequest {
-  status: 'scheduled' | 'confirmed' | 'pending' | 'completed' | 'cancelled' | 'rescheduled' | 'no-show';
+  status:
+    | "scheduled"
+    | "confirmed"
+    | "pending"
+    | "completed"
+    | "cancelled"
+    | "rescheduled"
+    | "no-show";
   notes?: string;
 }
 
@@ -248,7 +280,7 @@ export interface CreateMakeupSessionRequest {
   new_session_date: string;
   new_start_time: string;
   cancelling_reason: string;
-  new_session_status: 'cancelled' | 'rescheduled' | 'no-show';
+  new_session_status: "cancelled" | "rescheduled" | "no-show";
 }
 
 export interface CreateCommentRequest {
@@ -280,10 +312,17 @@ export interface GroupMemberResponse {
 export interface GetGroupsParams {
   course_id?: number;
   branch_id?: number;
-  status?: 'active' | 'inactive' | 'suspended' | 'full' | 'need-feeling' | 'empty';
-  payment_status?: 'pending' | 'deposit_paid' | 'fully_paid';
+  status?:
+    | "active"
+    | "inactive"
+    | "suspended"
+    | "full"
+    | "need-feeling"
+    | "empty";
+  payment_status?: "pending" | "deposit_paid" | "fully_paid";
   page?: number;
   per_page?: number;
+  search?: string;
 }
 
 export interface CreateGroupRequest {
@@ -291,17 +330,17 @@ export interface CreateGroupRequest {
   course_id: number;
   level: string;
   max_students: number;
-  payment_status: 'pending' | 'deposit_paid' | 'fully_paid';
+  payment_status: "pending" | "deposit_paid" | "fully_paid";
   description?: string;
 }
 
 export interface AddGroupMemberRequest {
   student_id: number;
-  payment_status: 'pending' | 'deposit_paid' | 'fully_paid';
+  payment_status: "pending" | "deposit_paid" | "fully_paid";
 }
 
 export interface UpdatePaymentStatusRequest {
-  payment_status: 'pending' | 'deposit_paid' | 'fully_paid';
+  payment_status: "pending" | "deposit_paid" | "fully_paid";
   student_id?: number; // Optional: update specific member, otherwise update group
 }
 

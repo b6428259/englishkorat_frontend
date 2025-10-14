@@ -1,18 +1,18 @@
 import {
-  Group,
-  GroupMember,
-  GroupListResponse,
-  GroupResponse,
-  GroupMemberResponse,
-  GetGroupsParams,
-  CreateGroupRequest,
   AddGroupMemberRequest,
-  UpdatePaymentStatusRequest,
-  Student,
+  CreateGroupRequest,
+  GetGroupsParams,
+  Group,
+  GroupListResponse,
+  GroupMember,
+  GroupMemberResponse,
   GroupOption,
+  GroupResponse,
+  Student,
+  UpdatePaymentStatusRequest,
 } from "@/types/group.types";
-import { API_ENDPOINTS } from "./endpoints";
 import { api } from "./base";
+import { API_ENDPOINTS } from "./endpoints";
 
 class GroupService {
   // Uses shared axios instance `api` which applies auth token via interceptor
@@ -35,6 +35,7 @@ class GroupService {
       if (params.page) searchParams.append("page", params.page.toString());
       if (params.per_page)
         searchParams.append("per_page", params.per_page.toString());
+      if (params.search) searchParams.append("search", params.search);
 
       const response = await api.get(API_ENDPOINTS.GROUPS.LIST, {
         params: Object.fromEntries(searchParams),
@@ -86,12 +87,12 @@ class GroupService {
    */
   async updateGroup(
     groupId: string,
-    updates: Partial<CreateGroupRequest>,
+    updates: Partial<CreateGroupRequest>
   ): Promise<Group | null> {
     try {
       const response = await api.put(
         API_ENDPOINTS.GROUPS.UPDATE(groupId),
-        updates,
+        updates
       );
       const data: GroupResponse = response.data;
       return data.group;
@@ -106,12 +107,12 @@ class GroupService {
    */
   async addMember(
     groupId: string,
-    memberData: AddGroupMemberRequest,
+    memberData: AddGroupMemberRequest
   ): Promise<GroupMember | null> {
     try {
       const response = await api.post(
         API_ENDPOINTS.GROUPS.ADD_MEMBER(groupId),
-        memberData,
+        memberData
       );
       const data: GroupMemberResponse = response.data;
       return data.member;
@@ -127,7 +128,7 @@ class GroupService {
   async removeMember(groupId: string, studentId: string): Promise<boolean> {
     try {
       const response = await api.delete(
-        API_ENDPOINTS.GROUPS.REMOVE_MEMBER(groupId, studentId),
+        API_ENDPOINTS.GROUPS.REMOVE_MEMBER(groupId, studentId)
       );
       return response.status >= 200 && response.status < 300;
     } catch (error) {
@@ -141,12 +142,12 @@ class GroupService {
    */
   async updatePaymentStatus(
     groupId: string,
-    paymentData: UpdatePaymentStatusRequest,
+    paymentData: UpdatePaymentStatusRequest
   ): Promise<boolean> {
     try {
       const response = await api.patch(
         API_ENDPOINTS.GROUPS.UPDATE_PAYMENT(groupId),
-        paymentData,
+        paymentData
       );
       return response.status >= 200 && response.status < 300;
     } catch (error) {
