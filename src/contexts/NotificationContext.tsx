@@ -554,8 +554,45 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
           return;
         }
 
+        // Check if this is a borrowing popup notification (due_soon or overdue)
+        const borrowingPopupTypes = ["borrow_due_soon", "borrow_overdue"];
+        if (
+          popupNotif.data?.type &&
+          borrowingPopupTypes.includes(popupNotif.data.type as string)
+        ) {
+          // Add to popup stack with navigation action to /borrowing/my-borrows
+          addPopup({
+            type: "borrowing-urgent",
+            notification: popupNotif,
+            priority: 90, // High priority for urgent borrowing alerts
+            persistent: false, // Can be dismissed
+            onConfirm: () => {
+              // Navigate to my-borrows page when user clicks
+              if (typeof window !== "undefined") {
+                window.location.href = "/borrowing/my-borrows";
+              }
+            },
+          });
+
+          // Show toast notification as well for visibility
+          const isDueSoon = popupNotif.data.type === "borrow_due_soon";
+          toast(popupNotif.title_th || popupNotif.title, {
+            icon: isDueSoon ? "⏰" : "❌",
+            duration: 6000,
+            position: "top-center",
+            style: {
+              background: isDueSoon ? "#fef3c7" : "#fee2e2",
+              color: isDueSoon ? "#92400e" : "#991b1b",
+              padding: "16px",
+              borderRadius: "8px",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+              border: `2px solid ${isDueSoon ? "#fbbf24" : "#ef4444"}`,
+              fontWeight: "600",
+            },
+          });
+        }
         // Check if this is a schedule invitation
-        if (popupNotif.data?.action === "confirm-participation") {
+        else if (popupNotif.data?.action === "confirm-participation") {
           // Add to popup stack instead of old state
           addPopup({
             type: "schedule-invitation",

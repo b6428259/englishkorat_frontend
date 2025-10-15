@@ -6,6 +6,7 @@ import Loading from "@/components/common/Loading";
 import { colors } from "@/styles/colors";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import SidebarLayout from "../../components/common/SidebarLayout";
+import { useAuth } from "../../contexts/AuthContext";
 import { useLanguage } from "../../contexts/LanguageContext";
 // import { ButtonGroup } from "@heroui/react";
 import CalendarLoading from "@/components/common/CalendarLoading";
@@ -17,18 +18,23 @@ import {
   CreateScheduleInput as CreateScheduleRequest,
   Room,
   scheduleService,
+  SessionDetailUser,
   Student,
+  StudentDetailInSession,
   Teacher,
   TeacherOption,
   TeacherSession,
+  updateSession,
 } from "@/services/api/schedules";
 import {
   deriveScheduleFields,
   validateScheduleForm,
   validateSessionForm,
 } from "@/utils/scheduleValidation";
+import { AnimatePresence, motion } from "framer-motion";
 import { Users, X } from "lucide-react";
 import dynamic from "next/dynamic";
+import toast from "react-hot-toast";
 import { SessionDetailModal } from "./components";
 import CompactDayViewModal from "./components/CompactDayViewModal";
 import MonthView from "./components/MonthView";
@@ -727,6 +733,7 @@ const timeSlots = Array.from({ length: (22 - 8) * 2 + 1 }, (_, i) => {
 
 export default function SchedulePage() {
   const { t, language } = useLanguage();
+  const { user } = useAuth();
   const [density] = useState<"comfortable" | "compact">("comfortable");
 
   // State management
@@ -767,6 +774,28 @@ export default function SchedulePage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartPos = useRef({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
+  const lastVelocity = useRef({ x: 0, y: 0 });
+  const momentumAnimation = useRef<number | null>(null);
+
+  // Drag & Drop session states
+  const [draggedSession, setDraggedSession] = useState<
+    CalendarSession | TeacherSession | null
+  >(null);
+  const [dropTarget, setDropTarget] = useState<{
+    teacherId: number;
+    timeSlot: { hour: number; minute: number };
+  } | null>(null);
+  const [showMoveConfirm, setShowMoveConfirm] = useState(false);
+  const [moveSessionData, setMoveSessionData] = useState<{
+    session: CalendarSession | TeacherSession;
+    newTeacherId: number;
+    newTime: { hour: number; minute: number };
+    sessionDetail?: {
+      oldTeacher?: SessionDetailUser;
+      newTeacher?: SessionDetailUser;
+      students?: StudentDetailInSession[];
+    };
+  } | null>(null);
 
   const openModal = useCallback((modal: "createSchedule" | "createSession") => {
     // Close others first
@@ -881,6 +910,12 @@ export default function SchedulePage() {
     const container = scrollContainerRef.current;
     if (!container) return;
 
+    // Cancel any ongoing momentum animation
+    if (momentumAnimation.current) {
+      cancelAnimationFrame(momentumAnimation.current);
+      momentumAnimation.current = null;
+    }
+
     setIsDragging(true);
     dragStartPos.current = {
       x: e.pageX,
@@ -888,6 +923,7 @@ export default function SchedulePage() {
       scrollLeft: container.scrollLeft,
       scrollTop: container.scrollTop,
     };
+    lastVelocity.current = { x: 0, y: 0 };
   }, []);
 
   const handleMouseMove = useCallback(
@@ -902,6 +938,12 @@ export default function SchedulePage() {
       const deltaX = e.pageX - dragStartPos.current.x;
       const deltaY = e.pageY - dragStartPos.current.y;
 
+      // Calculate velocity for momentum
+      lastVelocity.current = {
+        x: deltaX - lastVelocity.current.x,
+        y: deltaY - lastVelocity.current.y,
+      };
+
       container.scrollLeft = dragStartPos.current.scrollLeft - deltaX;
       container.scrollTop = dragStartPos.current.scrollTop - deltaY;
     },
@@ -910,6 +952,51 @@ export default function SchedulePage() {
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
+
+    // Apply momentum scrolling with easing
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const velocityX = lastVelocity.current.x;
+    const velocityY = lastVelocity.current.y;
+    const friction = 0.94; // Smoother momentum (increased from 0.92)
+    const threshold = 0.3; // Smoother stop (decreased from 0.5)
+
+    let currentVelocityX = velocityX * 1.5; // Amplify initial velocity for smoother feel
+    let currentVelocityY = velocityY * 1.5;
+
+    // Easing function for smoother deceleration
+    const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+
+    let frame = 0;
+    const maxFrames = 60; // Maximum animation frames
+
+    const applyMomentum = () => {
+      frame++;
+      const progress = Math.min(frame / maxFrames, 1);
+      const easedProgress = easeOut(progress);
+
+      if (
+        Math.abs(currentVelocityX) < threshold &&
+        Math.abs(currentVelocityY) < threshold
+      ) {
+        momentumAnimation.current = null;
+        return;
+      }
+
+      // Apply eased scroll with smoother deceleration
+      container.scrollLeft -= currentVelocityX * (1 - easedProgress * 0.3);
+      container.scrollTop -= currentVelocityY * (1 - easedProgress * 0.3);
+
+      currentVelocityX *= friction;
+      currentVelocityY *= friction;
+
+      momentumAnimation.current = requestAnimationFrame(applyMomentum);
+    };
+
+    if (Math.abs(velocityX) > 0.5 || Math.abs(velocityY) > 0.5) {
+      applyMomentum();
+    }
   }, []);
 
   // Optimize fetchData to avoid unnecessary re-renders
@@ -1341,6 +1428,200 @@ export default function SchedulePage() {
 
     // Open Create Schedule modal (modern schedule modal)
     openModal("createSchedule");
+  };
+
+  // Drag & Drop handlers for moving sessions
+  const handleSessionDragStart = (
+    session: CalendarSession | TeacherSession
+  ) => {
+    setDraggedSession(session);
+  };
+
+  const handleCellDragOver = (
+    e: React.DragEvent,
+    teacherId: number,
+    timeSlot: { hour: number; minute: number }
+  ) => {
+    e.preventDefault();
+    setDropTarget({ teacherId, timeSlot });
+  };
+
+  const handleCellDragLeave = () => {
+    setDropTarget(null);
+  };
+
+  const handleCellDrop = async (
+    e: React.DragEvent,
+    newTeacherId: number,
+    newTimeSlot: { hour: number; minute: number }
+  ) => {
+    e.preventDefault();
+    setDropTarget(null);
+
+    if (!draggedSession) return;
+
+    // Check if it's the same cell (no move needed)
+    const oldTeacherId =
+      "assigned_teacher_id" in draggedSession
+        ? draggedSession.assigned_teacher_id
+        : "teacher_id" in draggedSession
+        ? draggedSession.teacher_id
+        : null;
+    const oldStartTime = draggedSession.start_time.substring(0, 5);
+    const [oldHour, oldMinute] = oldStartTime.split(":").map(Number);
+
+    if (
+      oldTeacherId === newTeacherId &&
+      oldHour === newTimeSlot.hour &&
+      oldMinute === newTimeSlot.minute
+    ) {
+      setDraggedSession(null);
+      return;
+    }
+
+    // Fetch session details for confirmation modal
+    const fetchSessionDetails = async () => {
+      try {
+        const response = await scheduleService.getSessionDetail(draggedSession.id.toString());
+        const oldTeacher = response.session.assigned_teacher;
+        const newTeacher = teacherOptions.find(t => t.id === newTeacherId);
+        const students = response.students?.map(s => s.student) || [];
+
+        setMoveSessionData({
+          session: draggedSession,
+          newTeacherId,
+          newTime: newTimeSlot,
+          sessionDetail: {
+            oldTeacher,
+            newTeacher: newTeacher as unknown as SessionDetailUser,
+            students,
+          },
+        });
+        setShowMoveConfirm(true);
+      } catch (error) {
+        console.error("Failed to fetch session details:", error);
+        // Fallback without detailed info
+        setMoveSessionData({
+          session: draggedSession,
+          newTeacherId,
+          newTime: newTimeSlot,
+        });
+        setShowMoveConfirm(true);
+      }
+      setDraggedSession(null);
+    };
+
+    fetchSessionDetails();
+  };
+
+  const handleConfirmMoveSession = async () => {
+    if (!moveSessionData) return;
+
+    const { session, newTeacherId, newTime } = moveSessionData;
+    const sessionId = session.id;
+
+    // Check if teacher changed
+    const currentTeacherId =
+      "teacher_id" in session ? session.teacher_id : null;
+    const teacherChanged =
+      currentTeacherId && currentTeacherId !== newTeacherId;
+
+    // Check if time changed
+    const currentHour = parseInt(session.start_time.split(":")[0]);
+    const currentMinute = parseInt(session.start_time.split(":")[1]);
+    const timeChanged =
+      currentHour !== newTime.hour || currentMinute !== newTime.minute;
+
+    if (!teacherChanged && !timeChanged) {
+      toast(language === "th" ? "ไม่มีการเปลี่ยนแปลง" : "No changes made", {
+        icon: "ℹ️",
+        position: "top-center",
+      });
+      setShowMoveConfirm(false);
+      setMoveSessionData(null);
+      return;
+    }
+
+    try {
+      // Calculate new start and end times
+      const oldStartTime = session.start_time.substring(0, 5);
+      const oldEndTime = session.end_time.substring(0, 5);
+      const [oldStartHour, oldStartMinute] = oldStartTime
+        .split(":")
+        .map(Number);
+      const [oldEndHour, oldEndMinute] = oldEndTime.split(":").map(Number);
+
+      const durationMinutes =
+        oldEndHour * 60 + oldEndMinute - (oldStartHour * 60 + oldStartMinute);
+      const newStartMinutes = newTime.hour * 60 + newTime.minute;
+      const newEndMinutes = newStartMinutes + durationMinutes;
+      const newEndHour = Math.floor(newEndMinutes / 60);
+      const newEndMinute = newEndMinutes % 60;
+
+      const newStartTime = `${newTime.hour
+        .toString()
+        .padStart(2, "0")}:${newTime.minute.toString().padStart(2, "0")}:00`;
+      const newEndTime = `${newEndHour
+        .toString()
+        .padStart(2, "0")}:${newEndMinute.toString().padStart(2, "0")}:00`;
+
+      // Prepare updates for API (PATCH /api/schedules/sessions/:id)
+      const updates: {
+        start_time?: string;
+        end_time?: string;
+        assigned_teacher_id?: number;
+      } = {};
+
+      if (timeChanged) {
+        updates.start_time = newStartTime;
+        updates.end_time = newEndTime;
+      }
+
+      if (teacherChanged) {
+        updates.assigned_teacher_id = newTeacherId;
+      }
+
+      // Use updateSession endpoint that supports teacher reassignment
+      await updateSession(sessionId, updates);
+
+      // Show success message based on what changed
+      const changeMessage =
+        teacherChanged && timeChanged
+          ? language === "th"
+            ? "ย้ายคาบเรียนและเปลี่ยนครูสำเร็จ"
+            : "Session moved and teacher changed successfully"
+          : teacherChanged
+          ? language === "th"
+            ? "เปลี่ยนครูสำเร็จ"
+            : "Teacher changed successfully"
+          : language === "th"
+          ? "ย้ายคาบเรียนสำเร็จ"
+          : "Session moved successfully";
+
+      toast.success(changeMessage, {
+        icon: "✅",
+        position: "top-center",
+      });
+
+      // Refresh data
+      await fetchData();
+    } catch (error) {
+      console.error("Failed to move session:", error);
+      toast.error(
+        language === "th"
+          ? "ไม่สามารถย้ายคาบเรียนได้"
+          : "Failed to move session",
+        { position: "top-center" }
+      );
+    } finally {
+      setShowMoveConfirm(false);
+      setMoveSessionData(null);
+    }
+  };
+
+  const handleCancelMoveSession = () => {
+    setShowMoveConfirm(false);
+    setMoveSessionData(null);
   };
 
   // Handle schedule creation
@@ -1852,7 +2133,10 @@ export default function SchedulePage() {
                 <div
                   ref={scrollContainerRef}
                   className="h-full overflow-auto relative z-0 select-none"
-                  style={{ cursor: isDragging ? "grabbing" : "grab" }}
+                  style={{
+                    cursor: isDragging ? "grabbing" : "grab",
+                    scrollBehavior: isDragging ? "auto" : "smooth",
+                  }}
                   onMouseDown={handleMouseDown}
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}
@@ -2056,24 +2340,61 @@ export default function SchedulePage() {
                                       session.start_time,
                                       session.end_time
                                     );
+                                    const isBeingDragged =
+                                      draggedSession?.id === session.id;
+
                                     return (
                                       <td
                                         key={teacher.id}
                                         rowSpan={rowSpan}
                                         className="p-0 border border-gray-300 align-top relative"
+                                        onDragOver={(e) =>
+                                          handleCellDragOver(
+                                            e,
+                                            teacher.id,
+                                            timeSlot
+                                          )
+                                        }
+                                        onDragLeave={handleCellDragLeave}
+                                        onDrop={(e) =>
+                                          handleCellDrop(
+                                            e,
+                                            teacher.id,
+                                            timeSlot
+                                          )
+                                        }
                                       >
-                                        <div
-                                          className="w-[120px] sm:w-[140px] h-full p-2 rounded-lg cursor-pointer transition-all duration-200
-                                        shadow-sm hover:shadow-md overflow-hidden relative z-10 flex flex-col"
+                                        <motion.div
+                                          draggable
+                                          onDragStart={(e) => {
+                                            handleSessionDragStart(session);
+                                            (e.target as HTMLElement).style.cursor = 'grabbing';
+                                          }}
+                                          onDragEnd={(e) => {
+                                            setDraggedSession(null);
+                                            (e.target as HTMLElement).style.cursor = 'grab';
+                                          }}
+                                          className={`w-[120px] sm:w-[140px] h-full p-2 rounded-lg cursor-grab transition-all duration-200
+                                        shadow-sm hover:shadow-md overflow-hidden relative z-10 flex flex-col ${
+                                          isBeingDragged
+                                            ? "opacity-50"
+                                            : "opacity-100"
+                                        }`}
                                           style={{
                                             height: `${rowSpan * 32 - 8}px`,
                                             borderLeft: `4px solid ${getBranchBorderColorFromSession(
                                               session
                                             )}`,
                                           }}
-                                          onClick={() =>
-                                            handleSessionClick(session)
-                                          }
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleSessionClick(session);
+                                          }}
+                                          whileHover={{ scale: 1.02 }}
+                                          whileTap={{ scale: 0.98 }}
+                                          initial={{ opacity: 0, y: -10 }}
+                                          animate={{ opacity: 1, y: 0 }}
+                                          transition={{ duration: 0.2 }}
                                         >
                                           <div className="space-y-1 leading-tight">
                                             {/* Time Display */}
@@ -2177,30 +2498,64 @@ export default function SchedulePage() {
                                               </span>
                                             </div>
                                           </div>
-                                        </div>
+                                        </motion.div>
                                       </td>
                                     );
                                   }
 
                                   // ช่องว่าง
+                                  const isDropTarget =
+                                    dropTarget?.teacherId === teacher.id &&
+                                    dropTarget?.timeSlot.hour ===
+                                      timeSlot.hour &&
+                                    dropTarget?.timeSlot.minute ===
+                                      timeSlot.minute;
+
                                   return (
                                     <td
                                       key={teacher.id}
-                                      className="border border-gray-300 bg-white hover:bg-gray-50 cursor-pointer transition-colors duration-200 w-[120px] sm:w-[140px]"
+                                      className={`border border-gray-300 transition-all duration-200 w-[120px] sm:w-[140px] ${
+                                        isDropTarget
+                                          ? "bg-blue-100 border-blue-400 border-2"
+                                          : "bg-white hover:bg-gray-50"
+                                      } cursor-pointer`}
                                       onClick={() =>
                                         handleEmptyCellClick(
                                           teacher.id,
                                           timeSlot
                                         )
                                       }
+                                      onDragOver={(e) =>
+                                        handleCellDragOver(
+                                          e,
+                                          teacher.id,
+                                          timeSlot
+                                        )
+                                      }
+                                      onDragLeave={handleCellDragLeave}
+                                      onDrop={(e) =>
+                                        handleCellDrop(e, teacher.id, timeSlot)
+                                      }
                                     >
-                                      <div className="w-full h-8 flex items-center justify-center">
-                                        <div className="w-7 h-7 rounded-full bg-gray-100 hover:bg-blue-100 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200">
-                                          <span className="text-sm text-gray-400 hover:text-blue-600 font-semibold">
-                                            +
+                                      {isDropTarget && draggedSession ? (
+                                        <motion.div
+                                          initial={{ opacity: 0, scale: 0.95 }}
+                                          animate={{ opacity: 0.6, scale: 1 }}
+                                          className="w-[120px] sm:w-[140px] h-8 p-2 rounded-lg bg-blue-100 border-2 border-dashed border-blue-400 flex items-center justify-center"
+                                        >
+                                          <span className="text-xs text-blue-700 font-medium">
+                                            {language === "th" ? "วางที่นี่" : "Drop here"}
                                           </span>
+                                        </motion.div>
+                                      ) : (
+                                        <div className="w-full h-8 flex items-center justify-center">
+                                          <div className="w-7 h-7 rounded-full bg-gray-100 hover:bg-blue-100 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200">
+                                            <span className="text-sm text-gray-400 hover:text-blue-600 font-semibold">
+                                              +
+                                            </span>
+                                          </div>
                                         </div>
-                                      </div>
+                                      )}
                                     </td>
                                   );
                                 })
@@ -2252,6 +2607,7 @@ export default function SchedulePage() {
           isOpen={isDetailModalOpen}
           onClose={() => setIsDetailModalOpen(false)}
           sessionId={selectedSession}
+          onUpdate={fetchData}
         />
       )}
 
@@ -2263,6 +2619,7 @@ export default function SchedulePage() {
           courses={courses}
           rooms={rooms}
           teachers={teacherOptions}
+          scheduleForm={scheduleForm}
           isLoading={formLoading}
           error={formError}
         />
@@ -2310,6 +2667,249 @@ export default function SchedulePage() {
           error={formError || undefined}
         />
       )}
+
+      {/* Move Session Confirmation Modal */}
+      <AnimatePresence>
+        {showMoveConfirm && moveSessionData && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            onClick={handleCancelMoveSession}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              transition={{ type: "spring", duration: 0.3 }}
+              className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  <svg
+                    className="w-6 h-6 text-blue-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                    />
+                  </svg>
+                </div>
+                <div className="flex-1 max-h-[70vh] overflow-y-auto">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">
+                    {language === "th"
+                      ? "ยืนยันการย้ายคาบเรียน"
+                      : "Confirm Move Session"}
+                  </h3>
+
+                  {/* Course Name */}
+                  <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                    <p className="font-semibold text-gray-800">
+                      {moveSessionData.session.schedule_name}
+                    </p>
+                  </div>
+
+                  {/* Time Change */}
+                  <div className="mb-4 space-y-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-gray-600">
+                        {language === "th" ? "เวลาเดิม:" : "Current Time:"}
+                      </span>
+                      <span className="text-indigo-600 font-medium">
+                        {moveSessionData.session.start_time.substring(0, 5)} - {moveSessionData.session.end_time.substring(0, 5)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-gray-600">
+                        {language === "th" ? "เวลาใหม่:" : "New Time:"}
+                      </span>
+                      <span className="text-green-600 font-medium">
+                        {`${moveSessionData.newTime.hour
+                          .toString()
+                          .padStart(2, "0")}:${moveSessionData.newTime.minute
+                          .toString()
+                          .padStart(2, "0")}`}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Teacher Change */}
+                  {moveSessionData.sessionDetail?.oldTeacher && (
+                    <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                      <h4 className="font-semibold text-gray-900 mb-2 text-sm">
+                        {language === "th" ? "ครู" : "Teacher"}
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <span className="text-gray-600">{language === "th" ? "เดิม:" : "Current:"}</span>{" "}
+                          <span className="font-medium">
+                            {moveSessionData.sessionDetail.oldTeacher.teacher_profile?.nickname_en ||
+                              moveSessionData.sessionDetail.oldTeacher.username}
+                          </span>
+                          {moveSessionData.sessionDetail.oldTeacher.teacher_profile && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              {moveSessionData.sessionDetail.oldTeacher.teacher_profile.first_name_en}{" "}
+                              {moveSessionData.sessionDetail.oldTeacher.teacher_profile.last_name_en}
+                              {moveSessionData.sessionDetail.oldTeacher.teacher_profile.specializations && (
+                                <span className="ml-2 text-blue-600">
+                                  • {moveSessionData.sessionDetail.oldTeacher.teacher_profile.specializations}
+                                </span>
+                              )}
+                            </p>
+                          )}
+                        </div>
+                        {moveSessionData.sessionDetail.newTeacher && (
+                          <div>
+                            <span className="text-gray-600">{language === "th" ? "ใหม่:" : "New:"}</span>{" "}
+                            <span className="font-medium text-green-600">
+                              {moveSessionData.sessionDetail.newTeacher.teacher_profile?.nickname_en ||
+                                moveSessionData.sessionDetail.newTeacher.username}
+                            </span>
+                            {moveSessionData.sessionDetail.newTeacher.teacher_profile && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                {moveSessionData.sessionDetail.newTeacher.teacher_profile.first_name_en}{" "}
+                                {moveSessionData.sessionDetail.newTeacher.teacher_profile.last_name_en}
+                                {moveSessionData.sessionDetail.newTeacher.teacher_profile.specializations && (
+                                  <span className="ml-2 text-green-600">
+                                    • {moveSessionData.sessionDetail.newTeacher.teacher_profile.specializations}
+                                  </span>
+                                )}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Students */}
+                  {moveSessionData.sessionDetail?.students && moveSessionData.sessionDetail.students.length > 0 && (
+                    <div className="mb-4 p-3 bg-amber-50 rounded-lg">
+                      <h4 className="font-semibold text-gray-900 mb-2 text-sm">
+                        {language === "th" ? "นักเรียน" : "Students"} ({moveSessionData.sessionDetail.students.length})
+                      </h4>
+                      <div className="space-y-2 text-xs">
+                        {moveSessionData.sessionDetail.students.map((student, idx) => {
+                          const isAdmin = user?.role === "admin" || user?.role === "owner";
+                          const isTeacher = user?.role === "teacher";
+
+                          return (
+                            <div key={idx} className="flex items-start gap-2 p-2 bg-white rounded border border-amber-200">
+                              <div className="flex-1">
+                                <p className="font-medium text-gray-900">
+                                  {student.nickname_th || student.nickname_en || student.first_name}
+                                </p>
+                                {isTeacher ? (
+                                  // Teacher sees limited info
+                                  <div className="text-gray-600 mt-1 space-y-0.5">
+                                    {student.date_of_birth && (
+                                      <p>
+                                        {language === "th" ? "วันเกิด:" : "DOB:"}{" "}
+                                        {new Date(student.date_of_birth).toLocaleDateString(language === "th" ? "th-TH" : "en-US")}
+                                      </p>
+                                    )}
+                                    {student.age > 0 && (
+                                      <p>
+                                        {language === "th" ? "อายุ:" : "Age:"} {student.age}{" "}
+                                        {language === "th" ? "ปี" : "years"}
+                                      </p>
+                                    )}
+                                    {student.user_branch && (
+                                      <p>
+                                        {language === "th" ? "สาขา:" : "Branch:"}{" "}
+                                        {language === "th" ? student.user_branch.name_th : student.user_branch.name_en}
+                                      </p>
+                                    )}
+                                  </div>
+                                ) : isAdmin ? (
+                                  // Admin sees full info
+                                  <div className="text-gray-600 mt-1 space-y-0.5">
+                                    <p>
+                                      {student.first_name_en || student.first_name} {student.last_name_en || student.last_name}
+                                    </p>
+                                    {student.email && <p>📧 {student.email}</p>}
+                                    {student.phone && <p>📞 {student.phone}</p>}
+                                    {student.line_id && <p>💬 LINE: {student.line_id}</p>}
+                                    {student.date_of_birth && (
+                                      <p>
+                                        🎂 {new Date(student.date_of_birth).toLocaleDateString(language === "th" ? "th-TH" : "en-US")}
+                                        {student.age > 0 && ` (${student.age} ${language === "th" ? "ปี" : "years"})`}
+                                      </p>
+                                    )}
+                                    {student.age_group && (
+                                      <p>
+                                        👥 {student.age_group}
+                                      </p>
+                                    )}
+                                    {student.user_branch && (
+                                      <p>
+                                        🏢 {language === "th" ? student.user_branch.name_th : student.user_branch.name_en}
+                                      </p>
+                                    )}
+                                    {student.recent_cefr && (
+                                      <p className="text-blue-600 font-medium">
+                                        📊 CEFR: {student.recent_cefr}
+                                      </p>
+                                    )}
+                                    <p className="flex gap-2">
+                                      <span className={`px-2 py-0.5 rounded ${
+                                        student.payment_status === "paid" ? "bg-green-100 text-green-700" :
+                                        student.payment_status === "pending" ? "bg-yellow-100 text-yellow-700" :
+                                        "bg-red-100 text-red-700"
+                                      }`}>
+                                        {student.payment_status}
+                                      </span>
+                                      <span className={`px-2 py-0.5 rounded ${
+                                        student.registration_status === "active" ? "bg-green-100 text-green-700" :
+                                        "bg-gray-100 text-gray-700"
+                                      }`}>
+                                        {student.registration_status}
+                                      </span>
+                                    </p>
+                                  </div>
+                                ) : null}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <p className="text-gray-500 text-sm mt-4">
+                    {language === "th"
+                      ? "ต้องการย้ายคาบเรียนนี้ไปยังเวลาและครูใหม่หรือไม่?"
+                      : "Do you want to move this session to the new time and teacher?"}
+                  </p>
+                </div>
+                <div className="flex-shrink-0 mt-4">
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleCancelMoveSession}
+                      className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+                    >
+                      {language === "th" ? "ยกเลิก" : "Cancel"}
+                    </button>
+                    <button
+                      onClick={handleConfirmMoveSession}
+                      className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-lg shadow-blue-500/30"
+                    >
+                      {language === "th" ? "ยืนยัน" : "Confirm"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Floating Action Buttons */}
       <div className="fixed bottom-20 right-6 z-20 flex flex-col gap-3">

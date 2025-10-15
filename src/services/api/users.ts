@@ -154,4 +154,24 @@ export const usersApi = {
     const response = await api.put(API_ENDPOINTS.USERS.PROFILE, userData);
     return response.data;
   },
+
+  /**
+   * Get users without group
+   * @param params - Query parameters: role, branch_id, search
+   */
+  getUsersWithoutGroup: async (params: {
+    role?: string;
+    branch_id?: number;
+    search?: string;
+  }): Promise<{ users: User[] }> => {
+    const queryParams: Record<string, string | number> = {};
+    if (params.role) queryParams.role = params.role;
+    if (params.branch_id) queryParams.branch_id = params.branch_id;
+    if (params.search) queryParams.search = params.search;
+
+    const response = await api.get("/api/users/without-group", {
+      params: queryParams,
+    });
+    return response.data;
+  },
 };

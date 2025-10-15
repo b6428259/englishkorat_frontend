@@ -312,6 +312,7 @@ export interface GroupMemberResponse {
 export interface GetGroupsParams {
   course_id?: number;
   branch_id?: number;
+  branch?: number; // Include groups without branch assignment (0 = include unassigned)
   status?:
     | "active"
     | "inactive"

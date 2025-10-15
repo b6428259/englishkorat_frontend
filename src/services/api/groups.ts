@@ -29,6 +29,8 @@ class GroupService {
         searchParams.append("course_id", params.course_id.toString());
       if (params.branch_id)
         searchParams.append("branch_id", params.branch_id.toString());
+      if (params.branch !== undefined)
+        searchParams.append("branch", params.branch.toString());
       if (params.status) searchParams.append("status", params.status);
       if (params.payment_status)
         searchParams.append("payment_status", params.payment_status);

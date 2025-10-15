@@ -14,9 +14,13 @@ export interface RegisterRequest {
 }
 
 export interface StudentInfo {
-  first_name: string;
-  last_name: string;
-  nickname: string;
+  first_name?: string;
+  first_name_en?: string;
+  last_name?: string;
+  last_name_en?: string;
+  nickname?: string;
+  nickname_en?: string;
+  nickname_th?: string;
 }
 
 export interface User {

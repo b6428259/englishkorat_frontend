@@ -53,12 +53,14 @@ interface SessionDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   sessionId: number;
+  onUpdate?: () => void | Promise<void>;
 }
 
 export default function SessionDetailModal({
   isOpen,
   onClose,
   sessionId,
+  onUpdate,
 }: SessionDetailModalProps) {
   const { language } = useLanguage();
   const { hasRole } = useAuth();
@@ -312,6 +314,11 @@ export default function SessionDetailModal({
 
       setIsEditMode(false);
       await fetchSessionDetail();
+
+      // Refresh the schedule table in the parent component
+      if (onUpdate) {
+        await onUpdate();
+      }
     } catch (error) {
       console.error("Failed to update session:", error);
       toast.error(
@@ -560,7 +567,7 @@ export default function SessionDetailModal({
 
                     {isEditMode ? (
                       /* Edit Mode Form */
-                      <div className="space-y-4">
+                      <div className="space-y-4 text-gray-700">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {/* Date */}
                           <div>
@@ -1083,25 +1090,25 @@ export default function SessionDetailModal({
                     <div className="space-y-3">
                       {sessionDetail.group.members.map((member) => (
                         <div
-                          key={member.student_id}
+                          key={member.student.id}
                           className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                         >
                           <Avatar className="h-12 w-12">
                             <AvatarFallback className="bg-blue-100 text-blue-600 font-semibold">
-                              {member.first_name.charAt(0).toUpperCase()}
-                              {member.last_name.charAt(0).toUpperCase()}
+                              {(member.student.first_name || "U").charAt(0).toUpperCase()}
+                              {(member.student.last_name || "N").charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
 
                           <div className="flex-1">
                             <p className="font-medium text-gray-900">
-                              {member.first_name} {member.last_name}
+                              {member.student.first_name} {member.student.last_name}
                             </p>
                             <p className="text-sm text-gray-600">
-                              {member.first_name_en} {member.last_name_en}
+                              {member.student.first_name_en} {member.student.last_name_en}
                             </p>
                             <p className="text-sm text-gray-500">
-                              @{member.username}
+                              @{member.student.user?.username || member.student.nickname_en}
                             </p>
                           </div>
 

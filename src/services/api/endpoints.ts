@@ -110,6 +110,53 @@ export const API_ENDPOINTS = {
     BY_INVOICE: (invoice: string) => `/bills/by-invoice/${invoice}`,
     IMPORT: "/import/bills",
   },
+
+  // Borrowing System endpoints (based on Borrowing System Documentation)
+  BORROWING: {
+    // Items (Public/User)
+    ITEMS: "/borrowing/items",
+    ITEM_BY_ID: (id: number) => `/borrowing/items/${id}`,
+
+    // Requests (User)
+    MY_REQUESTS: "/borrowing/my-requests",
+    CREATE_REQUEST: "/borrowing/requests",
+    CANCEL_REQUEST: (id: number) => `/borrowing/requests/${id}/cancel`,
+
+    // Borrows (User)
+    MY_BORROWS: "/borrowing/my-borrows",
+    RENEW_BORROW: (id: number) => `/borrowing/borrows/${id}/renew`,
+    TRANSACTION: (id: number) => `/borrowing/transactions/${id}`,
+
+    // Items Management (Admin)
+    CREATE_ITEM: "/borrowing/items",
+    UPDATE_ITEM: (id: number) => `/borrowing/items/${id}`,
+    DELETE_ITEM: (id: number) => `/borrowing/items/${id}`,
+    UPLOAD_IMAGE: (id: number) => `/borrowing/items/${id}/upload-image`,
+    UPLOAD_PDF: (id: number) => `/borrowing/items/${id}/upload-pdf`,
+    ADJUST_STOCK: (id: number) => `/borrowing/items/${id}/adjust-stock`,
+
+    // Request Workflow (Admin)
+    ALL_REQUESTS: "/borrowing/requests",
+    APPROVE_REQUEST: (id: number) => `/borrowing/requests/${id}/approve`,
+    REJECT_REQUEST: (id: number) => `/borrowing/requests/${id}/reject`,
+
+    // Transaction Management (Admin)
+    ALL_TRANSACTIONS: "/borrowing/transactions",
+    CHECKIN: (id: number) => `/borrowing/borrows/${id}/checkin`,
+    RECORD_PAYMENT: (id: number) =>
+      `/borrowing/transactions/${id}/record-payment`,
+    MARK_OVERDUE: "/borrowing/transactions/mark-overdue",
+  },
+
+  // Borrowing Dashboard (Admin)
+  BORROW_DASHBOARD: {
+    OVERVIEW: "/dashboard/borrow/overview",
+    TRENDS: "/dashboard/borrow/trends",
+    TOP_ITEMS: "/dashboard/borrow/top-items",
+    TOP_USERS: "/dashboard/borrow/top-users",
+    CATEGORIES: "/dashboard/borrow/categories",
+    AUDIT_LOGS: "/dashboard/borrow/audit-logs",
+  },
 } as const;
 
 export const HTTP_STATUS = {

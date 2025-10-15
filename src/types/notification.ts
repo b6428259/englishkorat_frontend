@@ -47,6 +47,15 @@ export interface Notification {
 
   // Actionable notification data - updated to match new WebSocket patterns
   data?: {
+    // Notification type identifier (for routing and handling)
+    type?:
+      | "borrow_request_approved"
+      | "borrow_request_rejected"
+      | "borrow_due_soon"
+      | "borrow_overdue"
+      | "borrow_fees_due"
+      | "pending_pickup_reminder"
+      | string; // Allow other custom types
     // Link for API calls (required for actionable notifications)
     link?: {
       method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -61,6 +70,19 @@ export interface Notification {
       | "review-schedule" // Teacher assigned to new class - show review sessions
       | "open-today-schedule" // Daily schedule reminder - show today view
       | string; // Allow other custom actions
+    // Borrowing system data fields
+    request_id?: number;
+    item_id?: number;
+    transaction_id?: number;
+    days_overdue?: number;
+    late_fee?: number;
+    damage_fee?: number;
+    total_fee?: number;
+    due_date?: string;
+    deadline?: string;
+    days_past_pickup?: number;
+    reason?: string;
+    late_days?: number;
     // Session/Schedule IDs for direct reference
     session_id?: number;
     schedule_id?: number;

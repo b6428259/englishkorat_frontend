@@ -128,7 +128,7 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
         style={{ paddingTop: "max(env(safe-area-inset-top), 0.6rem)" }}
       >
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-lg font-bold text-gray-900 tracking-tight sm:text-xl md:text-2xl">
+          <h1 className="truncate text-lg font-bold text-gray-900 tracking-tight sm:text-xl md:text-2xl z-50">
             {t.englishKorat}
           </h1>
         </div>

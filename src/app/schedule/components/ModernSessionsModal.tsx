@@ -13,6 +13,8 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { branchService } from "@/services/api/branches";
+import { userService } from "@/services/user.service";
 import {
   BookOpenIcon,
   CalendarIcon,
@@ -103,6 +105,16 @@ export function ModernSessionsModal({
   const { language } = useLanguage();
   const [activeTab, setActiveTab] = useState("basic");
 
+  // Branch and Group states
+  const [branches, setBranches] = useState<
+    Array<{ id: number; name_th: string; name_en: string }>
+  >([]);
+  const [selectedBranchId, setSelectedBranchId] = useState<number | null>(null);
+  const [availableStudents, setAvailableStudents] = useState<Student[]>([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [studentSearch, setStudentSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
   // Internal form state
   const [internalForm, setInternalForm] = useState<CreateSessionsForm>({
     schedule_id: selectedScheduleId || "",
@@ -144,6 +156,92 @@ export function ModernSessionsModal({
       setInternalForm((prev) => ({ ...prev, ...externalForm }));
     }
   }, [externalForm, externalUpdate, isOpen]);
+
+  // Debounce search input (500ms delay)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(studentSearch);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [studentSearch]);
+
+  // Load branches on mount
+  useEffect(() => {
+    const loadBranches = async () => {
+      try {
+        const branchesData = await branchService.getActiveBranches();
+        setBranches(branchesData);
+        // Auto-select first branch if available
+        if (branchesData.length > 0 && !selectedBranchId) {
+          setSelectedBranchId(branchesData[0].id);
+        }
+      } catch (error) {
+        console.error("Error loading branches:", error);
+      }
+    };
+    if (isOpen) {
+      loadBranches();
+    }
+  }, [isOpen, selectedBranchId]);
+
+  // Load students without group when branch is selected
+  useEffect(() => {
+    const loadStudents = async () => {
+      if (!selectedBranchId) {
+        setAvailableStudents([]);
+        return;
+      }
+
+      setLoadingStudents(true);
+      try {
+        // Use new API: /api/users/without-group?role=student&branch_id=1&search=
+        const response = await userService.getUsersWithoutGroup({
+          role: "student",
+          branch_id: selectedBranchId,
+          search: debouncedSearch || undefined,
+        });
+
+        // Map users to Student format based on actual API response
+        const mappedStudents: Student[] = (response.users || []).map((user) => {
+          // Extract student data from nested student object
+          const studentData = user.student;
+          const firstName =
+            studentData?.first_name || studentData?.first_name_en || "";
+          const lastName =
+            studentData?.last_name || studentData?.last_name_en || "";
+          const nickname =
+            studentData?.nickname_en || studentData?.nickname_th || "";
+
+          // Construct display name
+          let displayName = `${firstName} ${lastName}`.trim();
+          if (!displayName) {
+            displayName = user.username || "";
+          }
+          if (nickname) {
+            displayName += ` (${nickname})`;
+          }
+
+          return {
+            id: user.id.toString(),
+            name: displayName,
+            email: user.email || "",
+          };
+        });
+
+        setAvailableStudents(mappedStudents);
+      } catch (error) {
+        console.error("Error loading students:", error);
+        setAvailableStudents([]);
+      } finally {
+        setLoadingStudents(false);
+      }
+    };
+
+    if (isOpen && selectedBranchId) {
+      loadStudents();
+    }
+  }, [isOpen, selectedBranchId, debouncedSearch]);
 
   // Ensure date-only strings are converted to full RFC3339 timestamps
   const ensureDateTime = useCallback((d?: string | null) => {
@@ -613,44 +711,124 @@ export function ModernSessionsModal({
                   {language === "th" ? "เลือกนักเรียน" : "Select Students"}
                 </h3>
 
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {students.map((student) => (
-                      <div
-                        key={student.id}
-                        className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                          sessionForm.student_ids.includes(student.id)
-                            ? "border-indigo-500 bg-indigo-50"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
-                        onClick={() => {
-                          const isSelected = sessionForm.student_ids.includes(
-                            student.id
-                          );
-                          const newStudentIds = isSelected
-                            ? sessionForm.student_ids.filter(
-                                (id) => id !== student.id
-                              )
-                            : [...sessionForm.student_ids, student.id];
-                          updateForm({ student_ids: newStudentIds });
-                        }}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-medium text-gray-900">
-                              {student.name}
-                            </h4>
-                            <p className="text-sm text-gray-600">
-                              {student.email}
-                            </p>
-                          </div>
-                          {sessionForm.student_ids.includes(student.id) && (
-                            <CheckCircleIcon className="h-5 w-5 text-indigo-600" />
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                <div className="space-y-6">
+                  {/* Branch Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-black mb-2">
+                      {language === "th" ? "สาขา *" : "Branch *"}
+                    </label>
+                    <select
+                      value={selectedBranchId || ""}
+                      onChange={(e) =>
+                        setSelectedBranchId(Number(e.target.value))
+                      }
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    >
+                      <option value="">
+                        {language === "th" ? "เลือกสาขา" : "Select Branch"}
+                      </option>
+                      {branches.map((branch) => (
+                        <option key={branch.id} value={branch.id}>
+                          {language === "th" ? branch.name_th : branch.name_en}
+                        </option>
+                      ))}
+                    </select>
                   </div>
+
+                  {/* Search Students */}
+                  {selectedBranchId && (
+                    <div>
+                      <label className="block text-sm font-medium text-black mb-2">
+                        {language === "th"
+                          ? "ค้นหานักเรียน"
+                          : "Search Students"}
+                      </label>
+                      <input
+                        type="text"
+                        value={studentSearch}
+                        onChange={(e) => setStudentSearch(e.target.value)}
+                        placeholder={
+                          language === "th"
+                            ? "ค้นหาชื่อนักเรียน..."
+                            : "Search student name..."
+                        }
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        {language === "th"
+                          ? "แสดงเฉพาะนักเรียนที่ยังไม่มีกลุ่ม"
+                          : "Showing only students without a group"}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Students Grid */}
+                  {loadingStudents ? (
+                    <div className="text-center py-12">
+                      <LoadingSpinner size="md" />
+                      <p className="text-gray-500 mt-2">
+                        {language === "th"
+                          ? "กำลังโหลดนักเรียน..."
+                          : "Loading students..."}
+                      </p>
+                    </div>
+                  ) : !selectedBranchId ? (
+                    <div className="text-center py-12 text-gray-500">
+                      <UsersIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                      <p>
+                        {language === "th"
+                          ? "กรุณาเลือกสาขาเพื่อดูนักเรียน"
+                          : "Please select a branch to view students"}
+                      </p>
+                    </div>
+                  ) : availableStudents.length === 0 ? (
+                    <div className="text-center py-12 text-gray-500">
+                      <UsersIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                      <p>
+                        {language === "th"
+                          ? "ไม่พบนักเรียนที่ยังไม่มีกลุ่ม"
+                          : "No students without group found"}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {availableStudents.map((student) => (
+                        <div
+                          key={student.id}
+                          className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                            sessionForm.student_ids.includes(student.id)
+                              ? "border-indigo-500 bg-indigo-50"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
+                          onClick={() => {
+                            const isSelected = sessionForm.student_ids.includes(
+                              student.id
+                            );
+                            const newStudentIds = isSelected
+                              ? sessionForm.student_ids.filter(
+                                  (id) => id !== student.id
+                                )
+                              : [...sessionForm.student_ids, student.id];
+                            updateForm({ student_ids: newStudentIds });
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-medium text-gray-900">
+                                {student.name}
+                              </h4>
+                              <p className="text-sm text-gray-600">
+                                {student.email}
+                              </p>
+                            </div>
+                            {sessionForm.student_ids.includes(student.id) && (
+                              <CheckCircleIcon className="h-5 w-5 text-indigo-600" />
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {sessionForm.student_ids.length > 0 && (
                     <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">

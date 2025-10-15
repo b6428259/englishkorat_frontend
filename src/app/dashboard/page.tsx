@@ -1,5 +1,6 @@
 "use client";
 
+import { BorrowingDashboard } from "@/components/borrowing";
 import { RoleGuard } from "@/components/common/RoleGuard";
 import { getAvatarUrl } from "@/utils/config";
 import { validateImageUrl } from "@/utils/validateImageUrl";
@@ -542,6 +543,11 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+
+          {/* Borrowing System Dashboard - Admin/Owner Only */}
+          <RoleGuard minRole="admin">
+            <BorrowingDashboard />
+          </RoleGuard>
         </div>
       </SidebarLayout>
     </ProtectedRoute>

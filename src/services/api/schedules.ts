@@ -29,20 +29,37 @@ export const SCHEDULE_ENDPOINTS_EXTENDED = {
   PREVIEW: "/schedules/preview",
 } as const;
 // Session detail response interfaces
+export interface TeacherProfile {
+  active: boolean;
+  branch_id: number;
+  certifications: string | null;
+  first_name_en: string;
+  first_name_th: string;
+  hourly_rate: number;
+  last_name_en: string;
+  last_name_th: string;
+  nationality: string;
+  nickname_en: string;
+  nickname_th: string;
+  specializations: string | null;
+  teacher_type: string;
+}
+
 export interface SessionDetailUser {
   id: number;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
   username: string;
-  email: string;
+  email: string | null;
   phone: string;
   line_id: string;
   role: string;
   branch_id: number;
   status: string;
   avatar: string;
-  branch: {
+  teacher_profile?: TeacherProfile;
+  branch?: {
     id: number;
     created_at?: string;
     updated_at?: string;
@@ -166,14 +183,59 @@ export interface CreateSessionCommentRequest {
 }
 
 // New API response structure for session detail
-export interface SessionDetailGroupMember {
-  student_id: number;
-  user_id: number;
-  username: string;
+export interface StudentDetailInSession {
+  id: number;
+  age: number;
+  age_group: string;
+  cefr_level: string;
+  date_of_birth: string | null;
+  deposit_amount: number;
+  email: string;
   first_name: string;
   first_name_en: string;
+  gender: string;
+  grammar_score: number | null;
+  language_level: string;
   last_name: string;
   last_name_en: string;
+  learning_goals: string;
+  learning_style: string;
+  line_id: string;
+  listening_score: number | null;
+  nickname_en: string;
+  nickname_th: string;
+  payment_status: string;
+  phone: string;
+  preferred_branch_id: number | null;
+  preferred_language: string;
+  reading_score: number | null;
+  recent_cefr: string;
+  registration_status: string;
+  registration_type: string;
+  speaking_score: number | null;
+  teacher_type: string;
+  user_id: number;
+  writing_score: number | null;
+  user?: {
+    avatar: string;
+    branch_id: number;
+    email: string | null;
+    id: number;
+    phone: string;
+    role: string;
+    status: string;
+    username: string;
+  };
+  user_branch?: {
+    code: string;
+    id: number;
+    name_en: string;
+    name_th: string;
+  };
+}
+
+export interface SessionDetailGroupMember {
+  student: StudentDetailInSession;
   payment_status: string;
   status: string;
 }
@@ -211,10 +273,15 @@ export interface SessionDetailSession {
   } | null;
 }
 
+export interface SessionDetailSessionExtended extends SessionDetailSession {
+  assigned_teacher_id?: number;
+  assigned_teacher?: SessionDetailUser;
+}
+
 export interface SessionDetailResponse {
   comments: SessionComment[];
   group: SessionDetailGroup | null;
-  session: SessionDetailSession;
+  session: SessionDetailSessionExtended;
   students: SessionDetailGroupMember[];
 }
 
@@ -975,7 +1042,8 @@ export const scheduleService = {
     const mapped: TeacherOption[] = Array.isArray(raw)
       ? raw.map((t: RawTeacherResponse) => {
           // Support both legacy flat fields and new nested { name, user } shape
-          const id = t.id ?? t.user?.id;
+          // IMPORTANT: Use user_id (not teacher.id) as this is what the API expects
+          const id = t.user_id ?? t.user?.id ?? t.id;
           const first = t.name?.first_en ?? t.first_name_en ?? "";
           const last = t.name?.last_en ?? t.last_name_en ?? "";
           const nickname = t.name?.nickname_en ?? t.nickname_en ?? "";

@@ -19,6 +19,7 @@ interface ScheduleModalWrapperProps {
   courses: Course[];
   rooms: Room[];
   teachers: TeacherOption[];
+  scheduleForm?: Partial<CreateScheduleRequest>;
   isLoading?: boolean;
   error?: string | null;
 }
@@ -39,6 +40,7 @@ export default function ScheduleModalWrapper({
   courses,
   rooms,
   teachers,
+  scheduleForm,
   isLoading = false,
   error,
 }: ScheduleModalWrapperProps) {
@@ -123,6 +125,7 @@ export default function ScheduleModalWrapper({
         courses={courses}
         rooms={rooms}
         teachers={teachers}
+        scheduleForm={scheduleForm}
         isLoading={isLoading}
         error={error}
       />

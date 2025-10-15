@@ -52,6 +52,7 @@ interface ClassScheduleModalProps {
   courses: Course[];
   rooms: Room[];
   teachers: TeacherOption[];
+  scheduleForm?: Partial<CreateScheduleRequest>;
   isLoading?: boolean;
   error?: string | null;
 }
@@ -64,6 +65,7 @@ export default function ClassScheduleModal({
   courses,
   rooms,
   teachers,
+  scheduleForm: initialScheduleForm,
   isLoading = false,
   error,
 }: ClassScheduleModalProps) {
@@ -359,6 +361,17 @@ export default function ClassScheduleModal({
     };
     loadBranches();
   }, []);
+
+  // Prefill form when initialScheduleForm is provided
+  useEffect(() => {
+    if (isOpen && initialScheduleForm) {
+      console.log("🔧 Prefilling form with:", initialScheduleForm);
+      setScheduleForm((prev) => ({
+        ...prev,
+        ...initialScheduleForm,
+      }));
+    }
+  }, [isOpen, initialScheduleForm]);
 
   // Load filtered groups when branch is selected
   useEffect(() => {
@@ -1360,59 +1373,67 @@ export default function ClassScheduleModal({
                     {/* Room Selection Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {rooms
-  .filter((room) => {
-    if (!selectedBranchId) return true;
-    return room.branch_id === selectedBranchId;
-  })
-  .map((room) => {
-    const isSelected = selectedRoomId === room.id;
-    const roomConflictInfo = roomConflicts?.rooms.find(
-      (r) => r.room_id === room.id
-    );
-    const hasConflict =
-      roomConflictInfo && roomConflictInfo.conflicts.length > 0;
+                        .filter((room) => {
+                          if (!selectedBranchId) return true;
+                          return room.branch_id === selectedBranchId;
+                        })
+                        .map((room) => {
+                          const isSelected = selectedRoomId === room.id;
+                          const roomConflictInfo = roomConflicts?.rooms.find(
+                            (r) => r.room_id === room.id
+                          );
+                          const hasConflict =
+                            roomConflictInfo &&
+                            roomConflictInfo.conflicts.length > 0;
 
-    // ✅ Logic แนะนำห้องใหม่
-    const groupSize = selectedGroup?.max_students || 0;
-    const branchId = selectedBranchId;
+                          // ✅ Logic แนะนำห้องใหม่
+                          const groupSize = selectedGroup?.max_students || 0;
+                          const branchId = selectedBranchId;
 
-    let isRecommended = false;
+                          let isRecommended = false;
 
-    // Safely detect "zoom_pro" support: equipment might be an array, a string, or an object
-    const hasZoom =
-      Array.isArray(room.equipment)
-        ? room.equipment.some((e) =>
-            String(e).toLowerCase().includes("zoom_pro")
-          )
-        : typeof room.equipment === "string"
-        ? room.equipment.toLowerCase().includes("zoom_pro")
-        : false;
+                          // Safely detect "zoom_pro" support: equipment might be an array, a string, or an object
+                          const hasZoom = Array.isArray(room.equipment)
+                            ? room.equipment.some((e) =>
+                                String(e).toLowerCase().includes("zoom_pro")
+                              )
+                            : typeof room.equipment === "string"
+                            ? room.equipment.toLowerCase().includes("zoom_pro")
+                            : false;
 
-    if (branchId === 3) {
-  // 🔹 สาขาออนไลน์ → แนะนำเฉพาะห้องที่ชื่อหรืออุปกรณ์เกี่ยวกับ Online
-  isRecommended =
-    room.room_name.toLowerCase().includes("online") ||
-    hasZoom;
-} else {
-  // 🔹 สาขาปกติ → แนะนำตามจำนวนคน แต่ไม่ห้องที่เล็กเกินไป
-  if (groupSize > 0) {
-    if (groupSize <= 2) {
-      isRecommended = room.capacity >= groupSize && room.capacity <= 4;
-    } else if (groupSize <= 6) {
-      isRecommended = room.capacity >= groupSize && room.capacity <= 6;
-    } else if (groupSize <= 10) {
-      isRecommended = room.capacity >= groupSize && room.capacity <= 10;
-    } else {
-      isRecommended = room.capacity >= groupSize; // กลุ่มใหญ่พิเศษ
-    }
-  }
-}
+                          if (branchId === 3) {
+                            // 🔹 สาขาออนไลน์ → แนะนำเฉพาะห้องที่ชื่อหรืออุปกรณ์เกี่ยวกับ Online
+                            isRecommended =
+                              room.room_name.toLowerCase().includes("online") ||
+                              hasZoom;
+                          } else {
+                            // 🔹 สาขาปกติ → แนะนำตามจำนวนคน แต่ไม่ห้องที่เล็กเกินไป
+                            if (groupSize > 0) {
+                              if (groupSize <= 2) {
+                                isRecommended =
+                                  room.capacity >= groupSize &&
+                                  room.capacity <= 4;
+                              } else if (groupSize <= 6) {
+                                isRecommended =
+                                  room.capacity >= groupSize &&
+                                  room.capacity <= 6;
+                              } else if (groupSize <= 10) {
+                                isRecommended =
+                                  room.capacity >= groupSize &&
+                                  room.capacity <= 10;
+                              } else {
+                                isRecommended = room.capacity >= groupSize; // กลุ่มใหญ่พิเศษ
+                              }
+                            }
+                          }
 
-    return (
-      <div
-        key={room.id}
-        onClick={() => setSelectedRoomId(isSelected ? null : room.id)}
-        className={`
+                          return (
+                            <div
+                              key={room.id}
+                              onClick={() =>
+                                setSelectedRoomId(isSelected ? null : room.id)
+                              }
+                              className={`
           relative p-4 rounded-lg border-2 cursor-pointer transition-all
           ${
             isSelected
@@ -1421,37 +1442,41 @@ export default function ClassScheduleModal({
           }
           ${hasConflict ? "border-red-300 bg-red-50" : ""}
         `}
-      >
-        {/* ✅ ป้ายแนะนำ */}
-        {isRecommended && !hasConflict && (
-          <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full shadow-md">
-            {language === "th" ? "แนะนำ" : "Recommended"}
-          </div>
-        )}
+                            >
+                              {/* ✅ ป้ายแนะนำ */}
+                              {isRecommended && !hasConflict && (
+                                <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full shadow-md">
+                                  {language === "th" ? "แนะนำ" : "Recommended"}
+                                </div>
+                              )}
 
-        <div className="font-semibold text-gray-900">{room.room_name}</div>
-        <div className="text-sm text-gray-600 mt-1">
-          {language === "th" ? "ความจุ" : "Capacity"}: {room.capacity}{" "}
-          {language === "th" ? "คน" : "people"}
-        </div>
+                              <div className="font-semibold text-gray-900">
+                                {room.room_name}
+                              </div>
+                              <div className="text-sm text-gray-600 mt-1">
+                                {language === "th" ? "ความจุ" : "Capacity"}:{" "}
+                                {room.capacity}{" "}
+                                {language === "th" ? "คน" : "people"}
+                              </div>
 
-        {hasConflict && (
-          <div className="mt-2 text-xs text-red-600">
-            ⚠️{" "}
-            {language === "th" ? "ตารางชน" : "Has conflicts"} (
-            {roomConflictInfo.conflicts.length})
-          </div>
-        )}
+                              {hasConflict && (
+                                <div className="mt-2 text-xs text-red-600">
+                                  ⚠️{" "}
+                                  {language === "th"
+                                    ? "ตารางชน"
+                                    : "Has conflicts"}{" "}
+                                  ({roomConflictInfo.conflicts.length})
+                                </div>
+                              )}
 
-        {isSelected && (
-          <div className="absolute top-2 right-2">
-            <CheckCircleIcon className="h-5 w-5 text-indigo-500" />
-          </div>
-        )}
-      </div>
-    );
-  })}
-
+                              {isSelected && (
+                                <div className="absolute top-2 right-2">
+                                  <CheckCircleIcon className="h-5 w-5 text-indigo-500" />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                     </div>
 
                     {/* Conflict Details */}

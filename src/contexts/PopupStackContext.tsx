@@ -1,5 +1,6 @@
 "use client";
 
+import BorrowingUrgentPopup from "@/components/notifications/BorrowingUrgentPopup";
 import ScheduleInvitationPopup from "@/components/notifications/ScheduleInvitationPopup";
 import { Notification } from "@/types/notification";
 import { AnimatePresence, motion } from "framer-motion";
@@ -7,7 +8,7 @@ import React, { createContext, useCallback, useContext, useState } from "react";
 
 interface PopupItem {
   id: string;
-  type: "schedule-invitation" | "general";
+  type: "schedule-invitation" | "borrowing-urgent" | "general";
   notification: Notification & {
     scheduleData?: {
       id: number;
@@ -148,6 +149,36 @@ export function PopupStackProvider({ children }: PopupStackProviderProps) {
               isOpen={true}
               onClose={() => handlePopupClose(popup.id)}
               onConfirm={(status) => handlePopupConfirm(popup.id, status)}
+            />
+          </motion.div>
+        );
+      case "borrowing-urgent":
+        return (
+          <motion.div
+            key={popup.id}
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{
+              opacity: isActive ? 1 : 0.7,
+              scale,
+              y: yOffset,
+              zIndex,
+            }}
+            exit={{ opacity: 0, scale: 0.9, y: -20 }}
+            transition={{ duration: 0.2 }}
+            style={{
+              position: "fixed",
+              top: "50%",
+              left: "50%",
+              transform: `translate(-50%, -50%)`,
+              zIndex,
+              pointerEvents: isActive ? "auto" : "none",
+            }}
+          >
+            <BorrowingUrgentPopup
+              notification={popup.notification}
+              isOpen={true}
+              onClose={() => handlePopupClose(popup.id)}
+              onConfirm={() => handlePopupConfirm(popup.id)}
             />
           </motion.div>
         );
