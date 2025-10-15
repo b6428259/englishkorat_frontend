@@ -714,6 +714,132 @@ export interface Translations {
   // Terms of Service Page
   termsOfServiceTitle: string;
   termsOfServiceDescription: string;
+
+  // Session Cancellation & Makeup
+  sessionCancellation: string;
+  cancelSession: string;
+  cancelSessionTitle: string;
+  cancelSessionConfirm: string;
+  cancellationReason: string;
+  cancellationReasonPlaceholder: string;
+  cancellationReasonRequired: string;
+  cancellationRequested: string;
+  cancellationPending: string;
+  cancellationApproved: string;
+  cancelledSession: string;
+  requestCancellation: string;
+  approveCancellation: string;
+  bulkApproveCancellations: string;
+  cancellationRequests: string;
+  pendingCancellations: string;
+  approvedCancellations: string;
+  recentCancellations: string;
+  cancellationStatus: string;
+  cancellationRate: string;
+  cancellationHistory: string;
+  cancellationRequestedBy: string;
+  requestedAt: string;
+  approvedBy: string;
+  approvedAt: string;
+  daysPending: string;
+  urgentRequest: string;
+  makeupClass: string;
+  makeupClassSession: string;
+  makeupNeeded: string;
+  makeupClassNeeded: string;
+  makeupQuota: string;
+  makeupQuotaRemaining: string;
+  updateMakeupQuota: string;
+  createMakeupClass: string;
+  sessionsNeedingMakeup: string;
+  noMakeupNeeded: string;
+  cancellationDeadline: string;
+  cancellationDeadlineError: string;
+  sessionCancellationPolicy: string;
+  sessionCancellationPolicyDesc: string;
+  withinDeadline: string;
+  pastDeadline: string;
+  cannotCancelWithin24Hours: string;
+  mustRequestBefore24Hours: string;
+  hoursRemaining: string;
+  affectedStudents: string;
+  studentMakeupQuota: string;
+  noQuotaRemaining: string;
+  quotaDeducted: string;
+  quotaUpdated: string;
+  cancellationDashboard: string;
+  cancellationStatistics: string;
+  overallStatistics: string;
+  weeklyTrend: string;
+  topReasons: string;
+  topCancellationReasons: string;
+  teachersWithMostCancellations: string;
+  schedulesWithHighestRate: string;
+  urgentPendingRequests: string;
+  approvalMetrics: string;
+  averageApprovalTime: string;
+  urgentCountOver3Days: string;
+  makeupClassStatus: string;
+  pendingMakeupCreation: string;
+  viewAllRequests: string;
+  filterByStatus: string;
+  allCancellations: string;
+  selectSessions: string;
+  selectedSessions: string;
+  approveSelected: string;
+  cancelSelection: string;
+  noCancellationRequests: string;
+  noPendingRequests: string;
+  sessionDetailsView: string;
+  awaitingApproval: string;
+  waitingForAdminApproval: string;
+  approvalRequired: string;
+  cancellationSuccess: string;
+  cancellationFailed: string;
+  approvalSuccess: string;
+  approvalFailed: string;
+  bulkApprovalSuccess: string;
+  bulkApprovalPartial: string;
+  makeupCreationSuccess: string;
+  makeupCreationFailed: string;
+  quotaUpdateSuccess: string;
+  quotaUpdateFailed: string;
+
+  // Pending Cancellations Page (unique keys only)
+  approveCancellationRequestsTitle: string;
+  approveCancellationRequestsSubtitle: string;
+  searchByTeacherOrStudent: string;
+  deselectAll: string;
+  selectAll: string;
+  selectedItemsCount: string;
+  approveSelectedItems: string;
+  noPendingCancellationsTitle: string;
+  noPendingCancellationsDesc: string;
+  lessThan24Hours: string;
+  unauthorized: string;
+  approvedCount: string;
+  failedCount: string;
+  loading: string;
+  session: string;
+  viewReason: string;
+  page: string;
+  of: string;
+  previous: string;
+  next: string;
+
+  // Makeup Needed Page (unique keys only)
+  makeupSessionsNeededTitle: string;
+  makeupSessionsNeededSubtitle: string;
+  searchByGroupCourseReason: string;
+  noMakeupNeededTitle: string;
+  noMakeupNeededDesc: string;
+  cancelledDate: string;
+  originalSessionDate: string;
+  goToSchedule: string;
+  sessionInfo: string;
+  scheduleId: string;
+  sessionId: string;
+  cancelledAt: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -1482,6 +1608,137 @@ export const translations: Record<Language, Translations> = {
     termsOfServiceTitle: "ข้อกำหนดการใช้งาน",
     termsOfServiceDescription:
       "ข้อกำหนดและเงื่อนไขการใช้บริการของ English Korat",
+
+    // Session Cancellation & Makeup
+    sessionCancellation: "การยกเลิกคาบเรียน",
+    cancelSession: "ยกเลิกคาบเรียน",
+    cancelSessionTitle: "ยกเลิกคาบเรียนนี้หรือไม่?",
+    cancelSessionConfirm: "ยืนยันการยกเลิก",
+    cancellationReason: "เหตุผลในการยกเลิก",
+    cancellationReasonPlaceholder: "กรุณาระบุเหตุผลในการยกเลิกคาบเรียน...",
+    cancellationReasonRequired: "จำเป็นต้องระบุเหตุผล",
+    cancellationRequested: "ขอยกเลิกแล้ว",
+    cancellationPending: "รออนุมัติการยกเลิก",
+    cancellationApproved: "อนุมัติการยกเลิกแล้ว",
+    cancelledSession: "คาบเรียนที่ยกเลิก",
+    requestCancellation: "ขอยกเลิก",
+    approveCancellation: "อนุมัติการยกเลิก",
+    bulkApproveCancellations: "อนุมัติหลายรายการ",
+    cancellationRequests: "คำขอยกเลิก",
+    pendingCancellations: "รอการอนุมัติ",
+    approvedCancellations: "อนุมัติแล้ว",
+    recentCancellations: "การยกเลิกล่าสุด",
+    cancellationStatus: "สถานะการยกเลิก",
+    cancellationRate: "อัตราการยกเลิก",
+    cancellationHistory: "ประวัติการยกเลิก",
+    cancellationRequestedBy: "ขอโดย",
+    requestedAt: "ขอเมื่อ",
+    approvedBy: "อนุมัติโดย",
+    approvedAt: "อนุมัติเมื่อ",
+    daysPending: "รอนานกี่วัน",
+    urgentRequest: "ด่วน",
+    makeupClass: "คาบชดเชย",
+    makeupClassSession: "คาบเรียนชดเชย",
+    makeupNeeded: "ต้องชดเชย",
+    makeupClassNeeded: "ต้องสร้างคาบชดเชย",
+    makeupQuota: "โควต้าชดเชย",
+    makeupQuotaRemaining: "โควต้าชดเชยคงเหลือ",
+    updateMakeupQuota: "อัปเดตโควต้าชดเชย",
+    createMakeupClass: "สร้างคาบชดเชย",
+    sessionsNeedingMakeup: "คาบที่ต้องชดเชย",
+    noMakeupNeeded: "ไม่มีคาบที่ต้องชดเชย",
+    cancellationDeadline: "กำหนดเวลายกเลิก",
+    cancellationDeadlineError: "เลยกำหนดเวลายกเลิก",
+    sessionCancellationPolicy: "นโยบายการยกเลิกคาบเรียน",
+    sessionCancellationPolicyDesc:
+      "ต้องขอยกเลิกก่อนคาบเรียนอย่างน้อย 24 ชั่วโมง",
+    withinDeadline: "อยู่ในกำหนด",
+    pastDeadline: "เลยกำหนด",
+    cannotCancelWithin24Hours: "ไม่สามารถยกเลิกภายใน 24 ชั่วโมง",
+    mustRequestBefore24Hours: "ต้องขอยกเลิกก่อน 24 ชั่วโมง",
+    hoursRemaining: "ชั่วโมงที่เหลือ",
+    affectedStudents: "นักเรียนที่ได้รับผลกระทบ",
+    studentMakeupQuota: "โควต้าชดเชยของนักเรียน",
+    noQuotaRemaining: "ไม่มีโควต้าชดเชยเหลือ",
+    quotaDeducted: "หักโควต้าแล้ว",
+    quotaUpdated: "อัปเดตโควต้าแล้ว",
+    cancellationDashboard: "แดชบอร์ดการยกเลิก",
+    cancellationStatistics: "สถิติการยกเลิก",
+    overallStatistics: "สถิติรวม",
+    weeklyTrend: "แนวโน้มรายสัปดาห์",
+    topReasons: "เหตุผลหลัก",
+    topCancellationReasons: "เหตุผลยกเลิกหลัก",
+    teachersWithMostCancellations: "ครูที่ยกเลิกมากที่สุด",
+    schedulesWithHighestRate: "ตารางที่มีอัตราการยกเลิกสูงสุด",
+    urgentPendingRequests: "คำขอด่วนที่รออนุมัติ",
+    approvalMetrics: "ตัวชี้วัดการอนุมัติ",
+    averageApprovalTime: "เวลาอนุมัติเฉลี่ย",
+    urgentCountOver3Days: "คำขอที่รอเกิน 3 วัน",
+    makeupClassStatus: "สถานะคาบชดเชย",
+    pendingMakeupCreation: "รอสร้างคาบชดเชย",
+    viewAllRequests: "ดูคำขอทั้งหมด",
+    filterByStatus: "กรองตามสถานะ",
+    allCancellations: "ทั้งหมด",
+    selectSessions: "เลือกคาบเรียน",
+    selectedSessions: "คาบที่เลือก",
+    approveSelected: "อนุมัติที่เลือก",
+    cancelSelection: "ยกเลิกการเลือก",
+    noCancellationRequests: "ไม่มีคำขอยกเลิก",
+    noPendingRequests: "ไม่มีคำขอที่รออนุมัติ",
+    sessionDetailsView: "รายละเอียดคาบเรียน",
+    awaitingApproval: "รออนุมัติ",
+    waitingForAdminApproval: "กำลังรอแอดมินอนุมัติ",
+    approvalRequired: "ต้องการการอนุมัติ",
+    cancellationSuccess: "ยกเลิกสำเร็จ",
+    cancellationFailed: "ยกเลิกไม่สำเร็จ",
+    approvalSuccess: "อนุมัติสำเร็จ",
+    approvalFailed: "อนุมัติไม่สำเร็จ",
+    bulkApprovalSuccess: "อนุมัติหลายรายการสำเร็จ",
+    bulkApprovalPartial: "อนุมัติบางรายการสำเร็จ",
+    makeupCreationSuccess: "สร้างคาบชดเชยสำเร็จ",
+    makeupCreationFailed: "สร้างคาบชดเชยไม่สำเร็จ",
+    quotaUpdateSuccess: "อัปเดตโควต้าสำเร็จ",
+    quotaUpdateFailed: "อัปเดตโควต้าไม่สำเร็จ",
+
+    // Pending Cancellations Page
+    approveCancellationRequestsTitle: "อนุมัติคำขอยกเลิกคาบเรียน",
+    approveCancellationRequestsSubtitle:
+      "จัดการคำขอยกเลิกคาบเรียนที่รอการอนุมัติ",
+    searchByTeacherOrStudent: "ค้นหาด้วยชื่อครู หรือนักเรียน...",
+    deselectAll: "ยกเลิกทั้งหมด",
+    selectAll: "เลือกทั้งหมด",
+    selectedItemsCount: "เลือกแล้ว",
+    approveSelectedItems: "อนุมัติที่เลือก",
+    noPendingCancellationsTitle: "ไม่มีคำขอยกเลิกที่รอการอนุมัติ",
+    noPendingCancellationsDesc:
+      "ไม่มีคำขอยกเลิกคาบเรียนที่รอการอนุมัติในขณะนี้",
+    lessThan24Hours: "น้อยกว่า 24 ชั่วโมง",
+    unauthorized: "คุณไม่มีสิทธิ์เข้าถึงหน้านี้",
+    approvedCount: "อนุมัติ",
+    failedCount: "ล้มเหลว",
+    loading: "กำลังโหลดข้อมูล...",
+    session: "คาบเรียน",
+    viewReason: "ดูเหตุผล",
+    page: "หน้า",
+    of: "จาก",
+    previous: "ก่อนหน้า",
+    next: "ถัดไป",
+
+    // Makeup Needed Page
+    makeupSessionsNeededTitle: "คาบเรียนที่ต้องทำ Makeup",
+    makeupSessionsNeededSubtitle:
+      "รายการคาบเรียนที่ยกเลิกและต้องจัด Makeup Class",
+    searchByGroupCourseReason: "ค้นหาด้วยชื่อกลุ่ม, คอร์ส, หรือเหตุผล...",
+    noMakeupNeededTitle: "ไม่มีคาบเรียนที่ต้องทำ Makeup",
+    noMakeupNeededDesc:
+      "ยังไม่มีคาบเรียนที่ยกเลิกและต้องจัด Makeup Class ในขณะนี้",
+    cancelledDate: "วันที่ยกเลิก",
+    originalSessionDate: "วันที่คาบเรียนเดิม",
+    goToSchedule: "ไปที่ตารางเรียน",
+    sessionInfo: "ข้อมูลคาบเรียน",
+    scheduleId: "Schedule ID",
+    sessionId: "Session ID",
+    cancelledAt: "ยกเลิกเมื่อ",
   },
 
   en: {
@@ -2252,5 +2509,137 @@ export const translations: Record<Language, Translations> = {
     termsOfServiceTitle: "Terms of Service",
     termsOfServiceDescription:
       "Terms and conditions for using English Korat services",
+
+    // Session Cancellation & Makeup
+    sessionCancellation: "Session Cancellation",
+    cancelSession: "Cancel Session",
+    cancelSessionTitle: "Cancel this session?",
+    cancelSessionConfirm: "Confirm Cancellation",
+    cancellationReason: "Cancellation Reason",
+    cancellationReasonPlaceholder:
+      "Please provide a reason for cancellation...",
+    cancellationReasonRequired: "Reason is required",
+    cancellationRequested: "Cancellation Requested",
+    cancellationPending: "Pending Cancellation",
+    cancellationApproved: "Cancellation Approved",
+    cancelledSession: "Cancelled Session",
+    requestCancellation: "Request Cancellation",
+    approveCancellation: "Approve Cancellation",
+    bulkApproveCancellations: "Bulk Approve",
+    cancellationRequests: "Cancellation Requests",
+    pendingCancellations: "Pending Approvals",
+    approvedCancellations: "Approved",
+    recentCancellations: "Recent Cancellations",
+    cancellationStatus: "Cancellation Status",
+    cancellationRate: "Cancellation Rate",
+    cancellationHistory: "Cancellation History",
+    cancellationRequestedBy: "Requested By",
+    requestedAt: "Requested At",
+    approvedBy: "Approved By",
+    approvedAt: "Approved At",
+    daysPending: "Days Pending",
+    urgentRequest: "Urgent",
+    makeupClass: "Makeup Class",
+    makeupClassSession: "Makeup Session",
+    makeupNeeded: "Makeup Needed",
+    makeupClassNeeded: "Makeup Class Required",
+    makeupQuota: "Makeup Quota",
+    makeupQuotaRemaining: "Makeup Quota Remaining",
+    updateMakeupQuota: "Update Makeup Quota",
+    createMakeupClass: "Create Makeup Session",
+    sessionsNeedingMakeup: "Sessions Needing Makeup",
+    noMakeupNeeded: "No Makeup Needed",
+    cancellationDeadline: "Cancellation Deadline",
+    cancellationDeadlineError: "Past Deadline",
+    sessionCancellationPolicy: "Cancellation Policy",
+    sessionCancellationPolicyDesc:
+      "Must request cancellation at least 24 hours before class",
+    withinDeadline: "Within Deadline",
+    pastDeadline: "Past Deadline",
+    cannotCancelWithin24Hours: "Cannot cancel within 24 hours",
+    mustRequestBefore24Hours: "Must request before 24 hours",
+    hoursRemaining: "Hours Remaining",
+    affectedStudents: "Affected Students",
+    studentMakeupQuota: "Student Makeup Quota",
+    noQuotaRemaining: "No Quota Remaining",
+    quotaDeducted: "Quota Deducted",
+    quotaUpdated: "Quota Updated",
+    cancellationDashboard: "Cancellation Dashboard",
+    cancellationStatistics: "Cancellation Statistics",
+    overallStatistics: "Overall Statistics",
+    weeklyTrend: "Weekly Trend",
+    topReasons: "Top Reasons",
+    topCancellationReasons: "Top Cancellation Reasons",
+    teachersWithMostCancellations: "Teachers with Most Cancellations",
+    schedulesWithHighestRate: "Schedules with Highest Rate",
+    urgentPendingRequests: "Urgent Pending Requests",
+    approvalMetrics: "Approval Metrics",
+    averageApprovalTime: "Average Approval Time",
+    urgentCountOver3Days: "Requests Over 3 Days",
+    makeupClassStatus: "Makeup Class Status",
+    pendingMakeupCreation: "Pending Makeup Creation",
+    viewAllRequests: "View All Requests",
+    filterByStatus: "Filter by Status",
+    allCancellations: "All",
+    selectSessions: "Select Sessions",
+    selectedSessions: "Selected",
+    approveSelected: "Approve Selected",
+    cancelSelection: "Cancel Selection",
+    noCancellationRequests: "No Cancellation Requests",
+    noPendingRequests: "No Pending Requests",
+    sessionDetailsView: "Session Details",
+    awaitingApproval: "Awaiting Approval",
+    waitingForAdminApproval: "Waiting for Admin Approval",
+    approvalRequired: "Approval Required",
+    cancellationSuccess: "Cancellation Successful",
+    cancellationFailed: "Cancellation Failed",
+    approvalSuccess: "Approval Successful",
+    approvalFailed: "Approval Failed",
+    bulkApprovalSuccess: "Bulk Approval Successful",
+    bulkApprovalPartial: "Partial Approval",
+    makeupCreationSuccess: "Makeup Session Created",
+    makeupCreationFailed: "Makeup Creation Failed",
+    quotaUpdateSuccess: "Quota Updated Successfully",
+    quotaUpdateFailed: "Quota Update Failed",
+
+    // Pending Cancellations Page
+    approveCancellationRequestsTitle: "Approve Cancellation Requests",
+    approveCancellationRequestsSubtitle:
+      "Manage pending session cancellation requests",
+    searchByTeacherOrStudent: "Search by teacher or student name...",
+    deselectAll: "Deselect All",
+    selectAll: "Select All",
+    selectedItemsCount: "Selected",
+    approveSelectedItems: "Approve Selected",
+    noPendingCancellationsTitle: "No Pending Cancellation Requests",
+    noPendingCancellationsDesc:
+      "There are no pending cancellation requests at this time",
+    lessThan24Hours: "Less than 24h",
+    unauthorized: "You don't have permission to access this page",
+    approvedCount: "Approved",
+    failedCount: "Failed",
+    loading: "Loading data...",
+    session: "Session",
+    viewReason: "View Reason",
+    page: "Page",
+    of: "of",
+    previous: "Previous",
+    next: "Next",
+
+    // Makeup Needed Page
+    makeupSessionsNeededTitle: "Makeup Sessions Needed",
+    makeupSessionsNeededSubtitle:
+      "List of cancelled sessions requiring makeup classes",
+    searchByGroupCourseReason: "Search by group, course, or reason...",
+    noMakeupNeededTitle: "No Makeup Sessions Needed",
+    noMakeupNeededDesc:
+      "There are no cancelled sessions requiring makeup at this time",
+    cancelledDate: "Cancelled Date",
+    originalSessionDate: "Original Session Date",
+    goToSchedule: "Go to Schedule",
+    sessionInfo: "Session Information",
+    scheduleId: "Schedule ID",
+    sessionId: "Session ID",
+    cancelledAt: "Cancelled At",
   },
 };

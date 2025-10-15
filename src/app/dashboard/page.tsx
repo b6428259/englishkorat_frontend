@@ -2,6 +2,7 @@
 
 import { BorrowingDashboard } from "@/components/borrowing";
 import { RoleGuard } from "@/components/common/RoleGuard";
+import CancellationStatsWidget from "@/components/dashboard/CancellationStatsWidget";
 import { getAvatarUrl } from "@/utils/config";
 import { validateImageUrl } from "@/utils/validateImageUrl";
 import Image from "next/image";
@@ -543,6 +544,11 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+
+          {/* Session Cancellation Statistics - Admin/Owner Only */}
+          <RoleGuard roles={["admin", "owner"]}>
+            <CancellationStatsWidget />
+          </RoleGuard>
 
           {/* Borrowing System Dashboard - Admin/Owner Only */}
           <RoleGuard minRole="admin">

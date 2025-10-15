@@ -72,20 +72,29 @@ export default function MonthView({
 }: MonthViewProps) {
   const { language } = useLanguage();
 
-  // Generate full month calendar grid starting from day 1 of the month
+  // Generate full month calendar grid with proper calendar alignment
   const generateCalendarGrid = () => {
     const targetDate = new Date(currentDate);
     const year = targetDate.getFullYear();
     const month = targetDate.getMonth();
 
     // First day of the month
-    // const firstDay = new Date(year, month, 1);
+    const firstDay = new Date(year, month, 1);
     // Last day of the month
     const lastDay = new Date(year, month + 1, 0);
 
     const grid = [];
 
-    // Start from day 1 of the month and fill the grid
+    // Get day of week for first day (0=Sunday, 1=Monday, ..., 6=Saturday)
+    // Use Sunday-based index directly (0=Sunday, 1=Monday, ..., 6=Saturday)
+    const firstDayOfWeek = firstDay.getDay();
+
+    // Add empty cells for days before the first day of the month
+    for (let i = 0; i < firstDayOfWeek; i++) {
+      grid.push(null);
+    }
+
+    // Add all days of the current month
     for (let day = 1; day <= lastDay.getDate(); day++) {
       // Use consistent date formatting to avoid timezone issues
       const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(
@@ -111,7 +120,7 @@ export default function MonthView({
       });
     }
 
-    // Pad with empty cells to make complete weeks if needed
+    // Pad with empty cells to complete the last week
     const totalCells = Math.ceil(grid.length / 7) * 7;
     while (grid.length < totalCells) {
       grid.push(null);
@@ -157,11 +166,11 @@ export default function MonthView({
       <div
         className={`grid grid-cols-7 ${gap} p-2 sm:p-3 lg:p-4 pb-1 sm:pb-2 sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-gray-200`}
       >
-        {["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"].map((day, index) => (
+        {["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((day, index) => (
           <div
             key={day}
             className={`text-center font-bold text-xs sm:text-sm py-1.5 sm:py-2 rounded-md sm:rounded-lg tracking-wide ${
-              index === 5 || index === 6
+              index === 0 || index === 6
                 ? "bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700"
                 : "bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700"
             }`}

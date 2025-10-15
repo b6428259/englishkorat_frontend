@@ -121,6 +121,25 @@ export const getSidebarItems = (t: Translations): SidebarItem[] => [
     ],
   },
   {
+    id: "session-cancellations",
+    label: t.sessionCancellation,
+    icon: <HiOutlineBell {...iconProps} />,
+    children: [
+      {
+        id: "cancellations-pending",
+        label: t.pendingCancellations,
+        href: "/dashboard/cancellations/pending",
+        icon: <HiOutlineCog {...iconProps} />,
+      },
+      {
+        id: "makeup-needed",
+        label: t.makeupNeeded,
+        href: "/dashboard/makeup-needed",
+        icon: <HiOutlineDocumentText {...iconProps} />,
+      },
+    ],
+  },
+  {
     id: "dashboard-analytic",
     label: t.analytics,
     href: "/dashboard/analytic",

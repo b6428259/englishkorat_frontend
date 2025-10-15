@@ -2525,3 +2525,160 @@ export const updateSession = async (
     throw new Error(response.data.message || "Failed to update session");
   }
 };
+
+/**
+ * ==========================================
+ * Session Cancellation & Makeup Management
+ * ==========================================
+ */
+
+// Import types
+import type {
+  AllCancellationsResponse,
+  ApproveCancellationResponse,
+  BulkApproveCancellationRequest,
+  BulkApproveCancellationResponse,
+  CancellationRequest,
+  CancellationRequest_AllParams,
+  CancellationRequestResponse,
+  DashboardStatsParams,
+  DashboardStatsResponse,
+  MakeupNeededResponse,
+  ScheduleCancellationStatusResponse,
+  UpdateMakeupQuotaRequest,
+  UpdateMakeupQuotaResponse,
+} from "@/types/session-cancellation.types";
+
+/**
+ * Request cancellation for a session
+ * POST /api/schedules/sessions/:id/cancel-request
+ * Permissions: Teacher or above
+ * Must be >24 hours before class time (Deadline Policy)
+ */
+export const requestSessionCancellation = async (
+  sessionId: number | string,
+  request: CancellationRequest
+): Promise<CancellationRequestResponse> => {
+  const response = await api.post(
+    `/schedules/sessions/${sessionId}/cancel-request`,
+    request
+  );
+  return response.data;
+};
+
+/**
+ * Approve cancellation request (Admin only)
+ * POST /api/schedules/sessions/:id/approve-cancellation
+ * Permissions: Admin, Owner
+ * Deducts makeup quota from affected students
+ */
+export const approveSessionCancellation = async (
+  sessionId: number | string
+): Promise<ApproveCancellationResponse> => {
+  const response = await api.post(
+    `/schedules/sessions/${sessionId}/approve-cancellation`
+  );
+  return response.data;
+};
+
+/**
+ * Bulk approve multiple cancellation requests (Admin only)
+ * POST /api/schedules/cancellations/bulk-approve
+ * Permissions: Admin, Owner
+ * Max 50 sessions per request
+ */
+export const bulkApproveCancellations = async (
+  request: BulkApproveCancellationRequest
+): Promise<BulkApproveCancellationResponse> => {
+  const response = await api.post(
+    `/schedules/cancellations/bulk-approve`,
+    request
+  );
+  return response.data;
+};
+
+/**
+ * Get list of sessions that need makeup classes
+ * GET /api/schedules/sessions/makeup-needed
+ * Permissions: Teacher or above
+ */
+export const getMakeupNeededSessions =
+  async (): Promise<MakeupNeededResponse> => {
+    const response = await api.get(`/schedules/sessions/makeup-needed`);
+    return response.data;
+  };
+
+/**
+ * Get cancellation status for a specific schedule (Admin only)
+ * GET /api/schedules/:id/cancellations/status
+ * Permissions: Admin, Owner
+ */
+export const getScheduleCancellationStatus = async (
+  scheduleId: number | string
+): Promise<ScheduleCancellationStatusResponse> => {
+  const response = await api.get(
+    `/schedules/${scheduleId}/cancellations/status`
+  );
+  return response.data;
+};
+
+/**
+ * Get all cancellation requests (Admin only)
+ * GET /api/schedules/cancellations/all
+ * Permissions: Admin, Owner
+ * Supports filtering and pagination
+ */
+export const getAllCancellations = async (
+  params?: CancellationRequest_AllParams
+): Promise<AllCancellationsResponse> => {
+  const queryParams = new URLSearchParams();
+  if (params) {
+    if (params.status) queryParams.append("status", params.status);
+    if (params.limit) queryParams.append("limit", params.limit.toString());
+    if (params.offset) queryParams.append("offset", params.offset.toString());
+  }
+
+  const url = queryParams.toString()
+    ? `/schedules/cancellations/all?${queryParams}`
+    : `/schedules/cancellations/all`;
+
+  const response = await api.get(url);
+  return response.data;
+};
+
+/**
+ * Get dashboard statistics for cancellations (Admin only)
+ * GET /api/schedules/cancellations/dashboard-stats
+ * Permissions: Admin, Owner
+ */
+export const getCancellationDashboardStats = async (
+  params?: DashboardStatsParams
+): Promise<DashboardStatsResponse> => {
+  const queryParams = new URLSearchParams();
+  if (params?.period) {
+    queryParams.append("period", params.period.toString());
+  }
+
+  const url = queryParams.toString()
+    ? `/schedules/cancellations/dashboard-stats?${queryParams}`
+    : `/schedules/cancellations/dashboard-stats`;
+
+  const response = await api.get(url);
+  return response.data;
+};
+
+/**
+ * Update student's makeup quota (Admin only)
+ * PATCH /api/students/:id/makeup-quota
+ * Permissions: Admin, Owner
+ */
+export const updateStudentMakeupQuota = async (
+  studentId: number | string,
+  request: UpdateMakeupQuotaRequest
+): Promise<UpdateMakeupQuotaResponse> => {
+  const response = await api.patch(
+    `/students/${studentId}/makeup-quota`,
+    request
+  );
+  return response.data;
+};

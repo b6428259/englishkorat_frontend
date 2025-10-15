@@ -10,6 +10,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useLanguage } from "../../contexts/LanguageContext";
 // import { ButtonGroup } from "@heroui/react";
 import CalendarLoading from "@/components/common/CalendarLoading";
+import { useSwipeGestures } from "@/hooks/useSwipeGestures";
 import {
   CalendarDay,
   CalendarSession,
@@ -32,13 +33,19 @@ import {
   validateSessionForm,
 } from "@/utils/scheduleValidation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Users, X } from "lucide-react";
+import { Search, Users, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import toast from "react-hot-toast";
 import { SessionDetailModal } from "./components";
 import CompactDayViewModal from "./components/CompactDayViewModal";
 import MonthView from "./components/MonthView";
+import { QuickSearch } from "./components/QuickSearch";
 import ScheduleModalWrapper from "./components/ScheduleModalWrapper";
+import {
+  DayViewSkeleton,
+  MonthViewSkeleton,
+  WeekViewSkeleton,
+} from "./components/SkeletonLoader";
 
 // Extended type with backward compatibility
 type ExtendedCalendarViewResponse = CalendarViewApiResponse & {
@@ -148,7 +155,7 @@ const getBranchBorderColorFromSession = (
   return "gray"; // default
 };
 
-// Ultra User-Friendly WeekView - Simple, Clean, Easy to Understand
+// Modern WeekView - Compact, Clean, Scheduleista-inspired
 const WeekView: React.FC<{
   calendarData: WeekCalendarData;
   onSessionClick: (session: CalendarSession) => void;
@@ -164,26 +171,48 @@ const WeekView: React.FC<{
 }) => {
   const { language } = useLanguage();
 
-  // Get sorted dates for the week, starting from Monday
-  const weekDates = Object.keys(calendarData).sort();
+  // Get sorted dates for the week, starting from Sunday
+  const allDates = Object.keys(calendarData).sort();
+
+  // Ensure we always have exactly 7 days (Sun-Sat) starting from the first Sunday
+  const weekDates = (() => {
+    if (allDates.length === 0) return [];
+
+    // Find the first Sunday in the data
+    const baseDate = new Date(allDates[0]);
+    const dayOfWeek = baseDate.getDay();
+    const sundayOffset = -dayOfWeek; // 0 for Sunday, -1 for Monday, etc.
+    const firstSunday = new Date(baseDate);
+    firstSunday.setDate(firstSunday.getDate() + sundayOffset);
+
+    // Generate exactly 7 days from Sunday
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(firstSunday);
+      date.setDate(date.getDate() + i);
+      dates.push(date.toISOString().split("T")[0]);
+    }
+
+    return dates;
+  })();
 
   const weekDayNames =
     language === "th"
-      ? ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"]
+      ? ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"]
       : [
+          "Sunday",
           "Monday",
           "Tuesday",
           "Wednesday",
           "Thursday",
           "Friday",
           "Saturday",
-          "Sunday",
         ];
 
   const weekDayNamesShort =
     language === "th"
-      ? ["จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส.", "อา."]
-      : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      ? ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."]
+      : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   const formatTime = (time: string) => {
     const [hour, minute] = time.split(":");
@@ -240,58 +269,38 @@ const WeekView: React.FC<{
     return { totalSessions, totalStudents, branchCounts };
   }, [calendarData]);
 
-  // Enhanced responsive sizing - more generous
-  const headerPadY = density === "compact" ? "py-3 sm:py-4" : "py-4 sm:py-5";
-  const gap = density === "compact" ? "gap-2 sm:gap-3" : "gap-3 sm:gap-4";
-  const cardPad = density === "compact" ? "p-3 sm:p-4" : "p-4 sm:p-5";
-  const cardText =
-    density === "compact" ? "text-sm sm:text-base" : "text-base sm:text-lg";
-  const cardTextSmall =
-    density === "compact" ? "text-xs sm:text-sm" : "text-sm sm:text-base";
+  // Compact sizing for better space utilization
+  const gap = "gap-1.5 sm:gap-2";
+  const cardPad = "p-1.5 sm:p-2";
+  const cardText = "text-[10px] sm:text-xs";
+  const cardTextSmall = "text-[9px] sm:text-[10px]";
 
   return (
-    <div className="flex flex-col bg-gradient-to-br from-gray-50 to-white rounded-xl sm:rounded-2xl overflow-hidden shadow-xl border-2 border-gray-200 h-full">
-      {/* Week Summary Bar - Quick Overview */}
-      <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white px-4 sm:px-6 py-3 sm:py-4 shadow-lg">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">📅</span>
-              <div>
-                <div className="text-xs opacity-90">
-                  {language === "th" ? "ทั้งหมด" : "Total"}
-                </div>
-                <div className="text-xl sm:text-2xl font-bold">
-                  {weekSummary.totalSessions}
-                </div>
-              </div>
-              <div className="text-xs opacity-90 ml-1">
-                {language === "th" ? "คาบ" : "sessions"}
-              </div>
+    <div className="flex flex-col bg-white rounded-lg sm:rounded-xl overflow-hidden shadow-lg border border-gray-100 h-full">
+      {/* Week Summary Bar - Minimal Theme */}
+      <div className="bg-indigo-600 text-white px-3 py-1.5 sm:py-2">
+        <div className="flex items-center justify-between gap-2 text-[10px] sm:text-xs">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1">
+              <span className="text-sm">📅</span>
+              <span className="font-bold">{weekSummary.totalSessions}</span>
             </div>
 
-            <div className="w-px h-8 bg-white/30 hidden sm:block" />
+            <div className="w-px h-3 bg-white/30" />
 
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">👥</span>
-              <div>
-                <div className="text-xs opacity-90">
-                  {language === "th" ? "นักเรียน" : "Students"}
-                </div>
-                <div className="text-xl sm:text-2xl font-bold">
-                  {weekSummary.totalStudents}
-                </div>
-              </div>
+            <div className="flex items-center gap-1">
+              <span className="text-sm">👥</span>
+              <span className="font-bold">{weekSummary.totalStudents}</span>
             </div>
 
             {Object.keys(weekSummary.branchCounts).length > 0 && (
               <>
-                <div className="w-px h-8 bg-white/30 hidden lg:block" />
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="w-px h-3 bg-white/30 hidden md:block" />
+                <div className="hidden md:flex items-center gap-1">
                   {Object.entries(weekSummary.branchCounts).map(
                     ([branchId, count]) => {
                       const id = parseInt(branchId);
-                      let color = "bg-gray-500";
+                      let color = "bg-gray-400";
 
                       if (id === 1) {
                         color = "bg-[#334293]";
@@ -306,12 +315,14 @@ const WeekView: React.FC<{
                       return (
                         <div
                           key={branchId}
-                          className="flex items-center gap-1.5 px-2 py-1 bg-white/20 rounded-full"
+                          className="flex items-center gap-0.5 px-1 py-0.5 bg-white/20 rounded"
                         >
                           <div
-                            className={`w-2 h-2 rounded-full ${color} shadow-sm`}
+                            className={`w-1.5 h-1.5 rounded-full ${color}`}
                           />
-                          <span className="text-xs font-semibold">{count}</span>
+                          <span className="text-[10px] font-semibold">
+                            {count}
+                          </span>
                         </div>
                       );
                     }
@@ -320,93 +331,94 @@ const WeekView: React.FC<{
               </>
             )}
           </div>
-
-          <div className="text-xs opacity-90 italic hidden sm:block">
-            {language === "th"
-              ? "🔍 คลิกคาบเรียนเพื่อดูรายละเอียด"
-              : "🔍 Click session for details"}
-          </div>
         </div>
       </div>
 
       {/* Scroll container with sticky header */}
       <div className="flex-1 overflow-auto">
-        {/* Week Header - Clean & Simple */}
+        {/* Week Header - Minimal */}
         <div
-          className={`grid grid-cols-7 ${gap} p-4 sm:p-5 pb-3 sm:pb-4 sticky top-0 z-20 bg-white/98 backdrop-blur-lg border-b-2 border-gray-200 shadow-md`}
+          className={`grid grid-cols-7 ${gap} p-1.5 sm:p-2 pb-1.5 sticky top-0 z-20 bg-white/98 backdrop-blur-sm border-b border-gray-100`}
         >
           {weekDates.map((date) => {
             const today = date === new Date().toISOString().split("T")[0];
             const dayName = getDayName(date, true);
-            const dayNameFull = getDayName(date, false);
-            const dayData = calendarData[date];
+            const dayData = calendarData[date] || {
+              date,
+              day_of_week: "",
+              is_holiday: false,
+              holiday_info: null,
+              sessions: [],
+              exceptions: [],
+              session_count: 0,
+              branch_distribution: {},
+            };
+
+            const isWeekend =
+              new Date(date).getDay() === 0 || new Date(date).getDay() === 6;
 
             return (
               <div
                 key={date}
-                className={`${headerPadY} text-center font-bold rounded-xl sm:rounded-2xl cursor-pointer transition-all duration-300 shadow-md hover:shadow-xl hover:-translate-y-1 active:translate-y-0 group ${
+                role="button"
+                tabIndex={0}
+                aria-label={`${dayName}, ${new Date(
+                  date
+                ).toLocaleDateString()}`}
+                className={`py-1.5 sm:py-2 px-1 text-center rounded cursor-pointer transition-all ${
                   today
-                    ? "bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 text-white ring-4 ring-indigo-200 scale-105"
-                    : dayData?.is_holiday
-                    ? "bg-gradient-to-br from-red-400 to-pink-500 text-white"
-                    : "bg-gradient-to-br from-white to-gray-50 text-gray-800 border-2 border-gray-200 hover:border-indigo-300"
+                    ? "bg-indigo-600 text-white"
+                    : isWeekend
+                    ? "bg-indigo-50 text-gray-700 hover:bg-indigo-100"
+                    : "bg-gray-50 text-gray-700 hover:bg-gray-100"
                 }`}
                 onClick={() => onDayClick?.(date)}
-                title={dayNameFull}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onDayClick?.(date);
+                  }
+                }}
               >
                 {/* Day Name */}
                 <div
-                  className={`font-bold text-sm sm:text-base mb-2 ${
-                    today ? "text-white" : "text-gray-600"
+                  className={`text-[9px] sm:text-[10px] mb-0.5 ${
+                    today ? "text-white/80" : "text-gray-500"
                   }`}
                 >
-                  <span className="hidden lg:inline">{dayNameFull}</span>
-                  <span className="lg:hidden">{dayName}</span>
+                  {dayName}
                 </div>
 
-                {/* Date Number with Month */}
-                <div className="mb-2">
-                  <div
-                    className={`text-3xl sm:text-4xl font-black ${
-                      today ? "text-white" : "text-gray-900"
-                    }`}
-                  >
-                    {new Date(date).getDate()}
-                  </div>
-                  <div
-                    className={`text-xs mt-1 ${
-                      today ? "text-white/80" : "text-gray-500"
-                    }`}
-                  >
-                    {new Date(date).toLocaleDateString(
-                      language === "th" ? "th-TH" : "en-US",
-                      { month: "short" }
-                    )}
-                  </div>
+                {/* Date Number */}
+                <div
+                  className={`text-base sm:text-lg font-bold mb-0.5 ${
+                    today ? "text-white" : "text-gray-900"
+                  }`}
+                >
+                  {new Date(date).getDate()}
                 </div>
 
                 {/* Session Count Badge */}
                 {dayData?.session_count > 0 ? (
                   <div
-                    className={`text-sm sm:text-base px-3 py-1.5 rounded-full font-bold inline-flex items-center gap-1 shadow-md ${
+                    className={`text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
                       today
-                        ? "bg-white text-indigo-600"
-                        : "bg-indigo-600 text-white group-hover:bg-indigo-700"
+                        ? "bg-white/20 text-white"
+                        : "bg-indigo-100 text-indigo-700"
                     }`}
                   >
-                    <span>📚</span>
-                    <span>{dayData.session_count}</span>
-                    <span className="hidden sm:inline text-xs">
+                    {dayData.session_count}
+                    <span className="hidden sm:inline ml-0.5">
                       {language === "th" ? "คาบ" : ""}
                     </span>
                   </div>
                 ) : (
                   <div
-                    className={`text-xs ${
+                    className={`text-[10px] ${
                       today ? "text-white/70" : "text-gray-400"
                     }`}
                   >
-                    {language === "th" ? "ว่าง" : "Free"}
+                    -
                   </div>
                 )}
               </div>
@@ -414,118 +426,114 @@ const WeekView: React.FC<{
           })}
         </div>
 
-        {/* Sessions Grid - Ultra User-Friendly Layout */}
-        <div
-          className={`grid grid-cols-7 gap-2 sm:gap-3 bg-gradient-to-b from-gray-100 to-gray-50 p-3 sm:p-4`}
-        >
+        {/* Sessions Grid - Minimal */}
+        <div className={`grid grid-cols-7 ${gap} bg-white p-1.5 sm:p-2`}>
           {weekDates.map((date) => {
             const dayData = calendarData[date];
             const today = date === new Date().toISOString().split("T")[0];
             const timeGroups = groupSessionsByTime(dayData?.sessions || []);
+            const isWeekend =
+              new Date(date).getDay() === 0 || new Date(date).getDay() === 6;
 
             return (
               <div
                 key={date}
-                className={`min-h-[350px] sm:min-h-[450px] p-3 sm:p-4 rounded-xl shadow-md border-2 ${
+                className={`min-h-[180px] sm:min-h-[200px] ${cardPad} rounded border ${
                   today
-                    ? "bg-gradient-to-b from-indigo-50 to-purple-50 border-indigo-300"
-                    : dayData?.is_holiday
-                    ? "bg-gradient-to-b from-red-50 to-pink-50 border-red-300"
+                    ? "bg-indigo-50/30 border-indigo-200"
+                    : isWeekend
+                    ? "bg-indigo-50/20 border-gray-200"
                     : "bg-white border-gray-200"
                 }`}
               >
-                <div className="space-y-3 sm:space-y-4">
+                <div className="space-y-1">
                   {timeGroups.length === 0 ? (
-                    /* Empty day - Friendly invitation */
+                    /* Empty day */
                     <div
-                      className="h-40 sm:h-52 flex flex-col items-center justify-center opacity-40 hover:opacity-100 active:opacity-80 transition-all duration-300 cursor-pointer border-3 border-dashed border-gray-300 rounded-2xl hover:border-indigo-400 hover:bg-gradient-to-br hover:from-indigo-50 hover:to-purple-50 hover:scale-[1.02] group"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Add session for ${new Date(
+                        date
+                      ).toLocaleDateString()}`}
+                      className="h-28 sm:h-32 flex items-center justify-center opacity-20 hover:opacity-40 transition-opacity cursor-pointer border border-dashed border-gray-300 rounded hover:border-indigo-400"
                       onClick={() => onAddSession?.(date)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onAddSession?.(date);
+                        }
+                      }}
                     >
-                      <div className="text-center transform group-hover:scale-110 transition-transform">
-                        <div className="text-5xl sm:text-6xl mb-3 group-hover:rotate-90 transition-transform duration-300">
-                          ➕
-                        </div>
-                        <div className="text-base sm:text-lg text-gray-600 font-bold group-hover:text-indigo-600">
-                          {language === "th" ? "เพิ่มคาบเรียน" : "Add Session"}
-                        </div>
-                        <div className="text-xs text-gray-400 mt-1 group-hover:text-indigo-400">
-                          {language === "th"
-                            ? "คลิกเพื่อเริ่มต้น"
-                            : "Click to start"}
+                      <div className="text-center">
+                        <div className="text-lg sm:text-xl mb-0.5">➕</div>
+                        <div className="text-[9px] text-gray-500">
+                          {language === "th" ? "เพิ่ม" : "Add"}
                         </div>
                       </div>
                     </div>
                   ) : (
-                    /* Sessions - Clean & Simple Cards */
+                    /* Sessions */
                     timeGroups.map(([timeRange, sessions]) => (
-                      <div key={timeRange} className="space-y-2.5 sm:space-y-3">
-                        {/* Time Badge - Clear & Prominent */}
-                        <div className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-3 py-2 rounded-xl shadow-md">
-                          <span className="text-lg">⏰</span>
-                          <span className="font-bold text-sm sm:text-base">
-                            {formatTime(sessions[0].start_time)} -{" "}
+                      <div key={timeRange} className="space-y-0.5">
+                        {/* Time Badge - Minimal */}
+                        <div className="flex items-center gap-0.5 bg-indigo-600 text-white px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-bold">
+                          <span>⏰</span>
+                          <span>
+                            {formatTime(sessions[0].start_time)}-
                             {formatTime(sessions[0].end_time)}
                           </span>
                           {sessions.length > 1 && (
-                            <span className="ml-auto bg-white text-indigo-600 text-xs font-bold px-2 py-1 rounded-full">
-                              {sessions.length}{" "}
-                              {language === "th" ? "คาบ" : "sessions"}
+                            <span className="ml-auto bg-white/20 px-1 py-0.5 rounded">
+                              +{sessions.length - 1}
                             </span>
                           )}
                         </div>
 
-                        {/* Session Cards - Ultra Simple */}
-                        <div className="space-y-2.5">
+                        {/* Session Cards - Minimal Theme */}
+                        <div className="space-y-0.5">
                           {sessions.map((session, index) => {
-                            // Branch styling
+                            // Branch indicator (minimal)
                             const teacherBranchId =
                               session.teacher?.branch_id || null;
-                            let branchColor = "#9CA3AF"; // gray
-                            let branchBg = "bg-gray-50";
-                            let branchBorder = "border-gray-300";
-
-                            if (teacherBranchId === 1) {
-                              branchColor = "#334293";
-                              branchBg = "bg-blue-50";
-                              branchBorder = "border-[#334293]/20";
-                            } else if (teacherBranchId === 2) {
+                            let branchColor = "#9CA3AF";
+                            if (teacherBranchId === 1) branchColor = "#334293";
+                            else if (teacherBranchId === 2)
                               branchColor = "#EFE957";
-                              branchBg = "bg-yellow-50";
-                              branchBorder = "border-yellow-300";
-                            } else if (teacherBranchId === 3) {
+                            else if (teacherBranchId === 3)
                               branchColor = "#58B2FF";
-                              branchBg = "bg-blue-50";
-                              branchBorder = "border-blue-300";
-                            } else if (teacherBranchId === 4) {
+                            else if (teacherBranchId === 4)
                               branchColor = "#FF90B3";
-                              branchBg = "bg-pink-50";
-                              branchBorder = "border-pink-300";
-                            }
 
                             return (
                               <div
                                 key={session.id}
-                                className={`${cardPad} rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 active:translate-y-0 ${branchBg} ${branchBorder} hover:border-opacity-70 relative overflow-hidden group`}
+                                role="button"
+                                tabIndex={0}
+                                aria-label={`Session: ${session.schedule_name}, ${session.course_name}`}
+                                className={`${cardPad} rounded border border-gray-200 bg-white cursor-pointer hover:border-indigo-300 hover:shadow-sm transition-all`}
                                 onClick={() => onSessionClick(session)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    onSessionClick(session);
+                                  }
+                                }}
                                 style={{
-                                  borderLeftWidth: "6px",
+                                  borderLeftWidth: "3px",
                                   borderLeftColor: branchColor,
                                 }}
                               >
-                                {/* Hover overlay effect */}
-                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 to-purple-500/0 group-hover:from-indigo-500/5 group-hover:to-purple-500/5 transition-all duration-300 pointer-events-none" />
-
                                 {/* Content */}
-                                <div className="relative">
+                                <div className="space-y-0.5">
                                   {/* Header: Schedule Name */}
-                                  <div className="flex items-start justify-between gap-2 mb-3">
+                                  <div className="flex items-center gap-1">
                                     <h3
-                                      className={`font-bold ${cardText} leading-snug text-gray-900 flex-1`}
+                                      className={`font-bold ${cardText} leading-tight text-gray-900 flex-1 truncate`}
                                     >
                                       {session.schedule_name}
                                     </h3>
                                     {sessions.length > 1 && index === 0 && (
-                                      <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md shrink-0">
+                                      <span className="bg-gray-200 text-gray-700 text-[9px] font-bold px-1 py-0.5 rounded shrink-0">
                                         +{sessions.length - 1}
                                       </span>
                                     )}
@@ -533,23 +541,23 @@ const WeekView: React.FC<{
 
                                   {/* Course */}
                                   <div
-                                    className={`flex items-center gap-2 mb-2.5 ${cardTextSmall} text-gray-700`}
+                                    className={`flex items-center gap-0.5 ${cardTextSmall} text-gray-600`}
                                   >
-                                    <span className="text-xl">📚</span>
-                                    <span className="font-semibold">
+                                    <span className="text-[10px]">📚</span>
+                                    <span className="truncate">
                                       {session.course_name}
                                     </span>
                                   </div>
 
-                                  {/* Info Grid - 2 columns on larger screens */}
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                                  {/* Info */}
+                                  <div className="flex items-center gap-2 flex-wrap">
                                     {/* Teacher */}
                                     {session.teacher_name && (
                                       <div
-                                        className={`flex items-center gap-2 ${cardTextSmall}`}
+                                        className={`flex items-center gap-0.5 ${cardTextSmall} text-gray-600`}
                                       >
-                                        <span className="text-lg">👨‍🏫</span>
-                                        <span className="truncate font-medium text-gray-700">
+                                        <span className="text-[10px]">👨‍🏫</span>
+                                        <span className="truncate max-w-[60px] sm:max-w-[80px]">
                                           {session.teacher_name}
                                         </span>
                                       </div>
@@ -559,16 +567,13 @@ const WeekView: React.FC<{
                                     {session.students &&
                                       session.students.length > 0 && (
                                         <div
-                                          className={`flex items-center gap-2 ${cardTextSmall}`}
+                                          className={`flex items-center gap-0.5 ${cardTextSmall}`}
                                         >
-                                          <span className="text-lg">👥</span>
-                                          <span className="font-bold text-indigo-600 text-base">
-                                            {session.students.length}
+                                          <span className="text-[10px]">
+                                            👥
                                           </span>
-                                          <span className="text-gray-600">
-                                            {language === "th"
-                                              ? "คน"
-                                              : "students"}
+                                          <span className="font-bold text-indigo-600">
+                                            {session.students.length}
                                           </span>
                                         </div>
                                       )}
@@ -577,34 +582,31 @@ const WeekView: React.FC<{
                                     {session.participants &&
                                       session.participants.length > 0 && (
                                         <div
-                                          className={`flex items-center gap-2 ${cardTextSmall} sm:col-span-2`}
+                                          className={`flex items-center gap-0.5 ${cardTextSmall}`}
                                         >
-                                          <span className="text-lg">👤</span>
+                                          <span className="text-[10px]">
+                                            👤
+                                          </span>
                                           <span className="font-bold text-indigo-600">
                                             {session.participants.length}
                                           </span>
-                                          <span className="text-gray-600 mr-2">
-                                            {language === "th"
-                                              ? "ผู้เข้าร่วม"
-                                              : "participants"}
-                                          </span>
-                                          <div className="flex gap-1.5">
+                                          <div className="flex gap-0.5">
                                             {session.participants
-                                              .slice(0, 5)
+                                              .slice(0, 2)
                                               .map((participant, pIndex) => (
                                                 <div
                                                   key={`${participant.user_id}-${pIndex}`}
-                                                  className={`w-3 h-3 rounded-full shadow-md border-2 border-white ${
+                                                  className={`w-1.5 h-1.5 rounded-full ${
                                                     participant.status ===
                                                     "confirmed"
-                                                      ? "bg-green-500"
+                                                      ? "bg-indigo-500"
                                                       : participant.status ===
                                                         "declined"
-                                                      ? "bg-red-500"
+                                                      ? "bg-gray-400"
                                                       : participant.status ===
                                                         "tentative"
-                                                      ? "bg-yellow-400"
-                                                      : "bg-gray-400"
+                                                      ? "bg-indigo-300"
+                                                      : "bg-gray-300"
                                                   }`}
                                                   title={`${
                                                     participant.user
@@ -614,11 +616,11 @@ const WeekView: React.FC<{
                                                 />
                                               ))}
                                             {session.participants.length >
-                                              5 && (
-                                              <span className="text-xs font-bold text-gray-600 ml-1">
+                                              3 && (
+                                              <span className="text-[10px] font-bold text-gray-600 ml-0.5">
                                                 +
                                                 {session.participants.length -
-                                                  5}
+                                                  3}
                                               </span>
                                             )}
                                           </div>
@@ -628,10 +630,10 @@ const WeekView: React.FC<{
                                     {/* Room */}
                                     {session.room_name && (
                                       <div
-                                        className={`flex items-center gap-2 ${cardTextSmall} sm:col-span-2`}
+                                        className={`flex items-center gap-1 ${cardTextSmall}`}
                                       >
-                                        <span className="text-lg">📍</span>
-                                        <span className="font-medium text-gray-700">
+                                        <span className="text-sm">📍</span>
+                                        <span className="text-gray-700 truncate">
                                           {session.room_name}
                                         </span>
                                       </div>
@@ -646,17 +648,19 @@ const WeekView: React.FC<{
                     ))
                   )}
 
-                  {/* Holiday Banner - Fun & Friendly */}
+                  {/* Holiday Banner - Minimal */}
                   {dayData?.is_holiday && (
-                    <div className="mt-4 p-4 sm:p-5 bg-gradient-to-br from-red-400 via-pink-400 to-red-500 rounded-2xl shadow-xl text-center transform hover:scale-105 transition-transform">
-                      <div className="text-4xl sm:text-5xl mb-2 animate-bounce">
-                        �
-                      </div>
-                      <div className="text-lg sm:text-xl font-black text-white mb-1 drop-shadow-lg">
-                        {language === "th" ? "🎌 วันหยุด 🎌" : "🎌 Holiday 🎌"}
+                    <div className="mt-2 p-2 bg-indigo-50 rounded border border-indigo-200 text-center">
+                      <div className="text-lg mb-0.5">🎌</div>
+                      <div
+                        className={`${cardTextSmall} font-bold text-indigo-700`}
+                      >
+                        {language === "th" ? "วันหยุด" : "Holiday"}
                       </div>
                       {dayData.holiday_info && (
-                        <div className="text-sm sm:text-base text-white/95 font-semibold mt-2 bg-white/20 px-3 py-1.5 rounded-full inline-block">
+                        <div
+                          className={`${cardTextSmall} text-gray-600 mt-0.5`}
+                        >
                           {(dayData.holiday_info as { name?: string })?.name ||
                             ""}
                         </div>
@@ -670,27 +674,16 @@ const WeekView: React.FC<{
         </div>
       </div>
 
-      {/* Bottom Helper Bar - Quick Tips */}
-      <div className="bg-gradient-to-r from-gray-50 to-white border-t-2 border-gray-200 px-4 sm:px-6 py-3 text-center">
-        <div className="flex items-center justify-center gap-6 flex-wrap text-xs sm:text-sm text-gray-600">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">💡</span>
-            <span className="font-medium">
-              {language === "th" ? "เคล็ดลับ:" : "Tip:"}
-            </span>
-            <span>
-              {language === "th"
-                ? "คลิกที่คาบเรียนเพื่อดูรายละเอียดเพิ่มเติม"
-                : "Click sessions for more details"}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-[#334293]" />
-            <div className="w-3 h-3 rounded-full bg-[#EFE957]" />
-            <div className="w-3 h-3 rounded-full bg-[#58B2FF]" />
-            <div className="w-3 h-3 rounded-full bg-[#FF90B3]" />
-            <span className="ml-1">
-              {language === "th" ? "= สาขาต่างๆ" : "= Branches"}
+      {/* Bottom Helper Bar - Minimal */}
+      <div className="bg-white border-t border-gray-100 px-2 py-1 text-center">
+        <div className="flex items-center justify-center gap-1.5 text-[9px] text-gray-500">
+          <div className="flex items-center gap-0.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#334293]" />
+            <div className="w-1.5 h-1.5 rounded-full bg-[#EFE957]" />
+            <div className="w-1.5 h-1.5 rounded-full bg-[#58B2FF]" />
+            <div className="w-1.5 h-1.5 rounded-full bg-[#FF90B3]" />
+            <span className="ml-0.5">
+              {language === "th" ? "สาขา" : "Branches"}
             </span>
           </div>
         </div>
@@ -753,6 +746,9 @@ export default function SchedulePage() {
   // Modal states
   const [selectedSession, setSelectedSession] = useState<number | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  // Quick search modal state
+  const [showQuickSearch, setShowQuickSearch] = useState(false);
 
   // Teacher filter visibility state
   const [showTeacherFilter, setShowTeacherFilter] = useState(true);
@@ -1216,6 +1212,19 @@ export default function SchedulePage() {
     fetchFormOptions();
   }, [fetchFormOptions]);
 
+  // Get all sessions for quick search - memoized for performance
+  const allSessions = useMemo(() => {
+    if (!calendarData?.data?.calendar) return [];
+
+    const sessions: CalendarSession[] = [];
+    Object.values(calendarData.data.calendar).forEach((day) => {
+      if (day.sessions) {
+        sessions.push(...day.sessions);
+      }
+    });
+    return sessions;
+  }, [calendarData]);
+
   // Filter teachers based on selection - memoized for performance
   const filteredTeachers = useMemo(
     () => teachers.filter((teacher) => selectedTeachers.includes(teacher.id)),
@@ -1325,7 +1334,23 @@ export default function SchedulePage() {
     setIsDetailModalOpen(true);
   };
 
-  // Handle day click in month view
+  // Handle session click in month view - go to day view and open details
+  const handleMonthSessionClick = (session: CalendarSession) => {
+    const sessionDate = session.session_date;
+    const sessionId = session.id;
+
+    // Switch to day view with the session's date
+    setCurrentDate(sessionDate);
+    setViewMode("day");
+
+    // Open detail modal after switching view
+    setTimeout(() => {
+      setSelectedSession(sessionId);
+      setIsDetailModalOpen(true);
+    }, 100);
+  };
+
+  // Handle day click in month/week view
   const handleDayClick = (date: string) => {
     setCurrentDate(date);
     setViewMode("day");
@@ -1795,27 +1820,141 @@ export default function SchedulePage() {
   };
 
   // Date navigation functions
-  const navigateDate = (direction: "prev" | "next") => {
-    const date = new Date(currentDate);
+  const navigateDate = useCallback(
+    (direction: "prev" | "next") => {
+      const date = new Date(currentDate);
 
-    if (viewMode === "day") {
-      date.setDate(date.getDate() + (direction === "next" ? 1 : -1));
-    } else if (viewMode === "week") {
-      date.setDate(date.getDate() + (direction === "next" ? 7 : -7));
-    } else if (viewMode === "month") {
-      date.setMonth(date.getMonth() + (direction === "next" ? 1 : -1));
-    }
+      if (viewMode === "day") {
+        date.setDate(date.getDate() + (direction === "next" ? 1 : -1));
+      } else if (viewMode === "week") {
+        date.setDate(date.getDate() + (direction === "next" ? 7 : -7));
+      } else if (viewMode === "month") {
+        date.setMonth(date.getMonth() + (direction === "next" ? 1 : -1));
+      }
 
-    setCurrentDate(date.toISOString().split("T")[0]);
-  };
+      setCurrentDate(date.toISOString().split("T")[0]);
+    },
+    [currentDate, viewMode]
+  );
 
-  const goToToday = () => {
+  const goToToday = useCallback(() => {
     setCurrentDate(new Date().toISOString().split("T")[0]);
-  };
+  }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyboard = (e: KeyboardEvent) => {
+      // Quick search shortcut (Cmd+K / Ctrl+K)
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setShowQuickSearch(true);
+        return;
+      }
+
+      // Ignore other shortcuts if user is typing in input
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      // Navigation shortcuts
+      if (e.key === "ArrowLeft" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        navigateDate("prev");
+      } else if (e.key === "ArrowRight" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        navigateDate("next");
+      } else if (e.key === "t" && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        goToToday();
+      } else if (e.key === "d" && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setViewMode("day");
+      } else if (e.key === "w" && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setViewMode("week");
+      } else if (e.key === "m" && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setViewMode("month");
+      } else if (e.key === "n" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        openModal("createSchedule");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyboard);
+    return () => window.removeEventListener("keydown", handleKeyboard);
+  }, [viewMode, navigateDate, goToToday, openModal]);
+
+  // Touch gesture support for mobile navigation
+  useSwipeGestures({
+    onSwipeLeft: () => navigateDate("next"),
+    onSwipeRight: () => navigateDate("prev"),
+    onSwipeUp: () => {
+      // Cycle view mode: day -> week -> month -> day
+      if (viewMode === "day") setViewMode("week");
+      else if (viewMode === "week") setViewMode("month");
+      else if (viewMode === "month") setViewMode("day");
+    },
+    onSwipeDown: () => {
+      // Pull to refresh - refetch data
+      fetchData();
+    },
+  });
 
   // Format date display based on view mode
   const formatDateDisplay = (date: string) => {
     const d = new Date(date);
+
+    if (viewMode === "week") {
+      // Show week range: "Jan 13 - 19, 2025" or "13 - 19 มกราคม 2025"
+      const startOfWeek = new Date(d);
+      const dayOfWeek = startOfWeek.getDay();
+      const sundayOffset = -dayOfWeek; // Start from Sunday
+      startOfWeek.setDate(startOfWeek.getDate() + sundayOffset);
+
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(endOfWeek.getDate() + 6);
+
+      if (language === "th") {
+        const monthName = startOfWeek.toLocaleDateString("th-TH", {
+          month: "long",
+        });
+        const year = startOfWeek.toLocaleDateString("th-TH", {
+          year: "numeric",
+        });
+        const startDay = startOfWeek.getDate();
+        const endDay = endOfWeek.getDate();
+
+        if (startOfWeek.getMonth() === endOfWeek.getMonth()) {
+          return `${startDay} - ${endDay} ${monthName} ${year}`;
+        } else {
+          const endMonthName = endOfWeek.toLocaleDateString("th-TH", {
+            month: "long",
+          });
+          return `${startDay} ${monthName} - ${endDay} ${endMonthName} ${year}`;
+        }
+      } else {
+        const startMonth = startOfWeek.toLocaleDateString("en-US", {
+          month: "short",
+        });
+        const endMonth = endOfWeek.toLocaleDateString("en-US", {
+          month: "short",
+        });
+        const year = startOfWeek.getFullYear();
+        const startDay = startOfWeek.getDate();
+        const endDay = endOfWeek.getDate();
+
+        if (startOfWeek.getMonth() === endOfWeek.getMonth()) {
+          return `${startMonth} ${startDay} - ${endDay}, ${year}`;
+        } else {
+          return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${year}`;
+        }
+      }
+    }
+
     if (language === "th") {
       const options: Intl.DateTimeFormatOptions = {
         year: "numeric",
@@ -1838,8 +1977,10 @@ export default function SchedulePage() {
   if (loading) {
     return (
       <SidebarLayout breadcrumbItems={[{ label: t.schedule }]}>
-        <div className="flex justify-center items-center h-96">
-          <Loading />
+        <div className="h-full bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+          {viewMode === "week" && <WeekViewSkeleton />}
+          {viewMode === "month" && <MonthViewSkeleton />}
+          {viewMode === "day" && <DayViewSkeleton />}
         </div>
       </SidebarLayout>
     );
@@ -1992,6 +2133,30 @@ export default function SchedulePage() {
                   ? "Comfortable"
                   : "Compact"}
               </Button> */}
+
+              {/* Quick Search Button */}
+              <button
+                onClick={() => setShowQuickSearch(true)}
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-xs"
+                title={language === "th" ? "ค้นหา (⌘K)" : "Search (⌘K)"}
+              >
+                <Search className="h-4 w-4 text-gray-500" />
+                <span className="text-gray-600 hidden lg:inline">
+                  {language === "th" ? "ค้นหา" : "Search"}
+                </span>
+                <kbd className="hidden xl:inline text-[10px] bg-gray-100 px-1.5 py-0.5 rounded border border-gray-300">
+                  ⌘K
+                </kbd>
+              </button>
+
+              {/* Mobile search button - icon only */}
+              <button
+                onClick={() => setShowQuickSearch(true)}
+                className="sm:hidden p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                title={language === "th" ? "ค้นหา" : "Search"}
+              >
+                <Search className="h-4 w-4 text-gray-500" />
+              </button>
 
               <Button
                 variant={density === "compact" ? "weekViewClicked" : "weekView"}
@@ -2590,7 +2755,7 @@ export default function SchedulePage() {
               <MonthView
                 calendarData={calendarData?.data?.calendar || []}
                 currentDate={currentDate}
-                onSessionClick={handleSessionClick}
+                onSessionClick={handleMonthSessionClick}
                 onDayClick={handleDayClick}
                 density={density}
               />
@@ -3037,6 +3202,22 @@ export default function SchedulePage() {
           + {t.createNewSchedule}
         </Button>
       </div>
+
+      {/* Quick Search Modal */}
+      {showQuickSearch && (
+        <QuickSearch
+          sessions={allSessions}
+          onSelectSession={(session) => {
+            // Navigate to the session's date and open detail modal
+            setCurrentDate(session.session_date);
+            setViewMode("day");
+            setSelectedSession(session.id);
+            setIsDetailModalOpen(true);
+            setShowQuickSearch(false);
+          }}
+          onClose={() => setShowQuickSearch(false)}
+        />
+      )}
     </SidebarLayout>
   );
 }
