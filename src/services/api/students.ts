@@ -181,6 +181,15 @@ export interface StudentResponse {
   };
 }
 
+export interface PaginatedStudentsResponse {
+  students: Student[];
+  total: number;
+  total_pages: number;
+  page: number;
+  limit: number;
+  status: string;
+}
+
 export interface CreateStudentRequest {
   first_name: string;
   last_name: string;

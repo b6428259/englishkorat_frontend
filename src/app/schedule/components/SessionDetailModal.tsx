@@ -2,6 +2,7 @@
 
 import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
+import CancelSessionModal from "@/components/schedule/CancelSessionModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -88,8 +89,73 @@ export default function SessionDetailModal({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
 
+  // Cancel session state
+  const [showCancelModal, setShowCancelModal] = useState(false);
+
   // Check if user is admin or owner
   const canEdit = hasRole(["admin", "owner"]);
+
+  // Check if session can be cancelled (must be at least 24 hours before session)
+  const canCancelSession = () => {
+    if (!sessionDetail) return false;
+
+    const session = sessionDetail.session;
+
+    // Cannot cancel if already cancelled, completed, or pending cancellation
+    if (
+      session.status === "cancelled" ||
+      session.status === "completed" ||
+      session.status === "pending_cancellation"
+    ) {
+      return false;
+    }
+
+    // Check if user has permission (teacher, admin, or owner)
+    if (!hasRole(["teacher", "admin", "owner"])) {
+      return false;
+    }
+
+    // Check 24-hour deadline
+    try {
+      // Extract date part from session_date (might be in format YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss)
+      const datePart = session.session_date.split("T")[0];
+
+      // Extract time part from start_time (might be in format HH:mm:ss or YYYY-MM-DDTHH:mm:ss)
+      let timePart = session.start_time;
+      if (timePart.includes("T")) {
+        timePart = timePart.split("T")[1];
+      }
+      // Get only HH:mm
+      timePart = timePart.substring(0, 5);
+
+      const sessionDateTime = new Date(`${datePart}T${timePart}:00`);
+      const now = new Date();
+      const hoursUntilSession =
+        (sessionDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+      console.log("Cancel session check:", {
+        datePart,
+        timePart,
+        sessionDateTime: sessionDateTime.toISOString(),
+        now: now.toISOString(),
+        hoursUntilSession,
+        canCancel: hoursUntilSession >= 24,
+      });
+
+      return hoursUntilSession >= 24;
+    } catch (error) {
+      console.error("Error checking cancel session deadline:", error);
+      return false;
+    }
+  };
+
+  const handleCancelSessionSuccess = () => {
+    // Refresh session detail to show updated status
+    fetchSessionDetail();
+    if (onUpdate) {
+      onUpdate();
+    }
+  };
 
   const fetchSessionDetail = async () => {
     if (!sessionId) return;
@@ -351,6 +417,12 @@ export default function SessionDetailModal({
         text: language === "th" ? "รอการยืนยัน" : "Pending",
         className: "bg-yellow-100 text-yellow-800 border-yellow-300",
       },
+      pending_cancellation: {
+        variant: "warning" as const,
+        icon: AlertCircle,
+        text: language === "th" ? "รอการอนุมัติยกเลิก" : "Pending Cancellation",
+        className: "bg-orange-100 text-orange-800 border-orange-300",
+      },
       scheduled: {
         variant: "secondary" as const,
         icon: Calendar,
@@ -511,6 +583,20 @@ export default function SessionDetailModal({
                           </div>
                         ) : (
                           <>
+                            {/* Cancel Session Button */}
+                            {canCancelSession() && (
+                              <Button
+                                onClick={() => setShowCancelModal(true)}
+                                variant="cancel"
+                                className="px-6 py-2.5 text-sm font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2"
+                              >
+                                <Ban className="h-4 w-4" />
+                                {language === "th"
+                                  ? "ขอยกเลิกคาบเรียน"
+                                  : "Cancel Session"}
+                              </Button>
+                            )}
+
                             {/* Admin Edit Button - ปรับปรุงให้สวยขึ้น */}
                             {canEdit && (
                               <Button
@@ -1430,6 +1516,18 @@ export default function SessionDetailModal({
           </Tabs>
         </div>
       </DialogContent>
+
+      {/* Cancel Session Modal */}
+      {sessionDetail && (
+        <CancelSessionModal
+          isOpen={showCancelModal}
+          onClose={() => setShowCancelModal(false)}
+          sessionId={sessionId}
+          sessionDate={sessionDetail.session.session_date}
+          sessionTime={`${sessionDetail.session.start_time} - ${sessionDetail.session.end_time}`}
+          onSuccess={handleCancelSessionSuccess}
+        />
+      )}
     </Dialog>
   );
 }
