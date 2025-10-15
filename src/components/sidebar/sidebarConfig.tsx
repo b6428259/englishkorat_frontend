@@ -229,7 +229,7 @@ export const getSidebarItems = (t: Translations): SidebarItem[] => [
   {
     id: "LineOA",
     label: t.lineOA,
-    href: "/lineoa",
+    href: "/line",
     icon: <HiOutlineDocumentText {...iconProps} />,
   },
 ];
