@@ -52,7 +52,7 @@ export default function LinePage() {
               size="sm"
             >
               {times.map((time) => (
-                <SelectItem key={time} value={time}>
+                <SelectItem key={time}>
                   {time} น.
                 </SelectItem>
               ))}
@@ -65,7 +65,7 @@ export default function LinePage() {
               เปิดการแจ้งเตือนคลาสอัตโนมัติ
             </p>
             <Switch
-              size="ms"
+              size="sm"
               isSelected={isEnabled}
               onValueChange={setIsEnabled}
               color="success"
