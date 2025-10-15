@@ -1482,10 +1482,12 @@ export default function SchedulePage() {
     // Fetch session details for confirmation modal
     const fetchSessionDetails = async () => {
       try {
-        const response = await scheduleService.getSessionDetail(draggedSession.id.toString());
+        const response = await scheduleService.getSessionDetail(
+          draggedSession.id.toString()
+        );
         const oldTeacher = response.session.assigned_teacher;
-        const newTeacher = teacherOptions.find(t => t.id === newTeacherId);
-        const students = response.students?.map(s => s.student) || [];
+        const newTeacher = teacherOptions.find((t) => t.id === newTeacherId);
+        const students = response.students?.map((s) => s.student) || [];
 
         setMoveSessionData({
           session: draggedSession,
@@ -2368,11 +2370,15 @@ export default function SchedulePage() {
                                           draggable
                                           onDragStart={(e) => {
                                             handleSessionDragStart(session);
-                                            (e.target as HTMLElement).style.cursor = 'grabbing';
+                                            (
+                                              e.target as HTMLElement
+                                            ).style.cursor = "grabbing";
                                           }}
                                           onDragEnd={(e) => {
                                             setDraggedSession(null);
-                                            (e.target as HTMLElement).style.cursor = 'grab';
+                                            (
+                                              e.target as HTMLElement
+                                            ).style.cursor = "grab";
                                           }}
                                           className={`w-[120px] sm:w-[140px] h-full p-2 rounded-lg cursor-grab transition-all duration-200
                                         shadow-sm hover:shadow-md overflow-hidden relative z-10 flex flex-col ${
@@ -2544,7 +2550,9 @@ export default function SchedulePage() {
                                           className="w-[120px] sm:w-[140px] h-8 p-2 rounded-lg bg-blue-100 border-2 border-dashed border-blue-400 flex items-center justify-center"
                                         >
                                           <span className="text-xs text-blue-700 font-medium">
-                                            {language === "th" ? "วางที่นี่" : "Drop here"}
+                                            {language === "th"
+                                              ? "วางที่นี่"
+                                              : "Drop here"}
                                           </span>
                                         </motion.div>
                                       ) : (
@@ -2723,7 +2731,8 @@ export default function SchedulePage() {
                         {language === "th" ? "เวลาเดิม:" : "Current Time:"}
                       </span>
                       <span className="text-indigo-600 font-medium">
-                        {moveSessionData.session.start_time.substring(0, 5)} - {moveSessionData.session.end_time.substring(0, 5)}
+                        {moveSessionData.session.start_time.substring(0, 5)} -{" "}
+                        {moveSessionData.session.end_time.substring(0, 5)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -2748,18 +2757,33 @@ export default function SchedulePage() {
                       </h4>
                       <div className="space-y-2 text-sm">
                         <div>
-                          <span className="text-gray-600">{language === "th" ? "เดิม:" : "Current:"}</span>{" "}
+                          <span className="text-gray-600">
+                            {language === "th" ? "เดิม:" : "Current:"}
+                          </span>{" "}
                           <span className="font-medium">
-                            {moveSessionData.sessionDetail.oldTeacher.teacher_profile?.nickname_en ||
+                            {moveSessionData.sessionDetail.oldTeacher
+                              .teacher_profile?.nickname_en ||
                               moveSessionData.sessionDetail.oldTeacher.username}
                           </span>
-                          {moveSessionData.sessionDetail.oldTeacher.teacher_profile && (
+                          {moveSessionData.sessionDetail.oldTeacher
+                            .teacher_profile && (
                             <p className="text-xs text-gray-500 mt-1">
-                              {moveSessionData.sessionDetail.oldTeacher.teacher_profile.first_name_en}{" "}
-                              {moveSessionData.sessionDetail.oldTeacher.teacher_profile.last_name_en}
-                              {moveSessionData.sessionDetail.oldTeacher.teacher_profile.specializations && (
+                              {
+                                moveSessionData.sessionDetail.oldTeacher
+                                  .teacher_profile.first_name_en
+                              }{" "}
+                              {
+                                moveSessionData.sessionDetail.oldTeacher
+                                  .teacher_profile.last_name_en
+                              }
+                              {moveSessionData.sessionDetail.oldTeacher
+                                .teacher_profile.specializations && (
                                 <span className="ml-2 text-blue-600">
-                                  • {moveSessionData.sessionDetail.oldTeacher.teacher_profile.specializations}
+                                  •{" "}
+                                  {
+                                    moveSessionData.sessionDetail.oldTeacher
+                                      .teacher_profile.specializations
+                                  }
                                 </span>
                               )}
                             </p>
@@ -2767,18 +2791,34 @@ export default function SchedulePage() {
                         </div>
                         {moveSessionData.sessionDetail.newTeacher && (
                           <div>
-                            <span className="text-gray-600">{language === "th" ? "ใหม่:" : "New:"}</span>{" "}
+                            <span className="text-gray-600">
+                              {language === "th" ? "ใหม่:" : "New:"}
+                            </span>{" "}
                             <span className="font-medium text-green-600">
-                              {moveSessionData.sessionDetail.newTeacher.teacher_profile?.nickname_en ||
-                                moveSessionData.sessionDetail.newTeacher.username}
+                              {moveSessionData.sessionDetail.newTeacher
+                                .teacher_profile?.nickname_en ||
+                                moveSessionData.sessionDetail.newTeacher
+                                  .username}
                             </span>
-                            {moveSessionData.sessionDetail.newTeacher.teacher_profile && (
+                            {moveSessionData.sessionDetail.newTeacher
+                              .teacher_profile && (
                               <p className="text-xs text-gray-500 mt-1">
-                                {moveSessionData.sessionDetail.newTeacher.teacher_profile.first_name_en}{" "}
-                                {moveSessionData.sessionDetail.newTeacher.teacher_profile.last_name_en}
-                                {moveSessionData.sessionDetail.newTeacher.teacher_profile.specializations && (
+                                {
+                                  moveSessionData.sessionDetail.newTeacher
+                                    .teacher_profile.first_name_en
+                                }{" "}
+                                {
+                                  moveSessionData.sessionDetail.newTeacher
+                                    .teacher_profile.last_name_en
+                                }
+                                {moveSessionData.sessionDetail.newTeacher
+                                  .teacher_profile.specializations && (
                                   <span className="ml-2 text-green-600">
-                                    • {moveSessionData.sessionDetail.newTeacher.teacher_profile.specializations}
+                                    •{" "}
+                                    {
+                                      moveSessionData.sessionDetail.newTeacher
+                                        .teacher_profile.specializations
+                                    }
                                   </span>
                                 )}
                               </p>
@@ -2790,98 +2830,155 @@ export default function SchedulePage() {
                   )}
 
                   {/* Students */}
-                  {moveSessionData.sessionDetail?.students && moveSessionData.sessionDetail.students.length > 0 && (
-                    <div className="mb-4 p-3 bg-amber-50 rounded-lg">
-                      <h4 className="font-semibold text-gray-900 mb-2 text-sm">
-                        {language === "th" ? "นักเรียน" : "Students"} ({moveSessionData.sessionDetail.students.length})
-                      </h4>
-                      <div className="space-y-2 text-xs">
-                        {moveSessionData.sessionDetail.students.map((student, idx) => {
-                          const isAdmin = user?.role === "admin" || user?.role === "owner";
-                          const isTeacher = user?.role === "teacher";
+                  {moveSessionData.sessionDetail?.students &&
+                    moveSessionData.sessionDetail.students.length > 0 && (
+                      <div className="mb-4 p-3 bg-amber-50 rounded-lg">
+                        <h4 className="font-semibold text-gray-900 mb-2 text-sm">
+                          {language === "th" ? "นักเรียน" : "Students"} (
+                          {moveSessionData.sessionDetail.students.length})
+                        </h4>
+                        <div className="space-y-2 text-xs">
+                          {moveSessionData.sessionDetail.students.map(
+                            (student, idx) => {
+                              const isAdmin =
+                                user?.role === "admin" ||
+                                user?.role === "owner";
+                              const isTeacher = user?.role === "teacher";
 
-                          return (
-                            <div key={idx} className="flex items-start gap-2 p-2 bg-white rounded border border-amber-200">
-                              <div className="flex-1">
-                                <p className="font-medium text-gray-900">
-                                  {student.nickname_th || student.nickname_en || student.first_name}
-                                </p>
-                                {isTeacher ? (
-                                  // Teacher sees limited info
-                                  <div className="text-gray-600 mt-1 space-y-0.5">
-                                    {student.date_of_birth && (
-                                      <p>
-                                        {language === "th" ? "วันเกิด:" : "DOB:"}{" "}
-                                        {new Date(student.date_of_birth).toLocaleDateString(language === "th" ? "th-TH" : "en-US")}
-                                      </p>
-                                    )}
-                                    {student.age > 0 && (
-                                      <p>
-                                        {language === "th" ? "อายุ:" : "Age:"} {student.age}{" "}
-                                        {language === "th" ? "ปี" : "years"}
-                                      </p>
-                                    )}
-                                    {student.user_branch && (
-                                      <p>
-                                        {language === "th" ? "สาขา:" : "Branch:"}{" "}
-                                        {language === "th" ? student.user_branch.name_th : student.user_branch.name_en}
-                                      </p>
-                                    )}
-                                  </div>
-                                ) : isAdmin ? (
-                                  // Admin sees full info
-                                  <div className="text-gray-600 mt-1 space-y-0.5">
-                                    <p>
-                                      {student.first_name_en || student.first_name} {student.last_name_en || student.last_name}
+                              return (
+                                <div
+                                  key={idx}
+                                  className="flex items-start gap-2 p-2 bg-white rounded border border-amber-200"
+                                >
+                                  <div className="flex-1">
+                                    <p className="font-medium text-gray-900">
+                                      {student.nickname_th ||
+                                        student.nickname_en ||
+                                        student.first_name}
                                     </p>
-                                    {student.email && <p>📧 {student.email}</p>}
-                                    {student.phone && <p>📞 {student.phone}</p>}
-                                    {student.line_id && <p>💬 LINE: {student.line_id}</p>}
-                                    {student.date_of_birth && (
-                                      <p>
-                                        🎂 {new Date(student.date_of_birth).toLocaleDateString(language === "th" ? "th-TH" : "en-US")}
-                                        {student.age > 0 && ` (${student.age} ${language === "th" ? "ปี" : "years"})`}
-                                      </p>
-                                    )}
-                                    {student.age_group && (
-                                      <p>
-                                        👥 {student.age_group}
-                                      </p>
-                                    )}
-                                    {student.user_branch && (
-                                      <p>
-                                        🏢 {language === "th" ? student.user_branch.name_th : student.user_branch.name_en}
-                                      </p>
-                                    )}
-                                    {student.recent_cefr && (
-                                      <p className="text-blue-600 font-medium">
-                                        📊 CEFR: {student.recent_cefr}
-                                      </p>
-                                    )}
-                                    <p className="flex gap-2">
-                                      <span className={`px-2 py-0.5 rounded ${
-                                        student.payment_status === "paid" ? "bg-green-100 text-green-700" :
-                                        student.payment_status === "pending" ? "bg-yellow-100 text-yellow-700" :
-                                        "bg-red-100 text-red-700"
-                                      }`}>
-                                        {student.payment_status}
-                                      </span>
-                                      <span className={`px-2 py-0.5 rounded ${
-                                        student.registration_status === "active" ? "bg-green-100 text-green-700" :
-                                        "bg-gray-100 text-gray-700"
-                                      }`}>
-                                        {student.registration_status}
-                                      </span>
-                                    </p>
+                                    {isTeacher ? (
+                                      // Teacher sees limited info
+                                      <div className="text-gray-600 mt-1 space-y-0.5">
+                                        {student.date_of_birth && (
+                                          <p>
+                                            {language === "th"
+                                              ? "วันเกิด:"
+                                              : "DOB:"}{" "}
+                                            {new Date(
+                                              student.date_of_birth
+                                            ).toLocaleDateString(
+                                              language === "th"
+                                                ? "th-TH"
+                                                : "en-US"
+                                            )}
+                                          </p>
+                                        )}
+                                        {student.age > 0 && (
+                                          <p>
+                                            {language === "th"
+                                              ? "อายุ:"
+                                              : "Age:"}{" "}
+                                            {student.age}{" "}
+                                            {language === "th" ? "ปี" : "years"}
+                                          </p>
+                                        )}
+                                        {student.user_branch && (
+                                          <p>
+                                            {language === "th"
+                                              ? "สาขา:"
+                                              : "Branch:"}{" "}
+                                            {language === "th"
+                                              ? student.user_branch.name_th
+                                              : student.user_branch.name_en}
+                                          </p>
+                                        )}
+                                      </div>
+                                    ) : isAdmin ? (
+                                      // Admin sees full info
+                                      <div className="text-gray-600 mt-1 space-y-0.5">
+                                        <p>
+                                          {student.first_name_en ||
+                                            student.first_name}{" "}
+                                          {student.last_name_en ||
+                                            student.last_name}
+                                        </p>
+                                        {student.email && (
+                                          <p>📧 {student.email}</p>
+                                        )}
+                                        {student.phone && (
+                                          <p>📞 {student.phone}</p>
+                                        )}
+                                        {student.line_id && (
+                                          <p>💬 LINE: {student.line_id}</p>
+                                        )}
+                                        {student.date_of_birth && (
+                                          <p>
+                                            🎂{" "}
+                                            {new Date(
+                                              student.date_of_birth
+                                            ).toLocaleDateString(
+                                              language === "th"
+                                                ? "th-TH"
+                                                : "en-US"
+                                            )}
+                                            {student.age > 0 &&
+                                              ` (${student.age} ${
+                                                language === "th"
+                                                  ? "ปี"
+                                                  : "years"
+                                              })`}
+                                          </p>
+                                        )}
+                                        {student.age_group && (
+                                          <p>👥 {student.age_group}</p>
+                                        )}
+                                        {student.user_branch && (
+                                          <p>
+                                            🏢{" "}
+                                            {language === "th"
+                                              ? student.user_branch.name_th
+                                              : student.user_branch.name_en}
+                                          </p>
+                                        )}
+                                        {student.recent_cefr && (
+                                          <p className="text-blue-600 font-medium">
+                                            📊 CEFR: {student.recent_cefr}
+                                          </p>
+                                        )}
+                                        <p className="flex gap-2">
+                                          <span
+                                            className={`px-2 py-0.5 rounded ${
+                                              student.payment_status === "paid"
+                                                ? "bg-green-100 text-green-700"
+                                                : student.payment_status ===
+                                                  "pending"
+                                                ? "bg-yellow-100 text-yellow-700"
+                                                : "bg-red-100 text-red-700"
+                                            }`}
+                                          >
+                                            {student.payment_status}
+                                          </span>
+                                          <span
+                                            className={`px-2 py-0.5 rounded ${
+                                              student.registration_status ===
+                                              "active"
+                                                ? "bg-green-100 text-green-700"
+                                                : "bg-gray-100 text-gray-700"
+                                            }`}
+                                          >
+                                            {student.registration_status}
+                                          </span>
+                                        </p>
+                                      </div>
+                                    ) : null}
                                   </div>
-                                ) : null}
-                              </div>
-                            </div>
-                          );
-                        })}
+                                </div>
+                              );
+                            }
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   <p className="text-gray-500 text-sm mt-4">
                     {language === "th"

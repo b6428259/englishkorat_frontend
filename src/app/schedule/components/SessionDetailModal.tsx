@@ -1095,20 +1095,28 @@ export default function SessionDetailModal({
                         >
                           <Avatar className="h-12 w-12">
                             <AvatarFallback className="bg-blue-100 text-blue-600 font-semibold">
-                              {(member.student.first_name || "U").charAt(0).toUpperCase()}
-                              {(member.student.last_name || "N").charAt(0).toUpperCase()}
+                              {(member.student.first_name || "U")
+                                .charAt(0)
+                                .toUpperCase()}
+                              {(member.student.last_name || "N")
+                                .charAt(0)
+                                .toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
 
                           <div className="flex-1">
                             <p className="font-medium text-gray-900">
-                              {member.student.first_name} {member.student.last_name}
+                              {member.student.first_name}{" "}
+                              {member.student.last_name}
                             </p>
                             <p className="text-sm text-gray-600">
-                              {member.student.first_name_en} {member.student.last_name_en}
+                              {member.student.first_name_en}{" "}
+                              {member.student.last_name_en}
                             </p>
                             <p className="text-sm text-gray-500">
-                              @{member.student.user?.username || member.student.nickname_en}
+                              @
+                              {member.student.user?.username ||
+                                member.student.nickname_en}
                             </p>
                           </div>
 
