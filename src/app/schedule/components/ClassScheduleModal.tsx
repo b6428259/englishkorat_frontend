@@ -35,7 +35,13 @@ import {
   PlusIcon,
   UsersIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { HiDocumentText } from "react-icons/hi2";
 
 // New interface for session_times (Case 2: Multi-slot weekly class)
@@ -57,7 +63,7 @@ interface ClassScheduleModalProps {
   error?: string | null;
 }
 
-export default function ClassScheduleModal({
+const ClassScheduleModal = React.memo(function ClassScheduleModal({
   isOpen,
   onClose,
   onBack,
@@ -197,11 +203,15 @@ export default function ClassScheduleModal({
 
   const groupOptions = useMemo(
     () =>
-      filteredGroups.map((group) => ({
-        value: group.id.toString(),
-        label: group.group_name,
-        description: `${group.course_name} (${group.current_students}/${group.max_students})`,
-      })),
+      filteredGroups.map((group) => {
+        const courseName = group.course_name || "No Course";
+        const count = `(${group.current_students}/${group.max_students})`;
+        return {
+          value: group.id.toString(),
+          label: group.group_name,
+          description: `${courseName} ${count}`,
+        };
+      }),
     [filteredGroups]
   );
 
@@ -403,16 +413,39 @@ export default function ClassScheduleModal({
             (group): group is typeof group & { id: number } =>
               !!group && typeof group.id === "number"
           )
-          .map((group) => ({
-            id: group.id,
-            group_name: group.group_name,
-            course_id: group.course_id,
-            course_name: group.course?.name || "",
-            level: group.level,
-            current_students: group.members?.length || 0,
-            max_students: group.max_students,
-            payment_status: group.payment_status,
-          }));
+          .map((group) => {
+            // Generate group name from members if group_name is empty
+            let displayName = group.group_name;
+            if (!displayName || displayName.trim() === "") {
+              const members = group.members || [];
+              if (members.length > 0) {
+                const studentNames = members
+                  .map(
+                    (m) =>
+                      m.student?.nickname_th ||
+                      m.student?.nickname_en ||
+                      m.student?.first_name_th ||
+                      ""
+                  )
+                  .filter((name) => name)
+                  .join(", ");
+                displayName = studentNames || `Group ${group.id}`;
+              } else {
+                displayName = `Group ${group.id}`;
+              }
+            }
+
+            return {
+              id: group.id,
+              group_name: displayName,
+              course_id: group.course_id,
+              course_name: group.course?.name || "",
+              level: group.level,
+              current_students: group.members?.length || 0,
+              max_students: group.max_students,
+              payment_status: group.payment_status,
+            };
+          });
 
         setFilteredGroups(mappedGroups);
       } catch (error) {
@@ -478,6 +511,32 @@ export default function ClassScheduleModal({
       });
     }
   }, [scheduleForm.group_id, filteredGroups]);
+
+  // Auto-add one session time slot when modal opens or start_date is set
+  useEffect(() => {
+    if (
+      isOpen &&
+      scheduleForm.start_date &&
+      (!scheduleForm.session_times || scheduleForm.session_times.length === 0)
+    ) {
+      const weekday = getWeekdayFromDate(scheduleForm.start_date);
+      setScheduleForm((prev) => ({
+        ...prev,
+        session_times: [
+          {
+            weekday,
+            start_time: "09:00",
+            end_time: "12:00",
+          },
+        ],
+      }));
+    }
+  }, [
+    isOpen,
+    scheduleForm.start_date,
+    scheduleForm.session_times,
+    getWeekdayFromDate,
+  ]);
 
   // Check room conflicts function
   const checkRoomConflicts = useCallback(async () => {
@@ -2340,4 +2399,6 @@ export default function ClassScheduleModal({
       )}
     </>
   );
-}
+});
+
+export default ClassScheduleModal;

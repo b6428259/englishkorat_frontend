@@ -1371,8 +1371,8 @@ export default function SchedulePage() {
     _teacherId: number,
     timeSlot: { hour: number; minute: number }
   ) => {
-    console.log("handleEmptyCellClick called with teacherId:", _teacherId);
-    console.log("timeSlot:", timeSlot);
+    console.log("🔍 handleEmptyCellClick called with teacherId:", _teacherId);
+    console.log("🔍 timeSlot:", timeSlot);
     // Reset any previous form errors
     setFormError(null);
 
@@ -1423,14 +1423,18 @@ export default function SchedulePage() {
 
     // Seed the Schedule modal (create schedule) with a single time slot
     // so clicking an empty cell opens the Schedule creation flow.
+    const teacherId = _teacherId && _teacherId > 0 ? _teacherId : 0;
+    console.log("🔍 Setting teacher_id to:", teacherId);
+
     const newScheduleForm = {
       schedule_name: "",
       schedule_type: "class" as const,
       course_id: 0,
       group_id: 0,
-      teacher_id: _teacherId || 0,
-      default_teacher_id: _teacherId || 0,
+      teacher_id: teacherId,
+      default_teacher_id: teacherId,
       room_id: 0,
+      default_room_id: 0,
       total_hours: 30,
       hours_per_session: 1,
       max_students: 15,
