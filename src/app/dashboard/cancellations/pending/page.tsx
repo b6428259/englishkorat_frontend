@@ -68,15 +68,16 @@ export default function PendingCancellationsPage() {
         limit: itemsPerPage,
       });
 
-      setCancellations(response.requests);
+      setCancellations(response.requests || []);
       const calculatedTotalPages = Math.ceil(
-        response.pagination.total / itemsPerPage
+        (response.pagination?.total || 0) / itemsPerPage
       );
       setTotalPages(calculatedTotalPages);
       setCurrentPage(page);
     } catch (error) {
       console.error("Failed to fetch cancellations:", error);
       toast.error(t.approvalFailed, { position: "top-center" });
+      setCancellations([]); // Set empty array on error
     } finally {
       setIsLoading(false);
     }
@@ -174,12 +175,12 @@ export default function PendingCancellationsPage() {
     }
   };
 
-  const filteredCancellations = cancellations.filter((cancellation) => {
+  const filteredCancellations = (cancellations || []).filter((cancellation) => {
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
     return (
       cancellation.teacher_name?.toLowerCase().includes(search) ||
-      cancellation.students.some((s) => s.name.toLowerCase().includes(search))
+      cancellation.students?.some((s) => s.name?.toLowerCase().includes(search))
     );
   });
 

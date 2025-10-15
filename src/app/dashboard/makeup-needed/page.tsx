@@ -113,10 +113,11 @@ export default function MakeupNeededPage() {
     try {
       setIsLoading(true);
       const response = await getMakeupNeededSessions();
-      setSessions(response.sessions_needing_makeup);
+      setSessions(response.sessions_needing_makeup || []);
     } catch (error) {
       console.error("Failed to fetch makeup sessions:", error);
       toast.error(t.error, { position: "top-center" });
+      setSessions([]); // Set empty array on error
     } finally {
       setIsLoading(false);
     }
@@ -129,12 +130,12 @@ export default function MakeupNeededPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filteredSessions = sessions.filter((session) => {
+  const filteredSessions = (sessions || []).filter((session) => {
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
     return (
-      session.group.group_name?.toLowerCase().includes(search) ||
-      session.course.course_name?.toLowerCase().includes(search) ||
+      session.group?.group_name?.toLowerCase().includes(search) ||
+      session.course?.course_name?.toLowerCase().includes(search) ||
       session.schedule_name?.toLowerCase().includes(search) ||
       session.cancelling_reason?.toLowerCase().includes(search)
     );

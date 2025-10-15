@@ -148,7 +148,7 @@ export default function CompactDayViewModal({
         }
       `}</style>
 
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+      <div className="fixed inset-0 z-40 flex items-center justify-center">
         {/* พื้นหลังมืด */}
         <div
           role="button"
