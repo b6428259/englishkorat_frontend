@@ -2204,8 +2204,10 @@ export const scheduleService = {
           group_id: undefined, // Would be populated from API
           created_by_user_id: 0, // Would be populated from API
           recurring_pattern: "weekly", // Would be populated from API
-          total_hours: parseFloat(scheduleResponse.data.schedule.total_hours),
-          hours_per_session: parseFloat(
+          total_hours: Number.parseFloat(
+            scheduleResponse.data.schedule.total_hours
+          ),
+          hours_per_session: Number.parseFloat(
             scheduleResponse.data.schedule.hours_per_session
           ),
           session_per_week: 1, // Would be populated from API

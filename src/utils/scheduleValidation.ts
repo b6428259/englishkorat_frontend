@@ -43,11 +43,22 @@ export function validateScheduleForm(
 
   // Recurring rules - hours required for any recurring pattern (not just class)
   if (input.recurring_pattern && input.recurring_pattern !== "none") {
-    if (!input.hours_per_session || toInt(input.hours_per_session) <= 0)
+    // รองรับทศนิยม (0.5 = 30 นาที) - ใช้ Number.parseFloat แทน toInt
+    const hoursPerSession = Number.parseFloat(
+      String(input.hours_per_session || 0)
+    );
+    if (!input.hours_per_session || hoursPerSession <= 0)
       issues.push({
         field: "hours_per_session",
-        message: "ชั่วโมงต่อครั้งต้องมากกว่า 0",
+        message: "ชั่วโมงต่อครั้งต้องมากกว่า 0 (เช่น 0.5 สำหรับ 30 นาที)",
       });
+    // ตรวจสอบขั้นต่ำ 0.5 ชั่วโมง (30 นาที)
+    if (hoursPerSession > 0 && hoursPerSession < 0.5) {
+      issues.push({
+        field: "hours_per_session",
+        message: "ชั่วโมงต่อครั้งต้องไม่ต่ำกว่า 0.5 ชั่วโมง (30 นาที)",
+      });
+    }
     if (!input.total_hours || toInt(input.total_hours) <= 0)
       issues.push({ field: "total_hours", message: "ชั่วโมงรวมต้องมากกว่า 0" });
     if (!input.session_per_week || toInt(input.session_per_week) <= 0)
@@ -149,7 +160,8 @@ export function validateScheduleForm(
 // Derive estimated_end_date and session count (approx) per spec
 export function deriveScheduleFields(input: Partial<CreateScheduleRequest>) {
   const totalHours = toInt(input.total_hours);
-  const hoursPer = toInt(input.hours_per_session);
+  // รองรับทศนิยม (0.5, 1.5, etc.)
+  const hoursPer = Number.parseFloat(String(input.hours_per_session || 0));
   const perWeek = toInt(input.session_per_week);
 
   let estimated_end_date: string | undefined;

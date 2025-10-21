@@ -25,6 +25,11 @@ import {
   scheduleService,
   TeacherOption,
 } from "@/services/api/schedules";
+import {
+  TeacherWorkingHour,
+  teacherWorkingHoursService,
+  workingHoursHelpers,
+} from "@/services/api/teacherWorkingHours";
 import { CreateGroupRequest, GroupOption, Student } from "@/types/group.types";
 import { formatDateReadable } from "@/utils/dateFormatter";
 import {
@@ -60,7 +65,6 @@ interface ClassScheduleModalProps {
   teachers: TeacherOption[];
   scheduleForm?: Partial<CreateScheduleRequest>;
   isLoading?: boolean;
-  error?: string | null;
 }
 
 const ClassScheduleModal = React.memo(function ClassScheduleModal({
@@ -73,7 +77,6 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
   teachers,
   scheduleForm: initialScheduleForm,
   isLoading = false,
-  error,
 }: ClassScheduleModalProps) {
   const { language } = useLanguage();
   const [activeTab, setActiveTab] = useState<
@@ -135,6 +138,18 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
   const [selectedBranchId, setSelectedBranchId] = useState<number | null>(null);
   const [filteredGroups, setFilteredGroups] = useState<GroupOption[]>([]);
   const [loadingGroups, setLoadingGroups] = useState(false);
+
+  // Teacher working hours state
+  const [teacherWorkingHours, setTeacherWorkingHours] = useState<
+    TeacherWorkingHour[]
+  >([]);
+  const [loadingWorkingHours, setLoadingWorkingHours] = useState(false);
+  const [workingHoursError, setWorkingHoursError] = useState<string | null>(
+    null
+  );
+
+  // Form validation error state
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   // Weekday mapping for new API (weekday 0-6, 0=Sunday)
   const weekDays = useMemo(
@@ -372,16 +387,76 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
     loadBranches();
   }, []);
 
+  // Load teacher working hours when teacher is selected
+  useEffect(() => {
+    const loadTeacherWorkingHours = async () => {
+      // Get teacher ID from either default_teacher_id or teacher_id
+      const teacherId =
+        scheduleForm.default_teacher_id || scheduleForm.teacher_id;
+
+      if (!teacherId) {
+        // Clear working hours if no teacher selected
+        setTeacherWorkingHours([]);
+        setWorkingHoursError(null);
+        return;
+      }
+
+      // Find teacher from teachers list to get user_id
+      const teacher = teachers.find((t) => t.id === teacherId);
+      if (!teacher) {
+        setTeacherWorkingHours([]);
+        setWorkingHoursError("Teacher not found");
+        return;
+      }
+
+      setLoadingWorkingHours(true);
+      setWorkingHoursError(null);
+
+      try {
+        // Call API with teacher's user_id (not teacher.id)
+        const response = await teacherWorkingHoursService.getWorkingHours(
+          teacher.id
+        );
+        setTeacherWorkingHours(response.working_hours || []);
+        console.log(
+          "✅ Loaded working hours for teacher:",
+          teacher.id,
+          response.working_hours
+        );
+      } catch (error) {
+        console.error("❌ Failed to load teacher working hours:", error);
+        setWorkingHoursError("ไม่สามารถโหลดเวลาทำงานของครูได้");
+        setTeacherWorkingHours([]);
+      } finally {
+        setLoadingWorkingHours(false);
+      }
+    };
+
+    loadTeacherWorkingHours();
+  }, [scheduleForm.default_teacher_id, scheduleForm.teacher_id, teachers]);
+
   // Prefill form when initialScheduleForm is provided
   useEffect(() => {
-    if (isOpen && initialScheduleForm) {
+    if (
+      isOpen &&
+      initialScheduleForm &&
+      Object.keys(initialScheduleForm).length > 0
+    ) {
       console.log("🔧 Prefilling form with:", initialScheduleForm);
-      setScheduleForm((prev) => ({
-        ...prev,
-        ...initialScheduleForm,
-      }));
+      console.log("🔧 Current form state:", scheduleForm);
+
+      // Always update form with initialScheduleForm when modal opens
+      setScheduleForm((prev) => {
+        const newForm = {
+          ...prev,
+          ...initialScheduleForm,
+        };
+        console.log("🔧 New form state:", newForm);
+        return newForm;
+      });
     }
-  }, [isOpen, initialScheduleForm]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, JSON.stringify(initialScheduleForm)]); // Use JSON.stringify for deep comparison
 
   // Load filtered groups when branch is selected
   useEffect(() => {
@@ -680,6 +755,35 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
   }, [activeTab, previewSchedule, isPreviewReady]);
 
   const handleConfirm = useCallback(async () => {
+    // Validate teacher working hours before submitting
+    if (
+      teacherWorkingHours.length > 0 &&
+      scheduleForm.session_times &&
+      scheduleForm.session_times.length > 0
+    ) {
+      const invalidTimes = scheduleForm.session_times.filter((session) => {
+        return !workingHoursHelpers.isTimeInWorkingHours(
+          session.weekday,
+          session.start_time,
+          teacherWorkingHours
+        );
+      });
+
+      if (invalidTimes.length > 0) {
+        const errorMsg =
+          language === "th"
+            ? `พบเวลาเรียนที่ไม่ตรงกับเวลาทำงานของครู (${invalidTimes.length} คาบ)\nกรุณาแก้ไขก่อนสร้างตารางเรียน`
+            : `Found ${invalidTimes.length} session(s) outside teacher's working hours.\nPlease fix before creating schedule.`;
+
+        setValidationError(errorMsg);
+        alert(errorMsg);
+        return;
+      }
+    }
+
+    // Clear any previous validation errors
+    setValidationError(null);
+
     const payload: Partial<CreateScheduleRequest> = {
       ...scheduleForm,
       schedule_type: "class",
@@ -755,7 +859,14 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
     } finally {
       setIsSubmitting(false);
     }
-  }, [scheduleForm, selectedRoomId, previewData, onConfirm]);
+  }, [
+    scheduleForm,
+    selectedRoomId,
+    previewData,
+    onConfirm,
+    language,
+    teacherWorkingHours,
+  ]);
 
   useEffect(() => {
     if (!showSuccessModal) return;
@@ -1035,12 +1146,37 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
                             {language === "th" ? "ครูผู้สอน" : "Teacher"}
                           </label>
                           <Combobox
-                            value={
-                              scheduleForm.default_teacher_id &&
-                              scheduleForm.default_teacher_id > 0
-                                ? scheduleForm.default_teacher_id.toString()
-                                : undefined
-                            }
+                            value={(() => {
+                              const teacherId = scheduleForm.default_teacher_id;
+                              const valueString =
+                                teacherId && teacherId > 0
+                                  ? teacherId.toString()
+                                  : undefined;
+                              console.log(
+                                "🔍 Combobox value:",
+                                valueString,
+                                "| Teacher ID:",
+                                teacherId
+                              );
+                              console.log(
+                                "🔍 Teacher options available:",
+                                teacherOptions.length,
+                                "options"
+                              );
+
+                              // Check if teacher ID exists in options
+                              const matchingOption = teacherOptions.find(
+                                (opt) => opt.value === valueString
+                              );
+                              console.log(
+                                "🔍 Matching option for ID",
+                                valueString,
+                                ":",
+                                matchingOption || "NOT FOUND"
+                              );
+
+                              return valueString;
+                            })()}
                             onValueChange={(value) =>
                               updateForm({
                                 default_teacher_id: Number(value) || 0,
@@ -1154,12 +1290,17 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
                           onChange={(e) =>
                             updateForm({
                               hours_per_session:
-                                parseFloat(e.target.value) || undefined,
+                                Number.parseFloat(e.target.value) || undefined,
                             })
                           }
                           className="w-full p-2.5 md:p-3 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                          placeholder="2"
+                          placeholder="0.5, 1, 1.5, 2"
                         />
+                        <p className="text-xs text-gray-500 mt-1">
+                          {language === "th"
+                            ? "ตัวอย่าง: 0.5 = 30 นาที, 1 = 1 ชั่วโมง, 1.5 = 1.5 ชม."
+                            : "Example: 0.5 = 30 min, 1 = 1 hour, 1.5 = 1.5 hours"}
+                        </p>
                       </div>
                     </div>
 
@@ -1191,20 +1332,158 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
                         </div>
 
                         {(scheduleForm.session_times || []).length > 0 ? (
-                          <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-3 md:p-4 rounded-lg border-2 border-indigo-300 space-y-3">
+                          <div
+                            className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4 md:p-5 rounded-xl border-2 shadow-sm space-y-4"
+                            style={{
+                              borderColor: "#334293",
+                              boxShadow:
+                                "0 4px 6px -1px rgba(51, 66, 147, 0.1), 0 2px 4px -1px rgba(51, 66, 147, 0.06)",
+                            }}
+                          >
                             <div className="flex items-center justify-between flex-wrap gap-2">
-                              <span className="text-xs md:text-sm font-medium text-indigo-900">
-                                📅{" "}
+                              <span
+                                className="text-sm md:text-base font-semibold flex items-center gap-2"
+                                style={{ color: "#334293" }}
+                              >
+                                <svg
+                                  className="w-5 h-5"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
                                 {getWeekdayName(
                                   scheduleForm.session_times?.[0]?.weekday ?? 1
                                 )}
                               </span>
-                              <span className="text-[10px] md:text-xs text-indigo-600 bg-indigo-100 px-2 py-1 rounded">
-                                {language === "th" ? "คาบแรก" : "First"}
+                              <span
+                                className="text-xs px-3 py-1 rounded-full font-medium"
+                                style={{
+                                  backgroundColor: "#EFE957",
+                                  color: "#334293",
+                                }}
+                              >
+                                {language === "th" ? "คาบหลัก" : "Main Session"}
                               </span>
                             </div>
+
+                            {/* Working Hours Info */}
+                            {loadingWorkingHours && (
+                              <div
+                                className="flex items-center gap-2 text-sm p-3 rounded-lg"
+                                style={{
+                                  backgroundColor: "rgba(51, 66, 147, 0.05)",
+                                }}
+                              >
+                                <LoadingSpinner size="sm" />
+                                <span style={{ color: "#334293" }}>
+                                  {language === "th"
+                                    ? "กำลังโหลดเวลาทำงานครู..."
+                                    : "Loading teacher hours..."}
+                                </span>
+                              </div>
+                            )}
+
+                            {workingHoursError && (
+                              <div className="text-sm bg-red-50 p-3 rounded-lg border border-red-200 text-red-700 flex items-start gap-2">
+                                <svg
+                                  className="w-5 h-5 flex-shrink-0 mt-0.5"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                                <span>{workingHoursError}</span>
+                              </div>
+                            )}
+
+                            {teacherWorkingHours.length > 0 &&
+                              !loadingWorkingHours && (
+                                <div className="space-y-2">
+                                  <div
+                                    className="text-sm p-3 rounded-lg flex items-start gap-2"
+                                    style={{
+                                      backgroundColor: "rgba(34, 197, 94, 0.1)",
+                                      color: "#166534",
+                                    }}
+                                  >
+                                    <svg
+                                      className="w-5 h-5 flex-shrink-0 mt-0.5"
+                                      fill="currentColor"
+                                      viewBox="0 0 20 20"
+                                    >
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                    <div>
+                                      <div className="font-medium">
+                                        {language === "th"
+                                          ? "เวลาทำงานของครู"
+                                          : "Teacher's Working Hours"}
+                                      </div>
+                                      <div className="text-xs mt-1 space-y-1">
+                                        {teacherWorkingHours
+                                          .filter(
+                                            (wh) =>
+                                              wh.day_of_week ===
+                                              (scheduleForm.session_times?.[0]
+                                                ?.weekday ?? 1)
+                                          )
+                                          .map((wh, idx) => (
+                                            <div
+                                              key={idx}
+                                              className="flex items-center gap-2"
+                                            >
+                                              <svg
+                                                className="w-4 h-4"
+                                                fill="currentColor"
+                                                viewBox="0 0 20 20"
+                                              >
+                                                <path
+                                                  fillRule="evenodd"
+                                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                                                  clipRule="evenodd"
+                                                />
+                                              </svg>
+                                              <span className="font-mono">
+                                                {wh.start_time} - {wh.end_time}
+                                              </span>
+                                            </div>
+                                          ))}
+                                        {teacherWorkingHours.filter(
+                                          (wh) =>
+                                            wh.day_of_week ===
+                                            (scheduleForm.session_times?.[0]
+                                              ?.weekday ?? 1)
+                                        ).length === 0 && (
+                                          <div className="text-amber-700">
+                                            {language === "th"
+                                              ? "⚠️ ครูไม่มีเวลาทำงานในวันนี้"
+                                              : "⚠️ Teacher has no working hours on this day"}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
                             <div>
-                              <label className="block text-xs text-gray-600 mb-1">
+                              <label
+                                className="block text-sm font-medium mb-2"
+                                style={{ color: "#334293" }}
+                              >
                                 {language === "th"
                                   ? "เวลาเริ่มต้น"
                                   : "Start Time"}{" "}
@@ -1216,20 +1495,108 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
                                   scheduleForm.session_times?.[0]?.start_time ||
                                   "09:00"
                                 }
-                                onChange={(e) =>
-                                  updateSessionTime(0, {
-                                    start_time: e.target.value,
-                                  })
+                                disabled={
+                                  loadingWorkingHours ||
+                                  (teacherWorkingHours.length > 0 &&
+                                    teacherWorkingHours.filter(
+                                      (wh) =>
+                                        wh.day_of_week ===
+                                        (scheduleForm.session_times?.[0]
+                                          ?.weekday ?? 1)
+                                    ).length === 0)
                                 }
-                                className="w-full p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                onChange={(e) => {
+                                  const newTime = e.target.value;
+
+                                  updateSessionTime(0, {
+                                    start_time: newTime,
+                                  });
+                                }}
+                                className="w-full p-3 border-2 rounded-xl focus:ring-4 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-mono text-base"
+                                style={
+                                  {
+                                    borderColor:
+                                      teacherWorkingHours.length > 0 &&
+                                      scheduleForm.session_times?.[0]
+                                        ?.start_time &&
+                                      !workingHoursHelpers.isTimeInWorkingHours(
+                                        scheduleForm.session_times?.[0]
+                                          ?.weekday ?? 1,
+                                        scheduleForm.session_times?.[0]
+                                          ?.start_time,
+                                        teacherWorkingHours
+                                      )
+                                        ? "#ef4444"
+                                        : "#d1d5db",
+                                    backgroundColor:
+                                      teacherWorkingHours.length > 0 &&
+                                      scheduleForm.session_times?.[0]
+                                        ?.start_time &&
+                                      !workingHoursHelpers.isTimeInWorkingHours(
+                                        scheduleForm.session_times?.[0]
+                                          ?.weekday ?? 1,
+                                        scheduleForm.session_times?.[0]
+                                          ?.start_time,
+                                        teacherWorkingHours
+                                      )
+                                        ? "#fee2e2"
+                                        : "white",
+                                    "--tw-ring-color": "#334293",
+                                  } as React.CSSProperties
+                                }
                               />
+                              {teacherWorkingHours.length > 0 &&
+                                scheduleForm.session_times?.[0]?.start_time &&
+                                !workingHoursHelpers.isTimeInWorkingHours(
+                                  scheduleForm.session_times?.[0]?.weekday ?? 1,
+                                  scheduleForm.session_times?.[0]?.start_time,
+                                  teacherWorkingHours
+                                ) && (
+                                  <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2 text-red-700 text-sm">
+                                    <svg
+                                      className="w-5 h-5 flex-shrink-0 mt-0.5"
+                                      fill="currentColor"
+                                      viewBox="0 0 20 20"
+                                    >
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                    <span>
+                                      {language === "th"
+                                        ? "เวลานี้อยู่นอกช่วงเวลาทำงานของครู"
+                                        : "This time is outside teacher's working hours"}
+                                    </span>
+                                  </div>
+                                )}
                             </div>
-                            <p className="text-[10px] md:text-xs text-indigo-700">
-                              💡{" "}
-                              {language === "th"
-                                ? "วันนี้จะเป็นวันของทุกคาบเรียน"
-                                : "This day for all sessions"}
-                            </p>
+
+                            <div
+                              className="text-xs flex items-center gap-2 p-2 rounded-lg"
+                              style={{
+                                backgroundColor: "rgba(51, 66, 147, 0.05)",
+                                color: "#334293",
+                              }}
+                            >
+                              <svg
+                                className="w-4 h-4 flex-shrink-0"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              <span>
+                                {language === "th"
+                                  ? "วันนี้จะเป็นวันของทุกคาบเรียนในตาราง"
+                                  : "This day applies to all sessions in the schedule"}
+                              </span>
+                            </div>
                           </div>
                         ) : (
                           <div className="bg-yellow-50 border border-yellow-200 p-3 md:p-4 rounded-lg text-center">
@@ -1280,19 +1647,39 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
                           </Button>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           {(scheduleForm.session_times || [])
                             .slice(1)
                             .map((slot, index) => {
                               const actualIndex = index + 1;
+                              const hasWorkingHours =
+                                teacherWorkingHours.filter(
+                                  (wh) => wh.day_of_week === slot.weekday
+                                ).length > 0;
+
                               return (
                                 <div
                                   key={actualIndex}
-                                  className="bg-gray-50 p-3 md:p-4 rounded-lg border border-gray-200 space-y-2.5"
+                                  className="bg-gradient-to-br from-gray-50 to-slate-50 p-4 rounded-xl border-2 shadow-sm space-y-3 transition-all duration-200 hover:shadow-md"
+                                  style={{ borderColor: "#d1d5db" }}
                                 >
                                   <div className="flex items-center justify-between">
-                                    <span className="text-xs md:text-sm font-medium text-gray-700">
-                                      {language === "th" ? "วัน" : "Day"}{" "}
+                                    <span
+                                      className="text-sm font-semibold flex items-center gap-2"
+                                      style={{ color: "#334293" }}
+                                    >
+                                      <svg
+                                        className="w-4 h-4"
+                                        fill="currentColor"
+                                        viewBox="0 0 20 20"
+                                      >
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                                          clipRule="evenodd"
+                                        />
+                                      </svg>
+                                      {language === "th" ? "วันที่" : "Day"}{" "}
                                       {actualIndex + 1}
                                     </span>
                                     <button
@@ -1300,13 +1687,28 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
                                       onClick={() =>
                                         removeSessionTime(actualIndex)
                                       }
-                                      className="text-red-500 hover:text-red-700 text-xs md:text-sm"
+                                      className="text-red-500 hover:text-red-700 text-sm font-medium flex items-center gap-1 transition-colors"
                                     >
+                                      <svg
+                                        className="w-4 h-4"
+                                        fill="currentColor"
+                                        viewBox="0 0 20 20"
+                                      >
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                          clipRule="evenodd"
+                                        />
+                                      </svg>
                                       {language === "th" ? "ลบ" : "Remove"}
                                     </button>
                                   </div>
+
                                   <div>
-                                    <label className="block text-xs text-gray-600 mb-1">
+                                    <label
+                                      className="block text-sm font-medium mb-2"
+                                      style={{ color: "#334293" }}
+                                    >
                                       {language === "th"
                                         ? "เลือกวัน"
                                         : "Select Day"}
@@ -1318,7 +1720,13 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
                                           weekday: Number(e.target.value),
                                         })
                                       }
-                                      className="w-full p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                      className="w-full p-2.5 text-sm border-2 rounded-xl focus:ring-4 transition-all duration-200"
+                                      style={
+                                        {
+                                          borderColor: "#d1d5db",
+                                          "--tw-ring-color": "#334293",
+                                        } as React.CSSProperties
+                                      }
                                     >
                                       {weekDays.map((day) => (
                                         <option
@@ -1330,8 +1738,79 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
                                       ))}
                                     </select>
                                   </div>
+
+                                  {/* Working hours info for this day */}
+                                  {teacherWorkingHours.length > 0 && (
+                                    <div
+                                      className="text-xs p-2 rounded-lg"
+                                      style={{
+                                        backgroundColor: hasWorkingHours
+                                          ? "rgba(34, 197, 94, 0.1)"
+                                          : "rgba(251, 191, 36, 0.1)",
+                                        color: hasWorkingHours
+                                          ? "#166534"
+                                          : "#92400e",
+                                      }}
+                                    >
+                                      {hasWorkingHours ? (
+                                        <div className="flex items-start gap-1">
+                                          <svg
+                                            className="w-4 h-4 flex-shrink-0 mt-0.5"
+                                            fill="currentColor"
+                                            viewBox="0 0 20 20"
+                                          >
+                                            <path
+                                              fillRule="evenodd"
+                                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                                              clipRule="evenodd"
+                                            />
+                                          </svg>
+                                          <div>
+                                            {teacherWorkingHours
+                                              .filter(
+                                                (wh) =>
+                                                  wh.day_of_week ===
+                                                  slot.weekday
+                                              )
+                                              .map((wh, idx) => (
+                                                <div
+                                                  key={idx}
+                                                  className="font-mono font-medium"
+                                                >
+                                                  {wh.start_time} -{" "}
+                                                  {wh.end_time}
+                                                </div>
+                                              ))}
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-center gap-1">
+                                          <svg
+                                            className="w-4 h-4"
+                                            fill="currentColor"
+                                            viewBox="0 0 20 20"
+                                          >
+                                            <path
+                                              fillRule="evenodd"
+                                              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                              clipRule="evenodd"
+                                            />
+                                          </svg>
+                                          <span>
+                                            {language === "th"
+                                              ? "ครูไม่ทำงานวันนี้"
+                                              : "Teacher not working this day"}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+
                                   <div>
-                                    <label className="block text-xs text-gray-600 mb-1">
+                                    <label
+                                      className="block text-sm font-medium mb-2"
+                                      style={{ color: "#334293" }}
+                                    >
                                       {language === "th"
                                         ? "เวลาเริ่มต้น"
                                         : "Start Time"}
@@ -1339,13 +1818,71 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
                                     <input
                                       type="time"
                                       value={slot.start_time}
-                                      onChange={(e) =>
-                                        updateSessionTime(actualIndex, {
-                                          start_time: e.target.value,
-                                        })
+                                      disabled={
+                                        loadingWorkingHours ||
+                                        (teacherWorkingHours.length > 0 &&
+                                          !hasWorkingHours)
                                       }
-                                      className="w-full p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                      onChange={(e) => {
+                                        const newTime = e.target.value;
+
+                                        updateSessionTime(actualIndex, {
+                                          start_time: newTime,
+                                        });
+                                      }}
+                                      className="w-full p-2.5 border-2 rounded-xl focus:ring-4 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-mono"
+                                      style={
+                                        {
+                                          borderColor:
+                                            teacherWorkingHours.length > 0 &&
+                                            slot.start_time &&
+                                            !workingHoursHelpers.isTimeInWorkingHours(
+                                              slot.weekday,
+                                              slot.start_time,
+                                              teacherWorkingHours
+                                            )
+                                              ? "#ef4444"
+                                              : "#d1d5db",
+                                          backgroundColor:
+                                            teacherWorkingHours.length > 0 &&
+                                            slot.start_time &&
+                                            !workingHoursHelpers.isTimeInWorkingHours(
+                                              slot.weekday,
+                                              slot.start_time,
+                                              teacherWorkingHours
+                                            )
+                                              ? "#fee2e2"
+                                              : "white",
+                                          "--tw-ring-color": "#334293",
+                                        } as React.CSSProperties
+                                      }
                                     />
+                                    {teacherWorkingHours.length > 0 &&
+                                      slot.start_time &&
+                                      !workingHoursHelpers.isTimeInWorkingHours(
+                                        slot.weekday,
+                                        slot.start_time,
+                                        teacherWorkingHours
+                                      ) && (
+                                        <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2 text-red-700 text-xs">
+                                          <svg
+                                            className="w-4 h-4 flex-shrink-0 mt-0.5"
+                                            fill="currentColor"
+                                            viewBox="0 0 20 20"
+                                          >
+                                            <path
+                                              fillRule="evenodd"
+                                              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                              clipRule="evenodd"
+                                            />
+                                          </svg>
+                                          <span>
+                                            {language === "th"
+                                              ? "นอกเวลาทำงาน"
+                                              : "Outside working hours"}
+                                          </span>
+                                        </div>
+                                      )}
                                   </div>
                                 </div>
                               );
@@ -2027,7 +2564,11 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
 
             <DialogFooter className="border-t border-gray-200 pt-4">
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between w-full gap-3">
-                {error && <p className="text-red-500 text-sm">{error}</p>}
+                {validationError && (
+                  <p className="text-red-500 text-sm bg-red-50 p-2 rounded">
+                    {validationError}
+                  </p>
+                )}
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 ml-auto w-full sm:w-auto">
                   {activeTab !== "basic" && (
                     <Button

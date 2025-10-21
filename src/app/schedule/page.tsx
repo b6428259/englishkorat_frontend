@@ -33,7 +33,7 @@ import {
   validateSessionForm,
 } from "@/utils/scheduleValidation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Search, Users, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, Users, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import toast from "react-hot-toast";
 import { SessionDetailModal } from "./components";
@@ -814,6 +814,9 @@ export default function SchedulePage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [formOptionsLoaded, setFormOptionsLoaded] = useState(false);
 
+  // Flag to track when schedule form should trigger modal opening
+  const [scheduleFormPending, setScheduleFormPending] = useState(false);
+
   // Schedule form data
   const [scheduleForm, setScheduleForm] = useState<
     Partial<CreateScheduleRequest>
@@ -883,6 +886,18 @@ export default function SchedulePage() {
 
   // ปุ่มกระชับ
   const [isCompactModalOpen, setIsCompactModalOpen] = useState(false);
+
+  // Open modal when schedule form is set and pending flag is true
+  useEffect(() => {
+    if (scheduleFormPending && scheduleForm.default_teacher_id) {
+      console.log(
+        "🚀 Opening Create Schedule modal after state update with teacher_id:",
+        scheduleForm.default_teacher_id
+      );
+      openModal("createSchedule");
+      setScheduleFormPending(false);
+    }
+  }, [scheduleFormPending, scheduleForm, openModal]);
 
   // Update current time every minute for realtime line
   useEffect(() => {
@@ -1327,6 +1342,35 @@ export default function SchedulePage() {
     return Math.max(1, Math.ceil(diffMinutes / 30)); // 30 minutes per slot
   };
 
+  // Check if a cell is covered by a session with rowSpan
+  // เช็คว่า cell นี้ถูก "ครอบคลุม" โดย session ที่มี rowSpan หรือไม่
+  const isCellCoveredBySession = (
+    teacher: (typeof filteredTeachers)[0] & {
+      sessions: TeacherSession[];
+    },
+    timeSlot: (typeof timeSlots)[0]
+  ): boolean => {
+    return teacher.sessions.some((session: TeacherSession) => {
+      const [sessionStartHour, sessionStartMinute] = session.start_time
+        .split(":")
+        .map(Number);
+      const [sessionEndHour, sessionEndMinute] = session.end_time
+        .split(":")
+        .map(Number);
+
+      const sessionStartMinutes = sessionStartHour * 60 + sessionStartMinute;
+      const sessionEndMinutes = sessionEndHour * 60 + sessionEndMinute;
+      const currentSlotMinutes = timeSlot.hour * 60 + timeSlot.minute;
+
+      // ถ้า current time slot อยู่ระหว่าง session start-end แต่ไม่ใช่ start time
+      // แสดงว่า cell นี้ถูกครอบคลุมโดย rowSpan ไม่ต้อง render <td>
+      return (
+        currentSlotMinutes > sessionStartMinutes &&
+        currentSlotMinutes < sessionEndMinutes
+      );
+    });
+  };
+
   // Handle session click for details
   const handleSessionClick = (session: TeacherSession | CalendarSession) => {
     const sessionId = session.id;
@@ -1367,12 +1411,25 @@ export default function SchedulePage() {
   };
 
   // Handle empty cell click for creating schedule
+  // Handle empty cell click for creating schedule
   const handleEmptyCellClick = (
     _teacherId: number,
     timeSlot: { hour: number; minute: number }
   ) => {
     console.log("🔍 handleEmptyCellClick called with teacherId:", _teacherId);
     console.log("🔍 timeSlot:", timeSlot);
+
+    // Validate teacher ID
+    if (!_teacherId || _teacherId <= 0) {
+      console.error("❌ Invalid teacher ID:", _teacherId);
+      toast.error(
+        language === "th"
+          ? "ไม่สามารถระบุครูได้ กรุณาลองใหม่อีกครั้ง"
+          : "Cannot identify teacher. Please try again."
+      );
+      return;
+    }
+
     // Reset any previous form errors
     setFormError(null);
 
@@ -1387,24 +1444,7 @@ export default function SchedulePage() {
       .toString()
       .padStart(2, "0")}`;
 
-    setSessionForm((prev) => ({
-      ...prev,
-      mode: "single",
-      session_date: currentDate,
-      start_time,
-      end_time,
-      repeat: {
-        enabled: false,
-        frequency: prev.repeat?.frequency ?? "weekly",
-        interval: prev.repeat?.interval ?? 1,
-        end: prev.repeat?.end ?? { type: "after", count: 1 },
-        days_of_week: prev.repeat?.days_of_week ?? [],
-      },
-      is_makeup_session: false,
-      session_count: 1,
-    }));
-
-    // Compute day_of_week for ModernSessionsModal prefill
+    // Compute day_of_week for time slots
     const jsDate = new Date(currentDate);
     const weekdayIdx = jsDate.getDay(); // 0=Sun..6=Sat
     const dayOfWeekMap = [
@@ -1418,21 +1458,32 @@ export default function SchedulePage() {
     ] as const;
     const day_of_week = dayOfWeekMap[weekdayIdx];
 
-    // We intentionally no longer auto-select existing schedule here because
-    // we're seeding the Create Schedule flow (instead of ModernSessionsModal).
+    console.log("✅ Setting schedule form with teacher_id:", _teacherId);
 
-    // Seed the Schedule modal (create schedule) with a single time slot
-    // so clicking an empty cell opens the Schedule creation flow.
-    const teacherId = _teacherId && _teacherId > 0 ? _teacherId : 0;
-    console.log("🔍 Setting teacher_id to:", teacherId);
+    // Find the teacher to get user_id
+    const teacher = teachers.find((t) => t.id === _teacherId);
+    const userId = teacher?.user_id;
 
-    const newScheduleForm = {
+    if (!userId) {
+      console.error("❌ Cannot find user_id for teacher_id:", _teacherId);
+      toast.error(
+        language === "th"
+          ? "ไม่พบข้อมูลครู กรุณาลองใหม่อีกครั้ง"
+          : "Teacher data not found. Please try again."
+      );
+      return;
+    }
+
+    console.log("✅ Found user_id:", userId, "for teacher_id:", _teacherId);
+
+    // Update schedule form with teacher ID
+    const newForm: Partial<CreateScheduleRequest> = {
       schedule_name: "",
       schedule_type: "class" as const,
       course_id: 0,
       group_id: 0,
-      teacher_id: teacherId,
-      default_teacher_id: teacherId,
+      teacher_id: _teacherId,
+      default_teacher_id: userId, // Use user_id for the combobox
       room_id: 0,
       default_room_id: 0,
       total_hours: 30,
@@ -1446,17 +1497,18 @@ export default function SchedulePage() {
           end_time,
         },
       ],
-      // Also set the standalone session_start_time so the modal shows the time in Basic tab
       session_start_time: start_time,
-      // Default recurring to none for this quick add flow
       recurring_pattern: undefined,
       notes: "",
+      auto_reschedule: false,
+      auto_reschedule_holidays: false,
     };
 
-    setScheduleForm(newScheduleForm);
+    // Set form first
+    setScheduleForm(newForm);
 
-    // Open Create Schedule modal (modern schedule modal)
-    openModal("createSchedule");
+    // Set a flag to trigger modal opening after state update
+    setScheduleFormPending(true);
   };
 
   // Drag & Drop handlers for moving sessions
@@ -2186,7 +2238,7 @@ export default function SchedulePage() {
           {/* Teacher Filters - Only show for day view - Responsive */}
           {viewMode === "day" && showTeacherFilter && (
             <div
-              className="fixed sm:relative z-50 inset-0 sm:inset-auto bg-black/50 sm:bg-transparent flex sm:block"
+              className="fixed sm:relative z-30 inset-0 sm:inset-auto bg-black/50 sm:bg-transparent flex sm:block"
               onClick={(e) => {
                 // Close when clicking backdrop (only on mobile)
                 if (e.target === e.currentTarget && window.innerWidth < 640) {
@@ -2194,79 +2246,199 @@ export default function SchedulePage() {
                 }
               }}
             >
-              <div className="w-80 sm:w-48 lg:w-52 xl:w-56 bg-white border-r sm:border border-gray-200 sm:rounded-lg p-3 sm:p-2 flex flex-col flex-shrink-0 mr-auto sm:ml-0 shadow-2xl sm:shadow-md h-full sm:h-auto max-h-screen sm:max-h-[calc(100vh-200px)] overflow-y-auto">
+              <div className="w-72 sm:w-40 md:w-44 lg:w-48 bg-white border-r sm:border border-gray-200 sm:rounded-lg flex flex-col flex-shrink-0 mr-auto sm:ml-0 shadow-2xl sm:shadow-sm h-full sm:h-auto max-h-screen sm:max-h-[calc(100vh-180px)] overflow-hidden">
+                {/* Mini Calendar - ปฏิทินเล็กข้างซ้าย - Theme Colors */}
+                <div
+                  className="p-2 border-b border-gray-200"
+                  style={{
+                    background: `linear-gradient(135deg, ${colors.blueLogo}15 0%, ${colors.yellowLogo}25 100%)`,
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <button
+                      onClick={() => {
+                        const newDate = new Date(currentDate);
+                        newDate.setMonth(newDate.getMonth() - 1);
+                        setCurrentDate(newDate.toISOString().split("T")[0]);
+                      }}
+                      className="p-0.5 hover:bg-white/60 rounded transition-colors active:scale-95"
+                      style={{ color: colors.blueLogo }}
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                    </button>
+                    <h3
+                      className="text-[10px] sm:text-xs font-bold"
+                      style={{ color: colors.blueLogo }}
+                    >
+                      {new Date(currentDate).toLocaleDateString(
+                        language === "th" ? "th-TH" : "en-US",
+                        { month: "short", year: "numeric" }
+                      )}
+                    </h3>
+                    <button
+                      onClick={() => {
+                        const newDate = new Date(currentDate);
+                        newDate.setMonth(newDate.getMonth() + 1);
+                        setCurrentDate(newDate.toISOString().split("T")[0]);
+                      }}
+                      className="p-0.5 hover:bg-white/60 rounded transition-colors active:scale-95"
+                      style={{ color: colors.blueLogo }}
+                    >
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Calendar Grid */}
+                  <div className="grid grid-cols-7 gap-0.5 text-center">
+                    {["S", "M", "T", "W", "T", "F", "S"].map((day, idx) => (
+                      <div
+                        key={idx}
+                        className="text-[8px] sm:text-[9px] font-semibold py-0.5"
+                        style={{ color: colors.blueLogo }}
+                      >
+                        {day}
+                      </div>
+                    ))}
+                    {(() => {
+                      const date = new Date(currentDate);
+                      const year = date.getFullYear();
+                      const month = date.getMonth();
+                      const firstDay = new Date(year, month, 1).getDay();
+                      const daysInMonth = new Date(
+                        year,
+                        month + 1,
+                        0
+                      ).getDate();
+                      const today = new Date().toISOString().split("T")[0];
+                      const selected = currentDate;
+
+                      const days = [];
+                      // Empty cells before first day
+                      for (let i = 0; i < firstDay; i++) {
+                        days.push(
+                          <div
+                            key={`empty-${i}`}
+                            className="text-[8px] sm:text-[9px] py-0.5"
+                          />
+                        );
+                      }
+                      // Days of month
+                      for (let day = 1; day <= daysInMonth; day++) {
+                        const dateStr = `${year}-${String(month + 1).padStart(
+                          2,
+                          "0"
+                        )}-${String(day).padStart(2, "0")}`;
+                        const isToday = dateStr === today;
+                        const isSelected = dateStr === selected;
+                        days.push(
+                          <button
+                            key={day}
+                            onClick={() => setCurrentDate(dateStr)}
+                            className={`text-[8px] sm:text-[9px] py-0.5 rounded transition-all duration-200 ${
+                              isSelected
+                                ? "font-bold shadow-sm scale-105"
+                                : isToday
+                                ? "font-semibold ring-1"
+                                : "text-gray-700 hover:bg-white/50"
+                            }`}
+                            style={{
+                              backgroundColor: isSelected
+                                ? colors.blueLogo
+                                : isToday
+                                ? colors.yellowLogo
+                                : undefined,
+                              color: isSelected
+                                ? "#ffffff"
+                                : isToday
+                                ? colors.blueLogo
+                                : undefined,
+                              outline: isToday
+                                ? `2px solid ${colors.blueLogo}`
+                                : undefined,
+                            }}
+                          >
+                            {day}
+                          </button>
+                        );
+                      }
+                      return days;
+                    })()}
+                  </div>
+                </div>
+
                 {/* Header with close button */}
-                <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-[#334293] sticky top-0 bg-white z-10">
-                  <h2 className="font-bold text-[#334293] text-sm sm:text-xs lg:text-sm">
+                <div
+                  className="flex items-center justify-between px-2 py-1.5 border-b bg-white"
+                  style={{ borderColor: colors.blueLogo }}
+                >
+                  <h2
+                    className="font-bold text-[10px] sm:text-xs"
+                    style={{ color: colors.blueLogo }}
+                  >
                     {t.SelectTeachers}
                   </h2>
                   <button
                     onClick={() => setShowTeacherFilter(false)}
-                    className="p-1.5 hover:bg-gray-100 rounded-full transition-colors sm:hidden active:scale-95"
+                    className="p-1 hover:bg-gray-100 rounded-full transition-colors sm:hidden active:scale-95"
                     aria-label="Close"
                   >
-                    <X className="h-5 w-5 text-gray-500" />
+                    <X className="h-4 w-4 text-gray-500" />
                   </button>
                 </div>
 
-                <div className="mb-2 flex gap-1">
+                <div className="px-2 py-1.5 flex gap-1">
                   <Button
                     variant="monthView"
                     onClick={selectAllTeachers}
-                    className="text-[10px] sm:text-[9px] rounded-md flex-1 px-1.5 py-1"
+                    className="text-[8px] sm:text-[9px] rounded-md flex-1 px-1 py-0.5 h-5 sm:h-6"
                   >
                     {t.selectAllTeachers}
                   </Button>
                   <Button
                     variant="monthView"
                     onClick={clearSelection}
-                    className="text-[10px] sm:text-[9px] rounded-md flex-1 px-1.5 py-1"
+                    className="text-[8px] sm:text-[9px] rounded-md flex-1 px-1 py-0.5 h-5 sm:h-6"
                   >
                     {t.clearSelection}
                   </Button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto px-2 pb-2">
                   {teachers.length === 0 ? (
-                    <p className="text-xs text-gray-500 text-center py-3">
+                    <p className="text-[10px] text-gray-500 text-center py-2">
                       {t.noScheduleData}
                     </p>
                   ) : (
                     teachers.map((teacher) => (
                       <label
                         key={teacher.id}
-                        className="flex items-center space-x-1.5 p-1.5 hover:bg-gray-50 rounded cursor-pointer text-sm"
+                        className="flex items-center space-x-1 p-1 hover:bg-gray-50 rounded cursor-pointer transition-colors"
                       >
                         <input
                           type="checkbox"
                           checked={selectedTeachers.includes(teacher.id)}
                           onChange={() => toggleTeacher(teacher.id)}
-                          className="h-3 w-3 rounded focus:ring-0 flex-shrink-0"
+                          className="h-2.5 w-2.5 rounded focus:ring-0 flex-shrink-0"
                           style={{ accentColor: colors.yellowLogo }}
                         />
                         {/* Branch color indicator */}
                         <div
-                          className={`w-2 h-2 rounded-full flex-shrink-0 ${getBranchColorByTeacher(
+                          className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${getBranchColorByTeacher(
                             teacher
                           )}`}
                         />
                         <div className="min-w-0 flex-1">
                           <span
-                            className="text-xs sm:text-[11px] font-medium block truncate"
+                            className="text-[10px] font-medium block truncate"
                             style={{ color: colors.blueLogo }}
                           >
                             T.{" "}
                             {teacher.name.nickname_en || teacher.name.first_en}
                           </span>
-                          <p className="text-[9px] text-gray-600">
+                          <p className="text-[8px] text-gray-600">
                             {teacher.sessions.length}{" "}
-                            {language === "th" ? "ครั้งเรียน" : "sessions"}
+                            {language === "th" ? "ครั้ง" : "sessions"}
                           </p>
-                          {teacher.branch.name_en && (
-                            <p className="text-[9px] sm:text-[10px] text-blue-600 truncate">
-                              {teacher.branch.name_en}
-                            </p>
-                          )}
                         </div>
                       </label>
                     ))
@@ -2276,58 +2448,45 @@ export default function SchedulePage() {
             </div>
           )}
 
-          {/* Toggle Teacher Filter Button - Mobile Only */}
+          {/* Toggle Teacher Filter Button - Mobile Only - Theme Colors */}
           {viewMode === "day" && !showTeacherFilter && (
             <button
               onClick={() => setShowTeacherFilter(true)}
-              className="fixed bottom-20 left-4 sm:hidden z-40 bg-indigo-600 text-white p-3 rounded-full shadow-lg hover:bg-indigo-700 transition-colors active:scale-95"
+              className="fixed bottom-20 left-4 sm:hidden z-40 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all active:scale-95"
+              style={{
+                backgroundColor: colors.blueLogo,
+              }}
               aria-label="Show Teacher Filter"
             >
               <Users className="h-5 w-5" />
             </button>
           )}
 
-          {/* Calendar Content - Scrollable */}
+          {/* Calendar Content - Responsive & Scrollable */}
           <div
-            className={`flex-1 bg-white border border-gray-200 rounded-xl shadow-lg relative min-w-0 min-h-0`}
+            className={`flex-1 bg-white border border-gray-200 rounded-lg sm:rounded-xl shadow-md sm:shadow-lg relative min-w-0 min-h-0 overflow-hidden`}
           >
             {loading ? (
               <CalendarLoading view={viewMode} />
             ) : error ? (
-              <div className="h-full flex items-center justify-center">
+              <div className="h-full flex items-center justify-center p-4">
                 <ErrorMessage message={error} onRetry={fetchData} />
               </div>
             ) : viewMode === "day" ? (
-              /* Day View - Improved Horizontal Scrollable Table */
-              <div className="h-full relative min-h-0">
-                {/* Horizontal scroll container with drag-to-scroll */}
+              /* Day View - Ultra Compact Full View - Responsive */
+              <div className="h-full relative min-h-0 overflow-hidden">
+                {/* Full view container - responsive scroll */}
                 <div
                   ref={scrollContainerRef}
-                  className="h-full overflow-auto relative z-0 select-none"
-                  style={{
-                    cursor: isDragging ? "grabbing" : "grab",
-                    scrollBehavior: isDragging ? "auto" : "smooth",
-                  }}
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseUp}
+                  className="h-full w-full relative z-0 overflow-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
                 >
-                  <div
-                    className="relative min-h-full"
-                    style={{
-                      minWidth: `${Math.max(
-                        filteredTeachers.length * 150 + 80,
-                        600
-                      )}px`,
-                    }}
-                  >
+                  <div className="relative h-full w-full min-w-[600px] sm:min-w-full">
                     {/* Current Time Line - spans across entire table width */}
                     <div
-                      className="absolute left-0 right-0 z-50 pointer-events-none"
+                      className="absolute left-0 right-0 z-40 pointer-events-none"
                       style={{
                         top: `${
-                          36 +
+                          28 +
                           (() => {
                             const currentMinutes =
                               currentTime.hour * 60 + currentTime.minute;
@@ -2343,7 +2502,7 @@ export default function SchedulePage() {
 
                             const minutesFromStart =
                               currentMinutes - startMinutes;
-                            const pixelsPerSlot = 40; // Increased height per slot for better spacing
+                            const pixelsPerSlot = 20; // Reduced for ultra compact
 
                             return (minutesFromStart / 30) * pixelsPerSlot;
                           })()
@@ -2351,34 +2510,42 @@ export default function SchedulePage() {
                       }}
                     >
                       <div className="relative">
-                        <div className="h-0.5 bg-red-500 shadow-lg"></div>
-                        <div className="absolute -left-1 -top-1 w-2 h-2 bg-red-500 rounded-full shadow-md"></div>
-                        <div className="absolute -right-1 -top-1 w-2 h-2 bg-red-500 rounded-full shadow-md"></div>
+                        <div className="h-px bg-red-500 shadow-sm"></div>
+                        <div className="absolute -left-0.5 -top-0.5 w-1 h-1 bg-red-500 rounded-full"></div>
+                        <div className="absolute -right-0.5 -top-0.5 w-1 h-1 bg-red-500 rounded-full"></div>
                         {/* Time label */}
-                        <div className="absolute -top-6 left-2 bg-red-500 text-white px-2 py-0.5 rounded text-xs font-bold shadow-lg">
+                        <div className="absolute -top-4 left-1 bg-red-500 text-white px-1 py-0.5 rounded text-[7px] sm:text-[8px] font-bold shadow-sm">
                           {currentTime.hour.toString().padStart(2, "0")}:
                           {currentTime.minute.toString().padStart(2, "0")}
                         </div>
                       </div>
                     </div>
 
-                    <table className="w-full text-sm border-collapse relative">
-                      {/* thead with branch groups */}
-                      <thead className="sticky top-0 z-30 text-white shadow-lg">
+                    <table
+                      className="w-full text-[9px] sm:text-[10px] border-collapse relative"
+                      style={{ tableLayout: "fixed" }}
+                    >
+                      {/* thead with branch groups - Responsive */}
+                      <thead className="sticky top-0 z-30 text-white shadow-sm sm:shadow-md">
                         {/* Branch header row */}
-                        <tr className="relative h-[35px]">
+                        <tr className="relative h-[16px] sm:h-[18px]">
                           {/* คอลัมน์เวลา - sticky ด้านซ้ายเท่านั้น */}
                           <th
                             className="
                               text-center font-bold text-white
                               bg-gradient-to-br from-indigo-600 to-purple-700
                               border border-gray-300
-                              text-xs
-                              w-[60px] sm:w-[70px]
+                              text-[7px] sm:text-[8px]
                               sticky left-0
                               z-40
-                              shadow-lg
+                              shadow-sm sm:shadow-md
+                              px-0
                             "
+                            style={{
+                              width: "28px",
+                              minWidth: "28px",
+                              maxWidth: "28px",
+                            }}
                             rowSpan={2}
                           >
                             {t.time}
@@ -2386,7 +2553,7 @@ export default function SchedulePage() {
 
                           {/* Branch group headers */}
                           {filteredTeachers.length === 0 ? (
-                            <th className="relative text-center font-bold text-white bg-gray-400 border border-gray-300 p-3 w-[120px] sm:w-[140px]">
+                            <th className="relative text-center font-bold text-white bg-gray-400 border border-gray-300 p-0.5 text-[8px] sm:text-[9px]">
                               {t.noScheduleData}
                             </th>
                           ) : (
@@ -2397,19 +2564,19 @@ export default function SchedulePage() {
 
                               if (branchIdNum === 1) {
                                 branchBgColor = "bg-[#334293]";
-                                branchName = "Branch 1";
+                                branchName = "B1";
                               } else if (branchIdNum === 2) {
                                 branchBgColor = "bg-[#EFE957]";
-                                branchName = "Branch 3";
+                                branchName = "B3";
                               } else if (branchIdNum === 3) {
                                 branchBgColor = "bg-[#58B2FF]";
-                                branchName = "Online";
+                                branchName = "OL";
                               } else if (branchIdNum === 4) {
                                 branchBgColor = "bg-[#FF90B3]";
-                                branchName = "Chinese";
+                                branchName = "CH";
                               } else if (branchIdNum === 0) {
                                 branchBgColor = "bg-gray-500";
-                                branchName = "Unassigned";
+                                branchName = "NA";
                               }
 
                               return (
@@ -2419,17 +2586,23 @@ export default function SchedulePage() {
                                   className={`
                                     sticky top-0
                                     text-center font-bold text-white
-                                    border-2 border-white
-                                    text-sm
+                                    border border-white
+                                    text-[7px] sm:text-[8px]
                                     ${branchBgColor}
+                                    px-0
                                   `}
                                 >
-                                  <div className="p-1.5 flex items-center justify-center gap-2">
+                                  <div className="p-0.5 flex items-center justify-center gap-0.5">
                                     <div
-                                      className={`w-3 h-3 rounded-full ${branchBgColor} border-2 border-white`}
+                                      className={`w-1 h-1 rounded-full ${branchBgColor} border border-white`}
                                     />
-                                    <span>{branchName}</span>
-                                    <span className="text-xs opacity-80">
+                                    <span className="hidden sm:inline">
+                                      {branchName}
+                                    </span>
+                                    <span className="sm:hidden">
+                                      {branchName.substring(0, 2)}
+                                    </span>
+                                    <span className="text-[6px] sm:text-[7px] opacity-75">
                                       ({teachers.length})
                                     </span>
                                   </div>
@@ -2439,27 +2612,33 @@ export default function SchedulePage() {
                           )}
                         </tr>
 
-                        {/* Teacher names row */}
-                        <tr className="relative h-[30px]">
+                        {/* Teacher names row - Responsive */}
+                        <tr className="relative h-[14px] sm:h-[16px]">
                           {filteredTeachers.length > 0 &&
                             teachersByBranch.map(([, teachers]) =>
                               teachers.map((teacher) => (
                                 <th
                                   key={teacher.id}
                                   className="
-                                    sticky top-[35px]
+                                    sticky top-[16px] sm:top-[18px]
                                     text-center font-bold text-white
                                     border border-gray-300
-                                    text-[11px] sm:text-xs w-[120px] sm:w-[140px]
+                                    text-[6px] sm:text-[7px] w-[40px] sm:w-[45px]
                                     bg-gradient-to-br from-indigo-600 to-purple-700
+                                    px-0
                                   "
                                 >
-                                  <div className="p-1.5">
-                                    <div className="font-bold">
-                                      T.{" "}
-                                      {teacher.name.nickname_en ||
-                                        teacher.name.first_en}
-                                    </div>
+                                  <div
+                                    className="p-0.5 truncate"
+                                    title={
+                                      teacher.name.nickname_en ||
+                                      teacher.name.first_en
+                                    }
+                                  >
+                                    {(
+                                      teacher.name.nickname_en ||
+                                      teacher.name.first_en
+                                    ).substring(0, 5)}
                                   </div>
                                 </th>
                               ))
@@ -2472,7 +2651,7 @@ export default function SchedulePage() {
                           <tr>
                             <td
                               colSpan={2}
-                              className="text-center p-8 text-gray-500"
+                              className="text-center p-3 sm:p-4 text-gray-500 text-xs"
                             >
                               {t.noScheduleData}
                             </td>
@@ -2481,20 +2660,20 @@ export default function SchedulePage() {
                           timeSlots.map((timeSlot) => (
                             <tr
                               key={`${timeSlot.hour}-${timeSlot.minute}`}
-                              className="h-8"
+                              className="h-5"
                             >
-                              {/* เวลา - sticky ด้านซ้าย */}
+                              {/* เวลา - sticky ด้านซ้าย - Responsive */}
                               <td
                                 className="
-                                font-medium text-gray-700 bg-gray-50 text-xs
-                                border border-gray-300 text-center p-1
-                                sticky left-0 z-30 shadow-md
+                                font-medium text-gray-700 bg-gray-50 text-[6px] sm:text-[7px]
+                                border border-gray-300 text-center p-0
+                                sticky left-0 z-30 shadow-sm
                               "
                               >
                                 {timeSlot.label}
                               </td>
 
-                              {/* ตารางครู - grouped by branch */}
+                              {/* ตารางครู - grouped by branch - Responsive */}
                               {teachersByBranch.flatMap(([, teachers]) =>
                                 teachers.map((teacher) => {
                                   const session = teacher.sessions.find((s) => {
@@ -2549,15 +2728,15 @@ export default function SchedulePage() {
                                               e.target as HTMLElement
                                             ).style.cursor = "grab";
                                           }}
-                                          className={`w-[120px] sm:w-[140px] h-full p-2 rounded-lg cursor-grab transition-all duration-200
+                                          className={`w-full h-full p-0.5 rounded cursor-grab transition-all duration-200
                                         shadow-sm hover:shadow-md overflow-hidden relative z-10 flex flex-col ${
                                           isBeingDragged
                                             ? "opacity-50"
                                             : "opacity-100"
                                         }`}
                                           style={{
-                                            height: `${rowSpan * 32 - 8}px`,
-                                            borderLeft: `4px solid ${getBranchBorderColorFromSession(
+                                            height: `${rowSpan * 20 - 4}px`,
+                                            borderLeft: `3px solid ${getBranchBorderColorFromSession(
                                               session
                                             )}`,
                                           }}
@@ -2565,117 +2744,109 @@ export default function SchedulePage() {
                                             e.stopPropagation();
                                             handleSessionClick(session);
                                           }}
-                                          whileHover={{ scale: 1.02 }}
-                                          whileTap={{ scale: 0.98 }}
-                                          initial={{ opacity: 0, y: -10 }}
+                                          whileHover={{ scale: 1.01 }}
+                                          whileTap={{ scale: 0.99 }}
+                                          initial={{ opacity: 0, y: -5 }}
                                           animate={{ opacity: 1, y: 0 }}
-                                          transition={{ duration: 0.2 }}
+                                          transition={{ duration: 0.15 }}
                                         >
-                                          <div className="space-y-1 leading-tight">
-                                            {/* Time Display */}
-                                            <div className="flex items-center gap-1">
-                                              <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
-                                              <p className="font-medium text-[10px] sm:text-[11px] text-indigo-700">
+                                          <div className="space-y-0 leading-tight">
+                                            {/* Time Display - Responsive */}
+                                            <div className="flex items-center gap-0.5">
+                                              <div className="w-0.5 h-0.5 rounded-full bg-indigo-500"></div>
+                                              <p className="font-medium text-[5px] sm:text-[6px] text-indigo-700 truncate">
                                                 {session.start_time.substring(
-                                                  0,
-                                                  5
-                                                )}{" "}
-                                                -{" "}
-                                                {session.end_time.substring(
                                                   0,
                                                   5
                                                 )}
                                               </p>
                                             </div>
 
-                                            {/* Course/Schedule Name */}
+                                            {/* Course/Schedule Name - Responsive */}
                                             {session.schedule_name && (
                                               <p
-                                                className="font-semibold text-[11px] sm:text-xs text-gray-900 whitespace-normal break-words line-clamp-2"
+                                                className="font-semibold text-[5px] sm:text-[6px] text-gray-900 whitespace-normal break-words line-clamp-2"
                                                 title={session.schedule_name}
                                               >
-                                                {session.schedule_name}
+                                                {session.schedule_name.length >
+                                                10
+                                                  ? session.schedule_name.substring(
+                                                      0,
+                                                      10
+                                                    ) + "..."
+                                                  : session.schedule_name}
                                               </p>
                                             )}
 
-                                            {/* Session Number */}
-                                            <p className="font-medium text-[10px] sm:text-[11px] text-gray-700">
-                                              {language === "th"
-                                                ? "ครั้งที่"
-                                                : "Session"}{" "}
-                                              {session.session_number}
+                                            {/* Session Number - Responsive */}
+                                            <p className="font-medium text-[5px] sm:text-[6px] text-gray-700">
+                                              #{session.session_number}
                                             </p>
 
-                                            {/* Room Info */}
-                                            {session.room?.name && (
-                                              <div className="flex items-center gap-1">
-                                                <svg
-                                                  className="w-3 h-3 text-gray-500 flex-shrink-0"
-                                                  fill="none"
-                                                  viewBox="0 0 24 24"
-                                                  stroke="currentColor"
+                                            {/* Room Info - only show icon if space allows */}
+                                            {session.room?.name &&
+                                              rowSpan > 3 && (
+                                                <div className="flex items-center gap-0.5">
+                                                  <svg
+                                                    className="w-1.5 h-1.5 text-gray-500 flex-shrink-0"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                  >
+                                                    <path
+                                                      strokeLinecap="round"
+                                                      strokeLinejoin="round"
+                                                      strokeWidth={2}
+                                                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                                                    />
+                                                  </svg>
+                                                  <p className="text-[6px] text-gray-600 truncate">
+                                                    {session.room.name.substring(
+                                                      0,
+                                                      3
+                                                    )}
+                                                  </p>
+                                                </div>
+                                              )}
+
+                                            {/* Status Badge - only if space */}
+                                            {rowSpan > 4 && (
+                                              <div className="flex items-center gap-0.5">
+                                                <span
+                                                  className={`inline-block px-0.5 py-0 rounded-full text-[5px] font-medium ${
+                                                    session.status ===
+                                                    "scheduled"
+                                                      ? "bg-blue-100 text-blue-700"
+                                                      : session.status ===
+                                                        "completed"
+                                                      ? "bg-green-100 text-green-700"
+                                                      : session.status ===
+                                                        "cancelled"
+                                                      ? "bg-red-100 text-red-700"
+                                                      : "bg-gray-100 text-gray-700"
+                                                  }`}
                                                 >
-                                                  <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                                  />
-                                                  <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                                                  />
-                                                </svg>
-                                                <p className="text-[10px] sm:text-[11px] text-gray-600 truncate">
-                                                  {session.room.name}
-                                                </p>
+                                                  {session.status ===
+                                                    "scheduled" && "S"}
+                                                  {session.status ===
+                                                    "completed" && "C"}
+                                                  {session.status ===
+                                                    "cancelled" && "X"}
+                                                </span>
                                               </div>
                                             )}
-
-                                            {/* Status Badge */}
-                                            <div className="flex items-center gap-1">
-                                              <span
-                                                className={`inline-block px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium ${
-                                                  session.status === "scheduled"
-                                                    ? "bg-blue-100 text-blue-700"
-                                                    : session.status ===
-                                                      "completed"
-                                                    ? "bg-green-100 text-green-700"
-                                                    : session.status ===
-                                                      "cancelled"
-                                                    ? "bg-red-100 text-red-700"
-                                                    : "bg-gray-100 text-gray-700"
-                                                }`}
-                                              >
-                                                {session.status ===
-                                                  "scheduled" &&
-                                                  (language === "th"
-                                                    ? "กำหนดการแล้ว"
-                                                    : "Scheduled")}
-                                                {session.status ===
-                                                  "completed" &&
-                                                  (language === "th"
-                                                    ? "เสร็จสิ้น"
-                                                    : "Completed")}
-                                                {session.status ===
-                                                  "cancelled" &&
-                                                  (language === "th"
-                                                    ? "ยกเลิก"
-                                                    : "Cancelled")}
-                                                {![
-                                                  "scheduled",
-                                                  "completed",
-                                                  "cancelled",
-                                                ].includes(session.status) &&
-                                                  session.status}
-                                              </span>
-                                            </div>
                                           </div>
                                         </motion.div>
                                       </td>
                                     );
+                                  }
+
+                                  // เช็คว่า cell นี้ถูกครอบคลุมโดย rowSpan หรือไม่
+                                  // ถ้าใช่ ไม่ต้อง render <td> เพราะ cell ถูก covered แล้ว
+                                  if (
+                                    isCellCoveredBySession(teacher, timeSlot)
+                                  ) {
+                                    return null;
                                   }
 
                                   // ช่องว่าง
@@ -2689,9 +2860,9 @@ export default function SchedulePage() {
                                   return (
                                     <td
                                       key={teacher.id}
-                                      className={`border border-gray-300 transition-all duration-200 w-[120px] sm:w-[140px] ${
+                                      className={`border border-gray-300 transition-all duration-200 ${
                                         isDropTarget
-                                          ? "bg-blue-100 border-blue-400 border-2"
+                                          ? "bg-blue-100 border-blue-400"
                                           : "bg-white hover:bg-gray-50"
                                       } cursor-pointer`}
                                       onClick={() =>
@@ -2716,18 +2887,16 @@ export default function SchedulePage() {
                                         <motion.div
                                           initial={{ opacity: 0, scale: 0.95 }}
                                           animate={{ opacity: 0.6, scale: 1 }}
-                                          className="w-[120px] sm:w-[140px] h-8 p-2 rounded-lg bg-blue-100 border-2 border-dashed border-blue-400 flex items-center justify-center"
+                                          className="w-full h-5 p-0.5 rounded bg-blue-100 border border-dashed border-blue-400 flex items-center justify-center"
                                         >
-                                          <span className="text-xs text-blue-700 font-medium">
-                                            {language === "th"
-                                              ? "วางที่นี่"
-                                              : "Drop here"}
+                                          <span className="text-[6px] text-blue-700 font-medium">
+                                            +
                                           </span>
                                         </motion.div>
                                       ) : (
-                                        <div className="w-full h-8 flex items-center justify-center">
-                                          <div className="w-7 h-7 rounded-full bg-gray-100 hover:bg-blue-100 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200">
-                                            <span className="text-sm text-gray-400 hover:text-blue-600 font-semibold">
+                                        <div className="w-full h-5 flex items-center justify-center">
+                                          <div className="w-3 h-3 rounded-full bg-gray-100 hover:bg-blue-100 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200">
+                                            <span className="text-[7px] text-gray-400 hover:text-blue-600">
                                               +
                                             </span>
                                           </div>

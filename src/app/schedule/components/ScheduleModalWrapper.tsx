@@ -127,7 +127,6 @@ export default function ScheduleModalWrapper({
         teachers={teachers}
         scheduleForm={scheduleForm}
         isLoading={isLoading}
-        error={error}
       />
 
       {/* Step 3b: Event Schedule Modal (if Event was selected) */}
