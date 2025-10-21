@@ -103,7 +103,7 @@ export const getSidebarItems = (t: Translations): SidebarItem[] => [
   },
   {
     id: "borrowing-system",
-    label: "ระบบยืม-คืน",
+    label: "ระบบยืม-คืน & เบิกของ",
     icon: <HiOutlineDocumentText {...iconProps} />,
     children: [
       {
@@ -113,8 +113,14 @@ export const getSidebarItems = (t: Translations): SidebarItem[] => [
         icon: <HiOutlineDocumentText {...iconProps} />,
       },
       {
+        id: "borrowing-my-requisitions",
+        label: "การเบิกของฉัน",
+        href: "/borrowing/my-requisitions",
+        icon: <HiOutlineDocumentText {...iconProps} />,
+      },
+      {
         id: "borrowing-management",
-        label: "จัดการระบบยืม-คืน",
+        label: "จัดการระบบ (แอดมิน)",
         href: "/borrowing/management",
         icon: <HiOutlineCog {...iconProps} />,
       },

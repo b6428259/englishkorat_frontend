@@ -9,6 +9,7 @@ import type {
   BorrowTrend,
   CategoryDistribution,
   CheckInRequest,
+  CompleteRequisitionRequest,
   CreateBorrowRequestRequest,
   CreateItemRequest,
   ItemFilters,
@@ -16,6 +17,8 @@ import type {
   RejectBorrowRequest,
   RenewBorrowRequest,
   RequestFilters,
+  RequisitionTransaction,
+  StockAlert,
   TopBorrower,
   TopItem,
   TransactionFilters,
@@ -58,7 +61,7 @@ export const getItemById = async (id: number) => {
   return response.data;
 };
 
-// Requests (User)
+// Requests (User) - Supports both borrowing and requisition
 export const createBorrowRequest = async (data: CreateBorrowRequestRequest) => {
   const response = await api.post<{
     success: boolean;
@@ -97,6 +100,27 @@ export const getMyBorrows = async (filters?: TransactionFilters) => {
     data: BorrowTransaction[];
     total: number;
   }>(`${BASE_PATH}/my-borrows${queryString}`);
+  return response.data;
+};
+
+// Requisitions (User)
+export const getMyRequisitions = async (filters?: TransactionFilters) => {
+  const queryString = filters
+    ? buildQueryString(filters as Record<string, unknown>)
+    : "";
+  const response = await api.get<{
+    success: boolean;
+    data: RequisitionTransaction[];
+    total: number;
+  }>(`${BASE_PATH}/my-requisitions${queryString}`);
+  return response.data;
+};
+
+export const getRequisitionById = async (id: number) => {
+  const response = await api.get<{
+    success: boolean;
+    data: RequisitionTransaction;
+  }>(`${BASE_PATH}/requisitions/${id}`);
   return response.data;
 };
 
@@ -216,6 +240,40 @@ export const rejectBorrowRequest = async (
     message: string;
     data: BorrowRequest;
   }>(`${BASE_PATH}/requests/${id}/reject`, data);
+  return response.data;
+};
+
+// Requisition Management (Admin)
+export const getAllRequisitions = async (filters?: TransactionFilters) => {
+  const queryString = filters
+    ? buildQueryString(filters as Record<string, unknown>)
+    : "";
+  const response = await api.get<{
+    success: boolean;
+    data: RequisitionTransaction[];
+    total: number;
+  }>(`${BASE_PATH}/requisitions${queryString}`);
+  return response.data;
+};
+
+export const completeRequisition = async (
+  id: number,
+  data: CompleteRequisitionRequest
+) => {
+  const response = await api.put<{
+    success: boolean;
+    message: string;
+    data: RequisitionTransaction;
+  }>(`${BASE_PATH}/requisitions/${id}/complete`, data);
+  return response.data;
+};
+
+export const cancelRequisition = async (id: number, reason: string) => {
+  const response = await api.put<{
+    success: boolean;
+    message: string;
+    data: RequisitionTransaction;
+  }>(`${BASE_PATH}/requisitions/${id}/cancel`, { reason });
   return response.data;
 };
 
@@ -339,5 +397,57 @@ export const getAuditLogs = async (
     data: BorrowAuditLog[];
     total: number;
   }>(`${DASHBOARD_PATH}/audit-logs${queryString}`);
+  return response.data;
+};
+
+export const getRequisitionTrends = async (
+  days: number = 30,
+  branchId?: number
+) => {
+  const params: Record<string, unknown> = { days };
+  if (branchId) params.branch_id = branchId;
+  const queryString = buildQueryString(params);
+  const response = await api.get<{
+    success: boolean;
+    data: BorrowTrend[];
+    period: {
+      start_date: string;
+      end_date: string;
+      days: number;
+    };
+  }>(`${DASHBOARD_PATH}/requisition-trends${queryString}`);
+  return response.data;
+};
+
+export const getStockAlerts = async (
+  branchId?: number,
+  alertType?: "all" | "critical" | "warning" | "info" | "high_utilization"
+) => {
+  const params: Record<string, unknown> = {};
+  if (branchId) params.branch_id = branchId;
+  if (alertType) params.alert_type = alertType;
+  const queryString = buildQueryString(params);
+
+  const response = await api.get<{
+    success: boolean;
+    data: {
+      all_alerts: StockAlert[];
+      critical: StockAlert[];
+      warning: StockAlert[];
+      info: StockAlert[];
+    };
+    summary: {
+      total_alerts: number;
+      critical_count: number;
+      warning_count: number;
+      info_count: number;
+      estimated_reorder_cost: number;
+    };
+    filters: {
+      branch_id: string;
+      alert_type: string;
+    };
+    message: string;
+  }>(`${DASHBOARD_PATH}/stock-alerts${queryString}`);
   return response.data;
 };

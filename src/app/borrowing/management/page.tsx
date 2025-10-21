@@ -9,6 +9,8 @@ import { ProtectedRoute } from "@/components/common/ProtectedRoute";
 import { RoleGuard } from "@/components/common/RoleGuard";
 import SidebarLayout from "@/components/common/SidebarLayout";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useToast } from "@/hooks/useToast";
 import * as borrowingService from "@/services/api/borrowing";
 import type {
   BorrowableItem,
@@ -19,10 +21,12 @@ import type {
 } from "@/types/borrowing.types";
 import { useEffect, useState } from "react";
 
-type TabType = "items" | "requests" | "transactions";
+type TabType = "items" | "requests" | "transactions" | "requisitions";
 
 export default function BorrowingManagementPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<TabType>("requests");
   const [loading, setLoading] = useState(false);
 
@@ -61,9 +65,31 @@ export default function BorrowingManagementPage() {
     return_notes: "",
   });
 
+  // Requisitions state (new)
+  const [requisitions, setRequisitions] = useState<
+    import("@/types/borrowing.types").RequisitionTransaction[]
+  >([]);
+  const [processingRequisition, setProcessingRequisition] = useState<
+    number | null
+  >(null);
+  const [requisitionFilters, setRequisitionFilters] = useState<{
+    status: "all" | "approved" | "picked_up" | "cancelled";
+    search: string;
+    dateFrom: string;
+    dateTo: string;
+  }>({
+    status: "all",
+    search: "",
+    dateFrom: "",
+    dateTo: "",
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
+
   // Item form
   const [itemForm, setItemForm] = useState<CreateItemRequest>({
     branch_id: user?.branch_id || 1,
+    item_mode: "borrowable", // Default to borrowable
     item_type: "book",
     category: "",
     title: "",
@@ -94,6 +120,8 @@ export default function BorrowingManagementPage() {
         await loadRequests();
       } else if (activeTab === "transactions") {
         await loadTransactions();
+      } else if (activeTab === "requisitions") {
+        await loadRequisitions();
       }
     } catch (error) {
       console.error("Error loading data:", error);
@@ -117,11 +145,17 @@ export default function BorrowingManagementPage() {
     setTransactions(response.data);
   };
 
+  const loadRequisitions = async () => {
+    const response = await borrowingService.getAllRequisitions();
+    setRequisitions(response.data);
+  };
+
   // Item Management
   const handleCreateItem = () => {
     setEditingItem(null);
     setItemForm({
       branch_id: user?.branch_id || 1,
+      item_mode: "borrowable", // Default to borrowable
       item_type: "book",
       category: "",
       title: "",
@@ -146,19 +180,20 @@ export default function BorrowingManagementPage() {
     setEditingItem(item);
     setItemForm({
       branch_id: item.branch_id,
+      item_mode: item.item_mode || "borrowable",
       item_type: item.item_type,
       category: item.category,
       title: item.title,
-      author: item.author,
-      isbn: item.isbn,
-      publisher: item.publisher,
-      published_year: item.published_year,
-      description: item.description,
+      author: item.author || "",
+      isbn: item.isbn || "",
+      publisher: item.publisher || "",
+      published_year: item.published_year || new Date().getFullYear(),
+      description: item.description || "",
       total_stock: item.total_stock,
       available_stock: item.available_stock,
-      max_borrow_days: item.max_borrow_days,
-      renewable_count: item.renewable_count,
-      late_fee_per_day: item.late_fee_per_day,
+      max_borrow_days: item.max_borrow_days || 14,
+      renewable_count: item.renewable_count || 2,
+      late_fee_per_day: item.late_fee_per_day || 10,
       requires_approval: item.requires_approval,
     });
     // Set existing image preview
@@ -178,13 +213,13 @@ export default function BorrowingManagementPage() {
   const handleImageFile = (file: File) => {
     // Validate file type
     if (!file.type.startsWith("image/")) {
-      alert("กรุณาเลือกไฟล์รูปภาพเท่านั้น");
+      toast.warning("กรุณาเลือกไฟล์รูปภาพเท่านั้น");
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert("ขนาดไฟล์ใหญ่เกินไป (สูงสุด 5MB)");
+      toast.warning("ขนาดไฟล์ใหญ่เกินไป (สูงสุด 5MB)");
       return;
     }
 
@@ -239,13 +274,13 @@ export default function BorrowingManagementPage() {
             await borrowingService.uploadItemImage(itemId, coverImageFile);
           } catch (error) {
             console.error("Error uploading image:", error);
-            alert("บันทึกรายการสำเร็จ แต่อัพโหลดรูปภาพล้มเหลว");
+            toast.warning("บันทึกรายการสำเร็จ แต่อัพโหลดรูปภาพล้มเหลว");
           } finally {
             setUploadingImage(false);
           }
         }
 
-        alert("อัพเดทรายการสำเร็จ");
+        toast.success("อัพเดทรายการสำเร็จ");
       } else {
         // Create new item first
         const response = await borrowingService.createItem(itemForm);
@@ -258,13 +293,13 @@ export default function BorrowingManagementPage() {
             await borrowingService.uploadItemImage(itemId, coverImageFile);
           } catch (error) {
             console.error("Error uploading image:", error);
-            alert("เพิ่มรายการสำเร็จ แต่อัพโหลดรูปภาพล้มเหลว");
+            toast.warning("เพิ่มรายการสำเร็จ แต่อัพโหลดรูปภาพล้มเหลว");
           } finally {
             setUploadingImage(false);
           }
         }
 
-        alert("เพิ่มรายการสำเร็จ");
+        toast.success("เพิ่มรายการสำเร็จ");
       }
 
       // Reset form and close modal
@@ -276,23 +311,24 @@ export default function BorrowingManagementPage() {
       await loadItems();
     } catch (error) {
       console.error("Error saving item:", error);
-      alert("เกิดข้อผิดพลาดในการบันทึก");
+      toast.error("เกิดข้อผิดพลาดในการบันทึก");
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteItem = async (id: number) => {
-    if (!confirm("ต้องการลบรายการนี้ใช่หรือไม่?")) return;
+    const confirmed = await toast.confirm("ต้องการลบรายการนี้ใช่หรือไม่?");
+    if (!confirmed) return;
 
     try {
       setLoading(true);
       await borrowingService.deleteItem(id);
-      alert("ลบรายการสำเร็จ");
+      toast.success("ลบรายการสำเร็จ");
       await loadItems();
     } catch (error) {
       console.error("Error deleting item:", error);
-      alert("เกิดข้อผิดพลาดในการลบ");
+      toast.error("เกิดข้อผิดพลาดในการลบ");
     } finally {
       setLoading(false);
     }
@@ -312,7 +348,7 @@ export default function BorrowingManagementPage() {
   const handleSubmitReview = async () => {
     if (!reviewingRequest) return;
     if (reviewAction === "reject" && !reviewNotes.trim()) {
-      alert("กรุณาระบุเหตุผลในการปฏิเสธ");
+      toast.warning("กรุณาระบุเหตุผลในการปฏิเสธ");
       return;
     }
 
@@ -322,18 +358,18 @@ export default function BorrowingManagementPage() {
         await borrowingService.approveBorrowRequest(reviewingRequest.id, {
           review_notes: reviewNotes,
         });
-        alert("อนุมัติคำขอยืมสำเร็จ");
+        toast.success("อนุมัติคำขอยืมสำเร็จ");
       } else {
         await borrowingService.rejectBorrowRequest(reviewingRequest.id, {
           review_notes: reviewNotes,
         });
-        alert("ปฏิเสธคำขอยืมสำเร็จ");
+        toast.success("ปฏิเสธคำขอยืมสำเร็จ");
       }
       setShowReviewModal(false);
       await loadRequests();
     } catch (error) {
       console.error("Error reviewing request:", error);
-      alert("เกิดข้อผิดพลาด: " + (error as Error).message);
+      toast.error("เกิดข้อผิดพลาด: " + (error as Error).message);
     } finally {
       setLoading(false);
     }
@@ -371,31 +407,94 @@ export default function BorrowingManagementPage() {
         }
       }
 
-      alert(message);
+      toast.success(message);
       setShowCheckInModal(false);
       await loadTransactions();
     } catch (error) {
       console.error("Error checking in:", error);
-      alert("เกิดข้อผิดพลาดในการรับคืน");
+      toast.error("เกิดข้อผิดพลาดในการรับคืน");
     } finally {
       setLoading(false);
     }
   };
 
+  // Requisition Management
+  const handleCompleteRequisition = async (requisitionId: number) => {
+    const confirmed = await toast.confirm(
+      "ยืนยันการรับสินค้า?\n\nการดำเนินการนี้จะบันทึกว่าผู้ใช้ได้รับสินค้าแล้ว"
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setProcessingRequisition(requisitionId);
+      await borrowingService.completeRequisition(requisitionId, {
+        notes: "รับสินค้าเรียบร้อย",
+      });
+      toast.success("ยืนยันการรับสินค้าสำเร็จ");
+      await loadRequisitions();
+    } catch (error) {
+      console.error("Error completing requisition:", error);
+      toast.error("เกิดข้อผิดพลาดในการยืนยันการรับสินค้า");
+    } finally {
+      setProcessingRequisition(null);
+    }
+  };
+
+  const handleCancelRequisition = async (requisitionId: number) => {
+    const reason = await toast.prompt(
+      "โปรดระบุเหตุผลในการยกเลิก:\n\n(สินค้าจะถูกคืนกลับเข้าคลังอัตโนมัติ)",
+      "",
+      "ยืนยัน",
+      "ยกเลิก"
+    );
+
+    if (!reason) return;
+
+    try {
+      setProcessingRequisition(requisitionId);
+      await borrowingService.cancelRequisition(requisitionId, reason);
+      toast.success(
+        "ยกเลิกคำขอเบิกสำเร็จ\n\nสินค้าได้ถูกคืนกลับเข้าคลังแล้ว (ทั้ง available_stock และ total_stock)"
+      );
+      await loadRequisitions();
+    } catch (error) {
+      console.error("Error cancelling requisition:", error);
+      toast.error("เกิดข้อผิดพลาดในการยกเลิก");
+    } finally {
+      setProcessingRequisition(null);
+    }
+  };
+
+  const getStatusBadgeClass = (
+    status: "approved" | "picked_up" | "cancelled"
+  ) => {
+    if (status === "approved") return "bg-purple-100 text-purple-800";
+    if (status === "picked_up") return "bg-gray-100 text-gray-800";
+    if (status === "cancelled") return "bg-red-100 text-red-800";
+    return "bg-gray-100 text-gray-800";
+  };
+
   const tabs: { key: TabType; label: string; count?: number }[] = [
     {
       key: "requests",
-      label: "คำขอยืม",
+      label: t.pendingWithdrawalRequests,
       count: requests.filter((r) => r.status === "pending").length,
     },
     {
       key: "transactions",
-      label: "รายการยืม",
+      label: t.activeWithdrawals,
       count: transactions.filter(
         (t) => t.status === "borrowed" || t.status === "overdue"
       ).length,
     },
-    { key: "items", label: "จัดการหนังสือ/สิ่งของ", count: items.length },
+    {
+      key: "requisitions",
+      label: t.pendingRequisitionRequests,
+      count: requisitions.filter((r) => r.status === "approved").length,
+    },
+    { key: "items", label: t.manageItemsAndInventory, count: items.length },
   ];
 
   return (
@@ -403,8 +502,8 @@ export default function BorrowingManagementPage() {
       <RoleGuard roles={["admin", "owner"]}>
         <SidebarLayout
           breadcrumbItems={[
-            { label: "แดชบอร์ด", href: "/dashboard" },
-            { label: "จัดการระบบยืม-คืน" },
+            { label: t.dashboard, href: "/dashboard" },
+            { label: t.manageStockSystem },
           ]}
         >
           <div className="space-y-6">
@@ -413,15 +512,15 @@ export default function BorrowingManagementPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">
-                    จัดการระบบยืม-คืน
+                    {t.manageStockSystem}
                   </h1>
                   <p className="text-gray-600 mt-1">
-                    จัดการหนังสือ อนุมัติคำขอยืม และรับคืน
+                    {t.approveRequestsAndReceiveReturns}
                   </p>
                 </div>
                 {activeTab === "items" && (
                   <Button variant="common" onClick={handleCreateItem}>
-                    + เพิ่มหนังสือ/สิ่งของ
+                    {t.addBookOrItem}
                   </Button>
                 )}
               </div>
@@ -468,8 +567,7 @@ export default function BorrowingManagementPage() {
                       <div className="space-y-4">
                         {items.length === 0 ? (
                           <div className="text-center py-12 text-gray-500">
-                            ยังไม่มีรายการ คลิกปุ่ม
-                            &ldquo;เพิ่มหนังสือ/สิ่งของ&rdquo; เพื่อเริ่มต้น
+                            {t.noItemsYetClickAdd}
                           </div>
                         ) : (
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -613,9 +711,386 @@ export default function BorrowingManagementPage() {
 
                         {transactions.length === 0 && (
                           <div className="text-center py-12 text-gray-500">
-                            ยังไม่มีรายการยืม
+                            {t.noWithdrawalsYet}
                           </div>
                         )}
+                      </div>
+                    )}
+
+                    {/* Requisitions Tab */}
+                    {activeTab === "requisitions" && (
+                      <div className="space-y-4">
+                        {/* Filters Section */}
+                        <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            {/* Status Filter */}
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                สถานะ
+                              </label>
+                              <select
+                                value={requisitionFilters.status}
+                                onChange={(e) => {
+                                  setRequisitionFilters({
+                                    ...requisitionFilters,
+                                    status: e.target.value as
+                                      | "all"
+                                      | "approved"
+                                      | "picked_up"
+                                      | "cancelled",
+                                  });
+                                  setCurrentPage(1);
+                                }}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                              >
+                                <option value="all">ทั้งหมด</option>
+                                <option value="approved">รออนุมัติรับ</option>
+                                <option value="picked_up">รับแล้ว</option>
+                                <option value="cancelled">ยกเลิก</option>
+                              </select>
+                            </div>
+
+                            {/* Search */}
+                            <div className="md:col-span-2">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                {t.searchUserOrItem}
+                              </label>
+                              <input
+                                type="text"
+                                value={requisitionFilters.search}
+                                onChange={(e) => {
+                                  setRequisitionFilters({
+                                    ...requisitionFilters,
+                                    search: e.target.value,
+                                  });
+                                  setCurrentPage(1);
+                                }}
+                                placeholder={t.searchUserOrItem}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                              />
+                            </div>
+
+                            {/* Clear Filters */}
+                            <div className="flex items-end">
+                              <button
+                                onClick={() => {
+                                  setRequisitionFilters({
+                                    status: "all",
+                                    search: "",
+                                    dateFrom: "",
+                                    dateTo: "",
+                                  });
+                                  setCurrentPage(1);
+                                }}
+                                className="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                              >
+                                {t.clear}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Date Range Filter */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                วันที่เริ่มต้น
+                              </label>
+                              <input
+                                type="date"
+                                value={requisitionFilters.dateFrom}
+                                onChange={(e) => {
+                                  setRequisitionFilters({
+                                    ...requisitionFilters,
+                                    dateFrom: e.target.value,
+                                  });
+                                  setCurrentPage(1);
+                                }}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                วันที่สิ้นสุด
+                              </label>
+                              <input
+                                type="date"
+                                value={requisitionFilters.dateTo}
+                                onChange={(e) => {
+                                  setRequisitionFilters({
+                                    ...requisitionFilters,
+                                    dateTo: e.target.value,
+                                  });
+                                  setCurrentPage(1);
+                                }}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Results Count */}
+                        {(() => {
+                          const filtered = requisitions.filter((r) => {
+                            // Status filter
+                            if (
+                              requisitionFilters.status !== "all" &&
+                              r.status !== requisitionFilters.status
+                            ) {
+                              return false;
+                            }
+
+                            // Search filter
+                            if (requisitionFilters.search) {
+                              const search =
+                                requisitionFilters.search.toLowerCase();
+                              const userName =
+                                `${r.user?.student?.first_name} ${r.user?.student?.last_name}`.toLowerCase();
+                              const itemName =
+                                r.item?.title.toLowerCase() || "";
+                              if (
+                                !userName.includes(search) &&
+                                !itemName.includes(search)
+                              ) {
+                                return false;
+                              }
+                            }
+
+                            // Date range filter
+                            if (requisitionFilters.dateFrom) {
+                              const createdDate = new Date(
+                                r.created_at
+                              ).toISOString();
+                              if (createdDate < requisitionFilters.dateFrom) {
+                                return false;
+                              }
+                            }
+                            if (requisitionFilters.dateTo) {
+                              const createdDate = new Date(
+                                r.created_at
+                              ).toISOString();
+                              if (createdDate > requisitionFilters.dateTo) {
+                                return false;
+                              }
+                            }
+
+                            return true;
+                          });
+
+                          const totalPages = Math.ceil(
+                            filtered.length / itemsPerPage
+                          );
+                          const startIdx = (currentPage - 1) * itemsPerPage;
+                          const endIdx = startIdx + itemsPerPage;
+                          const paginatedData = filtered.slice(
+                            startIdx,
+                            endIdx
+                          );
+
+                          return (
+                            <>
+                              {filtered.length > 0 && (
+                                <div className="flex items-center justify-between text-sm text-gray-600">
+                                  <span>
+                                    พบ {filtered.length} รายการ
+                                    {filtered.length !== requisitions.length &&
+                                      ` (จากทั้งหมด ${requisitions.length} รายการ)`}
+                                  </span>
+                                  {totalPages > 1 && (
+                                    <span>
+                                      หน้า {currentPage} จาก {totalPages}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Requisitions Grid */}
+                              {paginatedData.length > 0 && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                  {paginatedData.map((requisition) => (
+                                    <div
+                                      key={requisition.id}
+                                      className="bg-white border-2 border-purple-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                                    >
+                                      <div className="flex items-start justify-between mb-3">
+                                        <div className="flex-1">
+                                          <h4 className="font-semibold text-gray-900">
+                                            {requisition.item?.title}
+                                          </h4>
+                                          <p className="text-sm text-gray-600 mt-1">
+                                            {
+                                              requisition.user?.student
+                                                ?.first_name
+                                            }{" "}
+                                            {
+                                              requisition.user?.student
+                                                ?.last_name
+                                            }
+                                          </p>
+                                        </div>
+                                        <span
+                                          className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(
+                                            requisition.status
+                                          )}`}
+                                        >
+                                          {requisition.status === "approved" &&
+                                            "รออนุมัติรับ"}
+                                          {requisition.status === "picked_up" &&
+                                            "รับแล้ว"}
+                                          {requisition.status === "cancelled" &&
+                                            "ยกเลิก"}
+                                        </span>
+                                      </div>
+
+                                      <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                          <span className="text-gray-600">
+                                            จำนวน:
+                                          </span>
+                                          <span className="font-semibold">
+                                            {requisition.quantity}{" "}
+                                            {requisition.item?.unit}
+                                          </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span className="text-gray-600">
+                                            วันที่ขอ:
+                                          </span>
+                                          <span className="font-semibold">
+                                            {new Date(
+                                              requisition.created_at
+                                            ).toLocaleDateString("th-TH")}
+                                          </span>
+                                        </div>
+                                        {requisition.purpose && (
+                                          <div className="mt-2 pt-2 border-t border-gray-200">
+                                            <p className="text-xs text-gray-600">
+                                              <span className="font-semibold">
+                                                วัตถุประสงค์:
+                                              </span>{" "}
+                                              {requisition.purpose}
+                                            </p>
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {requisition.status === "approved" && (
+                                        <div className="mt-4 flex gap-2">
+                                          <button
+                                            onClick={() =>
+                                              handleCompleteRequisition(
+                                                requisition.id
+                                              )
+                                            }
+                                            disabled={
+                                              processingRequisition ===
+                                              requisition.id
+                                            }
+                                            className="flex-1 px-3 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50"
+                                          >
+                                            ✓ ยืนยันรับสินค้า
+                                          </button>
+                                          <button
+                                            onClick={() =>
+                                              handleCancelRequisition(
+                                                requisition.id
+                                              )
+                                            }
+                                            disabled={
+                                              processingRequisition ===
+                                              requisition.id
+                                            }
+                                            className="flex-1 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50"
+                                          >
+                                            ✗ ยกเลิก
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Pagination */}
+                              {totalPages > 1 && (
+                                <div className="flex items-center justify-center gap-2 mt-6">
+                                  <button
+                                    onClick={() =>
+                                      setCurrentPage(
+                                        Math.max(1, currentPage - 1)
+                                      )
+                                    }
+                                    disabled={currentPage === 1}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                  >
+                                    ← ก่อนหน้า
+                                  </button>
+
+                                  <div className="flex gap-1">
+                                    {Array.from(
+                                      { length: totalPages },
+                                      (_, i) => i + 1
+                                    )
+                                      .filter(
+                                        (page) =>
+                                          page === 1 ||
+                                          page === totalPages ||
+                                          Math.abs(page - currentPage) <= 1
+                                      )
+                                      .map((page, idx, arr) => {
+                                        if (
+                                          idx > 0 &&
+                                          arr[idx - 1] !== page - 1
+                                        ) {
+                                          return (
+                                            <span
+                                              key={`ellipsis-${page}`}
+                                              className="px-2 py-2 text-gray-500"
+                                            >
+                                              ...
+                                            </span>
+                                          );
+                                        }
+                                        return (
+                                          <button
+                                            key={page}
+                                            onClick={() => setCurrentPage(page)}
+                                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                              currentPage === page
+                                                ? "bg-purple-600 text-white"
+                                                : "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
+                                            }`}
+                                          >
+                                            {page}
+                                          </button>
+                                        );
+                                      })}
+                                  </div>
+
+                                  <button
+                                    onClick={() =>
+                                      setCurrentPage(
+                                        Math.min(totalPages, currentPage + 1)
+                                      )
+                                    }
+                                    disabled={currentPage === totalPages}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                  >
+                                    ถัดไป →
+                                  </button>
+                                </div>
+                              )}
+
+                              {/* Empty State */}
+                              {filtered.length === 0 && (
+                                <div className="text-center py-12 text-gray-500">
+                                  {requisitions.length === 0
+                                    ? t.noRequisitionsYet
+                                    : t.noMatchingResults}
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                     )}
                   </>

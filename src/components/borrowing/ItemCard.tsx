@@ -1,7 +1,9 @@
 "use client";
 
+import { getPresignedUrl } from "@/lib/s3";
 import type { BorrowableItem } from "@/types/borrowing.types";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 import {
   HiBookOpen,
   HiCube,
@@ -50,6 +52,39 @@ export function ItemCard({
     return labels[item.item_type] || item.item_type;
   };
 
+  const [resolvedSrc, setResolvedSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const src = item.cover_image_url;
+    // If cover image appears to be an S3 key (relative path) or belongs to our S3 bucket, try to presign it
+    const s3Bucket = process.env.NEXT_PUBLIC_S3_BUCKET;
+
+    const handle = async () => {
+      if (!src) return setResolvedSrc(null);
+
+      try {
+        // If it's already a fully qualified URL, use as-is
+        if (src.startsWith("http")) {
+          setResolvedSrc(src);
+          return;
+        }
+
+        // Otherwise treat as S3 key and request presigned URL from API
+        const presigned = await getPresignedUrl(src.replace(/^\//, ""));
+        if (mounted) setResolvedSrc(presigned ?? src);
+      } catch (err) {
+        console.error("resolve image", err);
+        if (mounted) setResolvedSrc(src);
+      }
+    };
+
+    handle();
+    return () => {
+      mounted = false;
+    };
+  }, [item.cover_image_url]);
+
   return (
     <div
       className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow ${
@@ -61,11 +96,13 @@ export function ItemCard({
       <div className="relative h-48 bg-gray-100">
         {item.cover_image_url ? (
           <Image
-            src={item.cover_image_url}
+            src={resolvedSrc ?? item.cover_image_url}
             alt={item.title}
             fill
             className="object-cover"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            // If using presigned URLs (temporal), skip next/image optimization to avoid edge caching issues
+            unoptimized={true}
           />
         ) : (
           <div className="flex items-center justify-center h-full text-gray-400">
@@ -126,7 +163,7 @@ export function ItemCard({
             <span>ต่ออายุได้:</span>
             <span className="font-medium">{item.renewable_count} ครั้ง</span>
           </div>
-          {item.late_fee_per_day > 0 && (
+          {item.late_fee_per_day !== undefined && item.late_fee_per_day > 0 && (
             <div className="flex justify-between">
               <span>ค่าปรับ/วัน:</span>
               <span className="font-medium text-red-600">

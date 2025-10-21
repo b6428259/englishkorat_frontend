@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.913.0",
+    "@aws-sdk/s3-request-presigner": "^3.913.0",
     "@heroicons/react": "^2.2.0",
     "@heroui/alert": "^2.2.24",
     "@heroui/autocomplete": "^2.3.28",

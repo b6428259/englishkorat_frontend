@@ -473,7 +473,56 @@ export interface Translations {
   searchTeacher: string;
   all: string;
 
-  // Borrowing System
+  // Stock Management System (Borrowing System)
+  stockSystem: string;
+  inventorySystem: string;
+  stockManagement: string;
+  myWithdrawals: string;
+  myTemporaryWithdrawals: string;
+  myPermanentRequisitions: string;
+  browseStockItems: string;
+  stockItemManagement: string;
+  withdrawalRequestManagement: string;
+  withdrawalTransactionManagement: string;
+  requisitionsManagement: string;
+
+  // Two modes
+  temporaryWithdrawal: string;
+  permanentRequisition: string;
+  mustReturn: string;
+  noReturn: string;
+
+  // Management page specific
+  manageStockSystem: string;
+  approveRequestsAndReceiveReturns: string;
+  addStockItem: string;
+  addBookOrItem: string;
+  noItemsYetClickAdd: string;
+  pendingWithdrawalRequests: string;
+  activeWithdrawals: string;
+  pendingRequisitionRequests: string;
+  manageItemsAndInventory: string;
+  noWithdrawalsYet: string;
+  noRequisitionsYet: string;
+  noMatchingResults: string;
+  searchUserOrItem: string;
+
+  // Low Stock Alerts Widget
+  lowStockAlert: string;
+  lowStockAlerts: string;
+  allStockNormal: string;
+  outOfStock: string;
+  criticalLevel: string;
+  lowLevel: string;
+  normalLevel: string;
+  remaining: string;
+  reorderLevel: string;
+  estimatedPrice: string;
+  reorder: string;
+  percentOfReorderLevel: string;
+  showingFirstItems: string;
+
+  // Legacy keys (keep for compatibility)
   borrowingSystem: string;
   myBorrows: string;
   borrowingManagement: string;
@@ -482,9 +531,7 @@ export interface Translations {
   myBorrowsList: string;
   itemManagement: string;
   requestManagement: string;
-  transactionManagement: string;
-
-  // Item Types
+  transactionManagement: string; // Item Types
   book: string;
   equipment: string;
   material: string;
@@ -1344,16 +1391,66 @@ export const translations: Record<Language, Translations> = {
     searchTeacher: "ค้นหาครู",
     all: "ทั้งหมด",
 
-    // Borrowing System
-    borrowingSystem: "ระบบยืม-คืน",
-    myBorrows: "การยืมของฉัน",
-    borrowingManagement: "จัดการระบบยืม-คืน",
-    browseItems: "เรียกดู",
-    myRequests: "คำขอของฉัน",
-    myBorrowsList: "รายการยืม",
-    itemManagement: "จัดการหนังสือ/สิ่งของ",
-    requestManagement: "คำขอยืม",
-    transactionManagement: "รายการยืม",
+    // Stock Management System (Borrowing System)
+    stockSystem: "ระบบคลังพัสดุ",
+    inventorySystem: "ระบบเบิก-จ่าย",
+    stockManagement: "จัดการคลังพัสดุ",
+    myWithdrawals: "การเบิกของฉัน",
+    myTemporaryWithdrawals: "เบิกชั่วคราว (ต้องคืน)",
+    myPermanentRequisitions: "เบิกถาวร (ไม่ต้องคืน)",
+    browseStockItems: "รายการคลัง",
+    stockItemManagement: "จัดการรายการคลัง",
+    withdrawalRequestManagement: "คำขอเบิก",
+    withdrawalTransactionManagement: "รายการเบิก-คืน",
+    requisitionsManagement: "จัดการเบิก-จ่าย",
+
+    // Two modes
+    temporaryWithdrawal: "เบิกชั่วคราว",
+    permanentRequisition: "เบิกถาวร",
+    mustReturn: "ต้องคืน",
+    noReturn: "ไม่ต้องคืน",
+
+    // Management page specific
+    manageStockSystem: "จัดการระบบคลังพัสดุ",
+    approveRequestsAndReceiveReturns: "อนุมัติคำขอ และรับคืนของ",
+    addStockItem: "เพิ่มรายการคลัง",
+    addBookOrItem: "เพิ่มหนังสือ/สิ่งของ",
+    noItemsYetClickAdd:
+      'ยังไม่มีรายการ คลิกปุ่ม "เพิ่มหนังสือ/สิ่งของ" เพื่อเริ่มต้น',
+    pendingWithdrawalRequests: "คำขอเบิก",
+    activeWithdrawals: "รายการเบิกชั่วคราว",
+    pendingRequisitionRequests: "คำขอเบิกถาวร",
+    manageItemsAndInventory: "จัดการหนังสือ/สิ่งของ",
+    noWithdrawalsYet: "ยังไม่มีรายการเบิก",
+    noRequisitionsYet: "ยังไม่มีคำขอเบิกถาวร",
+    noMatchingResults: "ไม่พบรายการที่ตรงกับเงื่อนไขการค้นหา",
+    searchUserOrItem: "ค้นหา (ผู้ใช้/สินค้า)",
+
+    // Low Stock Alerts Widget
+    lowStockAlert: "แจ้งเตือนสินค้าใกล้หมด",
+    lowStockAlerts: "แจ้งเตือนสินค้าใกล้หมด",
+    allStockNormal: "สินค้าทั้งหมดอยู่ในระดับปกติ",
+    outOfStock: "หมดคลัง",
+    criticalLevel: "วิกฤต",
+    lowLevel: "ต่ำ",
+    normalLevel: "ปกติ",
+    remaining: "คงเหลือ",
+    reorderLevel: "ระดับสั่งซื้อใหม่",
+    estimatedPrice: "ราคาประมาณ",
+    reorder: "สั่งซื้อ",
+    percentOfReorderLevel: "% ของระดับที่ควรเติม",
+    showingFirstItems: "แสดง {count} รายการแรก",
+
+    // Legacy keys (for backward compatibility)
+    borrowingSystem: "ระบบคลังพัสดุ",
+    myBorrows: "การเบิกของฉัน",
+    borrowingManagement: "จัดการคลังพัสดุ",
+    browseItems: "รายการคลัง",
+    myRequests: "คำขอเบิก",
+    myBorrowsList: "รายการเบิก",
+    itemManagement: "จัดการรายการคลัง",
+    requestManagement: "คำขอเบิก",
+    transactionManagement: "รายการเบิก-คืน",
 
     // Item Types
     book: "หนังสือ",
@@ -2245,15 +2342,64 @@ export const translations: Record<Language, Translations> = {
     searchTeacher: "Search Teacher",
     all: "All",
 
-    // Borrowing System
-    borrowingSystem: "Borrowing System",
-    myBorrows: "My Borrows",
-    borrowingManagement: "Borrowing Management",
-    browseItems: "Browse",
+    // Stock Management System (Borrowing System)
+    stockSystem: "Stock Management System",
+    inventorySystem: "Inventory System",
+    stockManagement: "Stock Management",
+    myWithdrawals: "My Withdrawals",
+    myTemporaryWithdrawals: "Temporary Withdrawal (Return Required)",
+    myPermanentRequisitions: "Permanent Requisition (No Return)",
+    browseStockItems: "Browse Stock",
+    stockItemManagement: "Stock Items Management",
+    withdrawalRequestManagement: "Withdrawal Requests",
+    withdrawalTransactionManagement: "Withdrawal Transactions",
+    requisitionsManagement: "Requisitions Management",
+
+    // Two modes
+    temporaryWithdrawal: "Temporary Withdrawal",
+    permanentRequisition: "Permanent Requisition",
+    mustReturn: "Must Return",
+    noReturn: "No Return Required",
+
+    // Management page specific
+    manageStockSystem: "Manage Stock System",
+    approveRequestsAndReceiveReturns: "Approve requests and receive returns",
+    addStockItem: "Add Stock Item",
+    addBookOrItem: "Add Book/Item",
+    noItemsYetClickAdd: 'No items yet. Click "Add Book/Item" to start',
+    pendingWithdrawalRequests: "Withdrawal Requests",
+    activeWithdrawals: "Active Withdrawals",
+    pendingRequisitionRequests: "Requisition Requests",
+    manageItemsAndInventory: "Manage Items & Inventory",
+    noWithdrawalsYet: "No withdrawals yet",
+    noRequisitionsYet: "No requisition requests yet",
+    noMatchingResults: "No matching results found",
+    searchUserOrItem: "Search (User/Item)",
+
+    // Low Stock Alerts Widget
+    lowStockAlert: "Low Stock Alert",
+    lowStockAlerts: "Low Stock Alerts",
+    allStockNormal: "All stock items are at normal levels",
+    outOfStock: "Out of Stock",
+    criticalLevel: "Critical",
+    lowLevel: "Low",
+    normalLevel: "Normal",
+    remaining: "Remaining",
+    reorderLevel: "Reorder Level",
+    estimatedPrice: "Estimated Price",
+    reorder: "Reorder",
+    percentOfReorderLevel: "% of reorder level",
+    showingFirstItems: "Showing first {count} items",
+
+    // Legacy keys (for backward compatibility)
+    borrowingSystem: "Stock Management System",
+    myBorrows: "My Withdrawals",
+    borrowingManagement: "Stock Management",
+    browseItems: "Browse Stock",
     myRequests: "My Requests",
-    myBorrowsList: "Borrow List",
-    itemManagement: "Items Management",
-    requestManagement: "Borrow Requests",
+    myBorrowsList: "Withdrawal List",
+    itemManagement: "Stock Items",
+    requestManagement: "Requests",
     transactionManagement: "Transactions",
 
     // Item Types
