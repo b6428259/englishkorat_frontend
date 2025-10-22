@@ -776,7 +776,8 @@ export interface SchedulePreviewResponse {
 
 // Teacher interface for dropdowns
 export interface TeacherOption {
-  id: number;
+  id: number; // teacher_id (primary key in teachers table)
+  user_id: number; // user_id (foreign key to users table)
   teacher_name: string;
   teacher_nickname: string;
   teacher_email?: string;
@@ -1042,8 +1043,9 @@ export const scheduleService = {
     const mapped: TeacherOption[] = Array.isArray(raw)
       ? raw.map((t: RawTeacherResponse) => {
           // Support both legacy flat fields and new nested { name, user } shape
-          // IMPORTANT: Use user_id (not teacher.id) as this is what the API expects
-          const id = t.user_id ?? t.user?.id ?? t.id;
+          // IMPORTANT: Store both teacher_id (id) and user_id
+          const teacherId = t.id; // teacher_id (primary key in teachers table)
+          const userId = t.user_id ?? t.user?.id ?? t.id; // user_id (foreign key to users table)
           const first = t.name?.first_en ?? t.first_name_en ?? "";
           const last = t.name?.last_en ?? t.last_name_en ?? "";
           const nickname = t.name?.nickname_en ?? t.nickname_en ?? "";
@@ -1052,7 +1054,7 @@ export const scheduleService = {
             `${first}${last ? " " + last : ""}`.trim() ||
             nickname ||
             username ||
-            `Teacher ${id}`;
+            `Teacher ${teacherId}`;
           const teacher_nickname = nickname || first || username || "";
           const teacher_email = t.user?.email ?? t.email ?? undefined;
           const teacher_phone = t.user?.phone ?? t.phone ?? undefined;
@@ -1060,7 +1062,8 @@ export const scheduleService = {
           const branch = t.branch ?? undefined;
 
           return {
-            id,
+            id: teacherId, // teacher_id
+            user_id: userId, // user_id
             teacher_name,
             teacher_nickname,
             teacher_email,

@@ -238,7 +238,7 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
             !!teacher && typeof teacher.id === "number"
         )
         .map((teacher) => ({
-          value: teacher.id.toString(),
+          value: teacher.user_id.toString(), // Use user_id for form submission (backend expects user_id)
           label: formatTeacherLabel(teacher),
         })),
     [teachers, formatTeacherLabel]
@@ -390,19 +390,21 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
   // Load teacher working hours when teacher is selected
   useEffect(() => {
     const loadTeacherWorkingHours = async () => {
-      // Get teacher ID from either default_teacher_id or teacher_id
-      const teacherId =
-        scheduleForm.default_teacher_id || scheduleForm.teacher_id;
+      // Get teacher user_id from default_teacher_id (which stores user_id for combobox)
+      const userIdFromCombobox = scheduleForm.default_teacher_id;
 
-      if (!teacherId) {
+      if (!userIdFromCombobox) {
         // Clear working hours if no teacher selected
         setTeacherWorkingHours([]);
         setWorkingHoursError(null);
         return;
       }
 
-      // Find teacher from teachers list to get user_id
-      const teacher = teachers.find((t) => t.id === teacherId);
+      // Find teacher from teachers list using user_id to get the teacher_id
+      // Note: After fixing TeacherOption interface:
+      // - teacher.user_id = user_id (what combobox stores in default_teacher_id)
+      // - teacher.id = teacher_id (what we need for the API call)
+      const teacher = teachers.find((t) => t.user_id === userIdFromCombobox);
       if (!teacher) {
         setTeacherWorkingHours([]);
         setWorkingHoursError("Teacher not found");
@@ -413,13 +415,19 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
       setWorkingHoursError(null);
 
       try {
-        // Call API with teacher's user_id (not teacher.id)
+        // Call API with teacher_id (teacher.id is the teacher_id, not user_id)
+        console.log(
+          "🔍 Loading working hours for teacher_id:",
+          teacher.id,
+          "user_id:",
+          teacher.user_id
+        );
         const response = await teacherWorkingHoursService.getWorkingHours(
-          teacher.id
+          teacher.id // This is teacher_id
         );
         setTeacherWorkingHours(response.working_hours || []);
         console.log(
-          "✅ Loaded working hours for teacher:",
+          "✅ Loaded working hours for teacher_id:",
           teacher.id,
           response.working_hours
         );
@@ -588,28 +596,75 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
   }, [scheduleForm.group_id, filteredGroups]);
 
   // Auto-add one session time slot when modal opens or start_date is set
+  // BUT don't override if session_times was already provided from initialScheduleForm
+  const hasSessionTimesRef = useRef(false);
+
   useEffect(() => {
+    // Track if session_times exists in either initialScheduleForm or current scheduleForm
     if (
-      isOpen &&
-      scheduleForm.start_date &&
-      (!scheduleForm.session_times || scheduleForm.session_times.length === 0)
+      (initialScheduleForm?.session_times &&
+        initialScheduleForm.session_times.length > 0) ||
+      (scheduleForm.session_times && scheduleForm.session_times.length > 0)
     ) {
-      const weekday = getWeekdayFromDate(scheduleForm.start_date);
-      setScheduleForm((prev) => ({
-        ...prev,
-        session_times: [
-          {
-            weekday,
-            start_time: "09:00",
-            end_time: "12:00",
-          },
-        ],
-      }));
+      hasSessionTimesRef.current = true;
+      console.log(
+        "✅ session_times detected, setting hasSessionTimesRef to true"
+      );
     }
+  }, [initialScheduleForm?.session_times, scheduleForm.session_times]);
+
+  useEffect(() => {
+    // Skip if modal is not open
+    if (!isOpen) return;
+
+    // Skip if start_date is not set
+    if (!scheduleForm.start_date) return;
+
+    // PRIORITY 1: Check if initialScheduleForm has session_times (from clicked cell)
+    if (
+      initialScheduleForm?.session_times &&
+      initialScheduleForm.session_times.length > 0
+    ) {
+      console.log(
+        "✅ initialScheduleForm has session_times, skipping auto-add:",
+        initialScheduleForm.session_times
+      );
+      return;
+    }
+
+    // PRIORITY 2: Check if session_times already exists (from ref or current form)
+    if (hasSessionTimesRef.current) {
+      console.log("✅ hasSessionTimesRef is true, skipping auto-add");
+      return;
+    }
+
+    // PRIORITY 3: Check if session_times already has values in current form
+    if (scheduleForm.session_times && scheduleForm.session_times.length > 0) {
+      console.log(
+        "✅ scheduleForm has session_times, skipping auto-add:",
+        scheduleForm.session_times
+      );
+      return;
+    }
+
+    // Only auto-add if session_times is empty/null everywhere
+    console.log("🔧 Auto-adding default session_times");
+    const weekday = getWeekdayFromDate(scheduleForm.start_date);
+    setScheduleForm((prev) => ({
+      ...prev,
+      session_times: [
+        {
+          weekday,
+          start_time: "09:00",
+        },
+      ],
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     isOpen,
     scheduleForm.start_date,
-    scheduleForm.session_times,
+    initialScheduleForm?.session_times, // Check this to prevent auto-add when prefilling
+    // Don't include scheduleForm.session_times here - it causes infinite loop!
     getWeekdayFromDate,
   ]);
 
@@ -660,6 +715,30 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
       setCheckingRooms(false);
     }
   }, [scheduleForm, selectedRoomId, rooms]);
+
+  // Validation helper: Check if time is valid (within working hours if available)
+  const isTimeValid = useCallback(() => {
+    // If no working hours data, allow to proceed (teacher might not have set it yet)
+    if (teacherWorkingHours.length === 0) {
+      return true;
+    }
+
+    // Check all session times
+    if (scheduleForm.session_times && scheduleForm.session_times.length > 0) {
+      const invalidTimes = scheduleForm.session_times.filter((session) => {
+        return !workingHoursHelpers.isTimeInWorkingHours(
+          session.weekday,
+          session.start_time,
+          teacherWorkingHours
+        );
+      });
+
+      // If there are invalid times, block proceeding
+      return invalidTimes.length === 0;
+    }
+
+    return true;
+  }, [scheduleForm.session_times, teacherWorkingHours]);
 
   // Validation helper: Check if all required fields are filled for room conflict check
   const isRoomCheckReady = useCallback(() => {
@@ -755,31 +834,8 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
   }, [activeTab, previewSchedule, isPreviewReady]);
 
   const handleConfirm = useCallback(async () => {
-    // Validate teacher working hours before submitting
-    if (
-      teacherWorkingHours.length > 0 &&
-      scheduleForm.session_times &&
-      scheduleForm.session_times.length > 0
-    ) {
-      const invalidTimes = scheduleForm.session_times.filter((session) => {
-        return !workingHoursHelpers.isTimeInWorkingHours(
-          session.weekday,
-          session.start_time,
-          teacherWorkingHours
-        );
-      });
-
-      if (invalidTimes.length > 0) {
-        const errorMsg =
-          language === "th"
-            ? `พบเวลาเรียนที่ไม่ตรงกับเวลาทำงานของครู (${invalidTimes.length} คาบ)\nกรุณาแก้ไขก่อนสร้างตารางเรียน`
-            : `Found ${invalidTimes.length} session(s) outside teacher's working hours.\nPlease fix before creating schedule.`;
-
-        setValidationError(errorMsg);
-        alert(errorMsg);
-        return;
-      }
-    }
+    // ❌ Remove old validation that blocks schedule creation
+    // Instead, we now allow creation but show warning
 
     // Clear any previous validation errors
     setValidationError(null);
@@ -859,14 +915,7 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
     } finally {
       setIsSubmitting(false);
     }
-  }, [
-    scheduleForm,
-    selectedRoomId,
-    previewData,
-    onConfirm,
-    language,
-    teacherWorkingHours,
-  ]);
+  }, [scheduleForm, selectedRoomId, previewData, onConfirm]);
 
   useEffect(() => {
     if (!showSuccessModal) return;
@@ -888,6 +937,7 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
     // Reset ref when modal closes
     if (!isOpen) {
       hasInitializedRef.current = false;
+      hasSessionTimesRef.current = false; // Reset session times flag too
     }
   }, [isOpen]);
 
@@ -1204,6 +1254,37 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
                   className="flex-1 overflow-y-auto animate-in fade-in-0 slide-in-from-right-4 duration-300"
                 >
                   <div className="bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm space-y-6">
+                    {/* Working Hours Warning Banner */}
+                    {!isTimeValid() && (
+                      <div className="bg-red-50 border-2 border-red-300 rounded-xl p-4 shadow-sm animate-in fade-in-0 slide-in-from-top-2 duration-300">
+                        <div className="flex items-start gap-3">
+                          <svg
+                            className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          <div className="flex-1">
+                            <h4 className="text-sm font-bold text-red-900 mb-1">
+                              {language === "th"
+                                ? "⚠️ เวลาเรียนไม่ตรงกับเวลาทำงานของครู"
+                                : "⚠️ Session time outside teacher's working hours"}
+                            </h4>
+                            <p className="text-sm text-red-800">
+                              {language === "th"
+                                ? "คุณเลือกเวลาที่อยู่นอกช่วงเวลาทำงานของครู กรุณาแก้ไขเวลาให้ตรงกับช่วงเวลาทำงานก่อนดำเนินการต่อ"
+                                : "The selected time is outside the teacher's working hours. Please adjust the time to match working hours before proceeding."}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Header */}
                     <div className="flex items-center justify-between">
                       <h3 className="text-base md:text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -1263,17 +1344,23 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
                         </label>
                         <input
                           type="number"
-                          min={1}
+                          min={0.5}
+                          step={0.5}
                           value={scheduleForm.total_hours || ""}
                           onChange={(e) =>
                             updateForm({
                               total_hours:
-                                parseInt(e.target.value) || undefined,
+                                Number.parseFloat(e.target.value) || undefined,
                             })
                           }
                           className="w-full p-2.5 md:p-3 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                          placeholder="40"
+                          placeholder="30, 40, 60"
                         />
+                        <p className="text-xs text-gray-500 mt-1">
+                          {language === "th"
+                            ? "รองรับ 0.5 ชม. เช่น 30, 40.5, 60"
+                            : "Supports 0.5 hour increments, e.g., 30, 40.5, 60"}
+                        </p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1294,7 +1381,7 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
                             })
                           }
                           className="w-full p-2.5 md:p-3 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                          placeholder="0.5, 1, 1.5, 2"
+                          placeholder="0.5, 1, 1.5, 2, 3"
                         />
                         <p className="text-xs text-gray-500 mt-1">
                           {language === "th"
@@ -1371,7 +1458,7 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
                               </span>
                             </div>
 
-                            {/* Working Hours Info */}
+                            {/* Working Hours Info - แสดงเฉพาะข้อมูล ไม่บล็อกการป้อนเวลา */}
                             {loadingWorkingHours && (
                               <div
                                 className="flex items-center gap-2 text-sm p-3 rounded-lg"
@@ -1389,7 +1476,7 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
                             )}
 
                             {workingHoursError && (
-                              <div className="text-sm bg-red-50 p-3 rounded-lg border border-red-200 text-red-700 flex items-start gap-2">
+                              <div className="text-sm bg-yellow-50 p-3 rounded-lg border border-yellow-200 text-yellow-800 flex items-start gap-2">
                                 <svg
                                   className="w-5 h-5 flex-shrink-0 mt-0.5"
                                   fill="currentColor"
@@ -1401,7 +1488,11 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
                                     clipRule="evenodd"
                                   />
                                 </svg>
-                                <span>{workingHoursError}</span>
+                                <span>
+                                  {language === "th"
+                                    ? "ไม่พบข้อมูลเวลาทำงานของครู"
+                                    : "Teacher working hours not available"}
+                                </span>
                               </div>
                             )}
 
@@ -1411,8 +1502,9 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
                                   <div
                                     className="text-sm p-3 rounded-lg flex items-start gap-2"
                                     style={{
-                                      backgroundColor: "rgba(34, 197, 94, 0.1)",
-                                      color: "#166534",
+                                      backgroundColor:
+                                        "rgba(59, 130, 246, 0.1)",
+                                      color: "#1e40af",
                                     }}
                                   >
                                     <svg
@@ -1422,15 +1514,15 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
                                     >
                                       <path
                                         fillRule="evenodd"
-                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
                                         clipRule="evenodd"
                                       />
                                     </svg>
                                     <div>
                                       <div className="font-medium">
                                         {language === "th"
-                                          ? "เวลาทำงานของครู"
-                                          : "Teacher's Working Hours"}
+                                          ? "ℹ️ เวลาทำงานของครู"
+                                          : "ℹ️ Teacher's Working Hours"}
                                       </div>
                                       <div className="text-xs mt-1 space-y-1">
                                         {teacherWorkingHours
@@ -1495,24 +1587,13 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
                                   scheduleForm.session_times?.[0]?.start_time ||
                                   "09:00"
                                 }
-                                disabled={
-                                  loadingWorkingHours ||
-                                  (teacherWorkingHours.length > 0 &&
-                                    teacherWorkingHours.filter(
-                                      (wh) =>
-                                        wh.day_of_week ===
-                                        (scheduleForm.session_times?.[0]
-                                          ?.weekday ?? 1)
-                                    ).length === 0)
-                                }
                                 onChange={(e) => {
                                   const newTime = e.target.value;
-
                                   updateSessionTime(0, {
                                     start_time: newTime,
                                   });
                                 }}
-                                className="w-full p-3 border-2 rounded-xl focus:ring-4 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-mono text-base"
+                                className="w-full p-3 border-2 rounded-xl focus:ring-4 transition-all duration-200 font-mono text-base"
                                 style={
                                   {
                                     borderColor:
@@ -1552,7 +1633,7 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
                                   scheduleForm.session_times?.[0]?.start_time,
                                   teacherWorkingHours
                                 ) && (
-                                  <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2 text-red-700 text-sm">
+                                  <div className="mt-2 p-3 bg-red-50 border-2 border-red-300 rounded-lg flex items-start gap-2 text-red-700 text-sm shadow-sm">
                                     <svg
                                       className="w-5 h-5 flex-shrink-0 mt-0.5"
                                       fill="currentColor"
@@ -1564,11 +1645,18 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
                                         clipRule="evenodd"
                                       />
                                     </svg>
-                                    <span>
-                                      {language === "th"
-                                        ? "เวลานี้อยู่นอกช่วงเวลาทำงานของครู"
-                                        : "This time is outside teacher's working hours"}
-                                    </span>
+                                    <div>
+                                      <div className="font-semibold">
+                                        {language === "th"
+                                          ? "⚠️ เวลานี้อยู่นอกช่วงเวลาทำงานของครู"
+                                          : "⚠️ This time is outside teacher's working hours"}
+                                      </div>
+                                      <div className="text-xs mt-1">
+                                        {language === "th"
+                                          ? "คุณสามารถเลือกเวลานี้ได้ แต่จะไม่สามารถดำเนินการต่อได้จนกว่าจะแก้ไข"
+                                          : "You can select this time, but cannot proceed until fixed"}
+                                      </div>
+                                    </div>
                                   </div>
                                 )}
                             </div>
@@ -1818,19 +1906,13 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
                                     <input
                                       type="time"
                                       value={slot.start_time}
-                                      disabled={
-                                        loadingWorkingHours ||
-                                        (teacherWorkingHours.length > 0 &&
-                                          !hasWorkingHours)
-                                      }
                                       onChange={(e) => {
                                         const newTime = e.target.value;
-
                                         updateSessionTime(actualIndex, {
                                           start_time: newTime,
                                         });
                                       }}
-                                      className="w-full p-2.5 border-2 rounded-xl focus:ring-4 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-mono"
+                                      className="w-full p-2.5 border-2 rounded-xl focus:ring-4 transition-all duration-200 font-mono"
                                       style={
                                         {
                                           borderColor:
@@ -2616,9 +2698,10 @@ const ClassScheduleModal = React.memo(function ClassScheduleModal({
                         }
                       }}
                       disabled={
-                        activeTab === "room" &&
-                        (selectedRoomId === null ||
-                          (roomConflicts?.has_conflict ?? false))
+                        (activeTab === "schedule" && !isTimeValid()) ||
+                        (activeTab === "room" &&
+                          (selectedRoomId === null ||
+                            (roomConflicts?.has_conflict ?? false)))
                       }
                       variant="monthViewClicked"
                       className="flex-1 sm:flex-none px-4 sm:px-6 py-2 transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"

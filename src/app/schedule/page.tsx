@@ -1417,7 +1417,13 @@ export default function SchedulePage() {
     timeSlot: { hour: number; minute: number }
   ) => {
     console.log("🔍 handleEmptyCellClick called with teacherId:", _teacherId);
-    console.log("🔍 timeSlot:", timeSlot);
+    console.log("🔍 timeSlot received:", timeSlot);
+    console.log(
+      "🔍 timeSlot.hour:",
+      timeSlot.hour,
+      "timeSlot.minute:",
+      timeSlot.minute
+    );
 
     // Validate teacher ID
     if (!_teacherId || _teacherId <= 0) {
@@ -1443,6 +1449,8 @@ export default function SchedulePage() {
     const end_time = `${endH.toString().padStart(2, "0")}:${startM
       .toString()
       .padStart(2, "0")}`;
+
+    console.log("⏰ Calculated start_time:", start_time, "end_time:", end_time);
 
     // Compute day_of_week for time slots
     const jsDate = new Date(currentDate);
@@ -1475,8 +1483,19 @@ export default function SchedulePage() {
     }
 
     console.log("✅ Found user_id:", userId, "for teacher_id:", _teacherId);
+    console.log("⏰ Time slot clicked:", start_time, "to", end_time);
+    console.log("📅 Weekday index:", weekdayIdx, "day:", day_of_week);
 
-    // Update schedule form with teacher ID
+    // Create session_times with the clicked time
+    const sessionTimes = [
+      {
+        weekday: weekdayIdx, // 0=Sunday, 1=Monday, etc.
+        start_time: start_time,
+      },
+    ];
+    console.log("📝 Creating session_times:", JSON.stringify(sessionTimes));
+
+    // Update schedule form with teacher ID and clicked time slot
     const newForm: Partial<CreateScheduleRequest> = {
       schedule_name: "",
       schedule_type: "class" as const,
@@ -1497,6 +1516,7 @@ export default function SchedulePage() {
           end_time,
         },
       ],
+      session_times: sessionTimes,
       session_start_time: start_time,
       recurring_pattern: undefined,
       notes: "",
