@@ -2970,9 +2970,9 @@ export default function SchedulePage() {
                                         >
                                           <div className="space-y-0 leading-tight">
                                             {/* Time Display - Responsive */}
-                                            <div className="flex items-center gap-0.5">
-                                              <div className="w-0.5 h-0.5 rounded-full bg-indigo-500"></div>
-                                              <p className="font-medium text-[5px] sm:text-[6px] text-indigo-700 truncate">
+                                            <div className="flex flex-wrap items-start gap-0.5 whitespace-normal break-words leading-tight">
+                                              <div className="w-0.5 h-0.5 rounded-full bg-indigo-500 flex-shrink-0 mt-[1px]"></div>
+                                              <p className="font-medium text-[5px] sm:text-[6px] text-indigo-700 whitespace-normal break-words leading-tight">
                                                 {session.start_time.substring(
                                                   0,
                                                   5
@@ -2982,17 +2982,8 @@ export default function SchedulePage() {
 
                                             {/* Course/Schedule Name - Responsive */}
                                             {session.schedule_name && (
-                                              <p
-                                                className="font-semibold text-[5px] sm:text-[6px] text-gray-900 whitespace-normal break-words line-clamp-2"
-                                                title={session.schedule_name}
-                                              >
-                                                {session.schedule_name.length >
-                                                10
-                                                  ? session.schedule_name.substring(
-                                                      0,
-                                                      10
-                                                    ) + "..."
-                                                  : session.schedule_name}
+                                              <p className="font-semibold text-[5px] sm:text-[6px] text-gray-900 whitespace-normal break-words leading-tight">
+                                                {session.schedule_name}
                                               </p>
                                             )}
 
