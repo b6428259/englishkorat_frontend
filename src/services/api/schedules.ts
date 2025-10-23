@@ -1,4 +1,6 @@
 import {
+  AddSessionRequest,
+  AddSessionResponse,
   CommentListResponse,
   ConfirmScheduleRequest,
   CreateMakeupSessionRequest,
@@ -119,6 +121,9 @@ export interface SessionDetailSchedule {
   auto_reschedule: boolean;
   notes: string;
   admin_assigned: string;
+  make_up_quota?: number; // Total makeup quota (default: 2)
+  make_up_remaining?: number; // Remaining makeup quota
+  make_up_used?: number; // Used makeup quota
   default_teacher: SessionDetailUser;
   default_room: SessionDetailRoom;
 }
@@ -262,6 +267,7 @@ export interface SessionDetailSession {
   session_number: number;
   week_number: number;
   status: string;
+  cancelling_reason?: string;
   is_makeup: boolean;
   room_id?: number | null;
   room?: SessionDetailRoom | null;
@@ -276,6 +282,7 @@ export interface SessionDetailSession {
 export interface SessionDetailSessionExtended extends SessionDetailSession {
   assigned_teacher_id?: number;
   assigned_teacher?: SessionDetailUser;
+  schedule?: SessionDetailSchedule; // For quota management
 }
 
 export interface SessionDetailResponse {
@@ -1906,7 +1913,14 @@ export const scheduleService = {
 
   /**
    * Create makeup session
+   * POST /api/schedules/sessions/makeup
    * Permissions: Teacher, Admin, Owner
+   *
+   * ⚠️ สำคัญ: ระบบจะตรวจสอบ Schedule Makeup Quota อัตโนมัติ
+   * - ถ้า schedule.make_up_remaining > 0: สร้าง makeup และหัก quota
+   * - ถ้า schedule.make_up_remaining = 0: Return 400 "No makeup quota remaining"
+   *
+   * แนะนำให้เช็ค quota ก่อนด้วย GET /api/schedules/:id
    */
   createMakeupSession: async (
     makeupData: CreateMakeupSessionRequest
@@ -2510,6 +2524,31 @@ export interface UpdateSessionResponse {
 }
 
 /**
+ * Add new session to schedule (from SESSION_MANAGEMENT_FRONTEND.md)
+ * POST /api/schedules/:schedule_id/sessions
+ * Session number will be auto-calculated based on chronological order
+ * Permissions: Admin, Owner, or Teacher (if default teacher of schedule)
+ */
+export const addSession = async (
+  scheduleId: number,
+  sessionData: AddSessionRequest
+): Promise<AddSessionResponse> => {
+  const response = await api.post(
+    `/schedules/${scheduleId}/sessions`,
+    sessionData
+  );
+
+  if (response.data) {
+    return {
+      message: response.data.message || "Session added successfully",
+      session: response.data.session || response.data.data?.session,
+    };
+  } else {
+    throw new Error(response.data.message || "Failed to add session");
+  }
+};
+
+/**
  * Admin/Owner update session (full update endpoint)
  * PATCH /api/schedules/sessions/:id
  * Allows updating time, room, teacher, status, notes, etc.
@@ -2550,13 +2589,16 @@ import type {
   DashboardStatsResponse,
   MakeupNeededResponse,
   ScheduleCancellationStatusResponse,
+  UndoCancellationResponse,
   UpdateMakeupQuotaRequest,
   UpdateMakeupQuotaResponse,
+  UpdateScheduleMakeupQuotaRequest,
+  UpdateScheduleMakeupQuotaResponse,
 } from "@/types/session-cancellation.types";
 
 /**
  * Request cancellation for a session
- * POST /api/schedules/sessions/:id/cancel-request
+ * POST /api/schedules/sessions/:id/request-cancellation
  * Permissions: Teacher or above
  * Must be >24 hours before class time (Deadline Policy)
  */
@@ -2565,7 +2607,7 @@ export const requestSessionCancellation = async (
   request: CancellationRequest
 ): Promise<CancellationRequestResponse> => {
   const response = await api.post(
-    `/schedules/sessions/${sessionId}/cancel-request`,
+    `/schedules/sessions/${sessionId}/request-cancellation`,
     request
   );
   return response.data;
@@ -2582,6 +2624,22 @@ export const approveSessionCancellation = async (
 ): Promise<ApproveCancellationResponse> => {
   const response = await api.post(
     `/schedules/sessions/${sessionId}/approve-cancellation`
+  );
+  return response.data;
+};
+
+/**
+ * Undo cancellation request (Teacher or Admin)
+ * POST /api/schedules/sessions/:id/undo-cancellation
+ * Permissions: Teacher (own request) or Admin/Owner (any request)
+ * Only works when status is cancellation_pending
+ * Reverts status back to scheduled and clears cancellation data
+ */
+export const undoSessionCancellation = async (
+  sessionId: number | string
+): Promise<UndoCancellationResponse> => {
+  const response = await api.post(
+    `/schedules/sessions/${sessionId}/undo-cancellation`
   );
   return response.data;
 };
@@ -2686,4 +2744,52 @@ export const updateStudentMakeupQuota = async (
     request
   );
   return response.data;
+};
+
+/**
+ * Update schedule's makeup quota (Admin only)
+ * PATCH /api/schedules/:id/makeup-quota
+ * Permissions: Admin, Owner
+ *
+ * ตาม doc ใหม่ (2025-01-23): Makeup quota ย้ายมาอยู่ที่ Schedule level
+ * แทนที่จะเป็น Student level
+ */
+export const updateScheduleMakeupQuota = async (
+  scheduleId: number | string,
+  request: UpdateScheduleMakeupQuotaRequest
+): Promise<UpdateScheduleMakeupQuotaResponse> => {
+  const response = await api.patch(
+    `/schedules/${scheduleId}/makeup-quota`,
+    request
+  );
+  return response.data;
+};
+
+/**
+ * Helper: Check if schedule has makeup quota remaining
+ * Returns quota info for UI display
+ */
+export const checkScheduleMakeupQuota = (schedule: {
+  make_up_quota?: number;
+  make_up_remaining?: number;
+  make_up_used?: number;
+}): {
+  hasQuota: boolean;
+  remaining: number;
+  total: number;
+  used: number;
+  percentage: number;
+} => {
+  const total = schedule.make_up_quota ?? 2; // Default: 2
+  const remaining = schedule.make_up_remaining ?? total;
+  const used = schedule.make_up_used ?? 0;
+  const percentage = (remaining / total) * 100;
+
+  return {
+    hasQuota: remaining > 0,
+    remaining,
+    total,
+    used,
+    percentage,
+  };
 };

@@ -66,12 +66,18 @@ export const QuickSearch = ({
     }
   };
 
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-20 px-4">
-      <div
-        className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[600px] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div
+      className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-20 px-4"
+      onClick={handleOverlayClick}
+    >
+      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[600px] flex flex-col">
         {/* Search Input */}
         <div className="p-4 border-b border-gray-200">
           <div className="relative">

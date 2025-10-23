@@ -23,6 +23,25 @@ export interface StudentInfo {
   nickname_th?: string;
 }
 
+export interface BranchBrandingInfo {
+  logo?: {
+    id: number;
+    logo_url: string;
+    file_size: number;
+    mime_type: string;
+    created_at: string;
+    updated_at: string;
+  } | null;
+  banner?: {
+    id: number;
+    banner_url: string;
+    file_size: number;
+    mime_type: string;
+    created_at: string;
+    updated_at: string;
+  } | null;
+}
+
 export interface User {
   id: number;
   username: string;
@@ -38,6 +57,7 @@ export interface User {
   updated_at?: string;
   avatar?: string;
   student?: StudentInfo;
+  branding?: BranchBrandingInfo;
 }
 
 export interface AuthResponse {

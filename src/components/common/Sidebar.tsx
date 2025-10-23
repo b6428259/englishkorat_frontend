@@ -207,53 +207,73 @@ const SidebarComponent: React.FC<SidebarProps> = ({
     router.push("/");
   };
 
+  // Calculate max width based on state and screen size
+  const calculateMaxWidth = () => {
+    if (isMobile) return "min(85vw, 320px)"; // Max 320px on mobile
+    return expanded ? "min(280px, 20vw)" : "80px"; // Max 20% of viewport when expanded on desktop
+  };
+
+  // Calculate button position
+  const calculateButtonPosition = () => {
+    if (isMobile) return "auto";
+    return expanded ? "min(280px, 20vw)" : "80px";
+  };
+
   return (
     <>
       {/* Expand/Collapse Button - fixed position relative to viewport */}
-      <button
-        onClick={handleToggleSidebar}
-        className="fixed p-2 rounded-full bg-white border border-gray-200 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer z-[40]"
-        style={{
-          left: expanded ? 280 : 80,
-          top: "50%",
-          transform: "translateY(-50%)",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
-          transition: "left 0.3s ease-in-out",
-        }}
-        aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
-      >
-        <svg
-          className={`w-5 h-5 text-gray-600 transition-transform duration-300 ${
-            expanded ? "rotate-0" : "rotate-180"
-          }`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.08))" }}
+      {!isMobile && (
+        <button
+          onClick={handleToggleSidebar}
+          className="fixed p-2 rounded-full bg-white border border-gray-200 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer z-[40]"
+          style={{
+            left: calculateButtonPosition(),
+            top: "50%",
+            transform: "translateY(-50%)",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+            transition: "left 0.3s ease-in-out",
+          }}
+          aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15 19l-7-7 7-7"
-          />
-        </svg>
-      </button>
+          <svg
+            className={`w-5 h-5 text-gray-600 transition-transform duration-300 ${
+              expanded ? "rotate-0" : "rotate-180"
+            }`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.08))" }}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+        </button>
+      )}
 
       <motion.aside
         initial={false}
         animate={{
-          width: expanded ? 280 : 80,
-          x: isMobile && !expanded ? -280 : 0,
+          width: (() => {
+            if (!expanded) return 80;
+            return isMobile ? "min(85vw, 320px)" : "min(280px, 20vw)";
+          })(),
+          x: isMobile && !expanded ? -320 : 0,
         }}
         transition={{ duration: ANIM_DURATION, ease: "easeInOut" }}
         className={`
           fixed left-0 top-0 h-full bg-white border-r border-gray-100 shadow-xl z-50
-          flex flex-col rounded-xl transition-all duration-300 max-w-[85vw] sm:max-w-none overflow-y-auto overscroll-contain
+          flex flex-col rounded-xl transition-all duration-300 overflow-y-auto overscroll-contain
           ${isMobile ? "shadow-2xl" : ""}
           ${className}
         `}
-        style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}
+        style={{
+          boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
+          maxWidth: calculateMaxWidth(),
+        }}
       >
         {/* Header */}
         <div className="flex items-center gap-3 p-4 border-b border-gray-100 overflow-hidden rounded-t-xl bg-gradient-to-r from-white to-gray-50">
@@ -276,20 +296,24 @@ const SidebarComponent: React.FC<SidebarProps> = ({
             {(() => {
               const avatarUrl = user?.avatar ? getAvatarUrl(user.avatar) : null;
               const validUrl = validateImageUrl(avatarUrl);
+              const avatarSize = 40;
+              const avatarQuality = 95;
+
               if (validUrl) {
                 return (
                   <Image
                     src={validUrl}
                     alt={user?.username || "Profile"}
-                    width={40}
-                    height={40}
-                    unoptimized={true}
+                    width={avatarSize}
+                    height={avatarSize}
+                    quality={avatarQuality}
+                    className="rounded-full object-cover"
                     style={{
-                      width: 40,
-                      height: 40,
+                      width: avatarSize,
+                      height: avatarSize,
                       objectFit: "cover",
-                      minWidth: 40,
-                      minHeight: 40,
+                      minWidth: avatarSize,
+                      minHeight: avatarSize,
                     }}
                   />
                 );
@@ -300,15 +324,16 @@ const SidebarComponent: React.FC<SidebarProps> = ({
                     user?.username || "EK"
                   )}&background=334293&color=fff&size=64`}
                   alt={user?.username || "Profile"}
-                  width={40}
-                  height={40}
-                  unoptimized={true}
+                  width={avatarSize}
+                  height={avatarSize}
+                  quality={avatarQuality}
+                  className="rounded-full object-cover"
                   style={{
-                    width: 40,
-                    height: 40,
+                    width: avatarSize,
+                    height: avatarSize,
                     objectFit: "cover",
-                    minWidth: 40,
-                    minHeight: 40,
+                    minWidth: avatarSize,
+                    minHeight: avatarSize,
                   }}
                 />
               );
@@ -465,13 +490,21 @@ const SidebarComponent: React.FC<SidebarProps> = ({
                           transition={{ duration: 0.2, ease: "easeOut" }}
                           className="mt-1 ml-10 pr-2 flex flex-col overflow-hidden rounded-lg bg-gray-50 shadow-sm"
                         >
-                          {item.children.map((child) => {
-                            const childActive = isActiveRoute(child.href);
-                            return (
-                              <li key={child.id}>
-                                <button
-                                  onClick={() => handleChildClick(child.href)}
-                                  className={`
+                          {item.children
+                            .filter((child) => {
+                              // Filter by roles if specified
+                              if (child.roles && child.roles.length > 0) {
+                                return user && child.roles.includes(user.role);
+                              }
+                              return true;
+                            })
+                            .map((child) => {
+                              const childActive = isActiveRoute(child.href);
+                              return (
+                                <li key={child.id}>
+                                  <button
+                                    onClick={() => handleChildClick(child.href)}
+                                    className={`
                                   w-full flex items-center gap-2 text-left px-2 py-2 rounded-md text-sm cursor-pointer transition-all duration-200
                                   ${
                                     childActive
@@ -479,47 +512,47 @@ const SidebarComponent: React.FC<SidebarProps> = ({
                                       : "text-gray-600 hover:bg-gray-100"
                                   }
                                 `}
-                                  style={{
-                                    boxShadow: childActive
-                                      ? "0 2px 8px rgba(51,66,147,0.08)"
-                                      : undefined,
-                                  }}
-                                >
-                                  {child.icon && (
-                                    <span className="flex-shrink-0">
-                                      {React.isValidElement(child.icon)
-                                        ? React.cloneElement(
-                                            child.icon as React.ReactElement<
-                                              React.SVGProps<SVGElement>
-                                            >,
-                                            {
-                                              className: `${
-                                                (
-                                                  child.icon as React.ReactElement<
-                                                    React.SVGProps<SVGElement>
-                                                  >
-                                                ).props.className ?? ""
-                                              } ${
-                                                childActive
-                                                  ? "text-[#334293]"
-                                                  : "text-gray-700"
-                                              }`.trim(),
-                                            }
-                                          )
-                                        : child.icon}
-                                    </span>
-                                  )}
-                                  <SidebarLabel
-                                    visible={labelsVisibleRef.current}
-                                    animating={animatingLabelsRef.current}
-                                    itemId={child.id}
+                                    style={{
+                                      boxShadow: childActive
+                                        ? "0 2px 8px rgba(51,66,147,0.08)"
+                                        : undefined,
+                                    }}
                                   >
-                                    {child.label}
-                                  </SidebarLabel>
-                                </button>
-                              </li>
-                            );
-                          })}
+                                    {child.icon && (
+                                      <span className="flex-shrink-0">
+                                        {React.isValidElement(child.icon)
+                                          ? React.cloneElement(
+                                              child.icon as React.ReactElement<
+                                                React.SVGProps<SVGElement>
+                                              >,
+                                              {
+                                                className: `${
+                                                  (
+                                                    child.icon as React.ReactElement<
+                                                      React.SVGProps<SVGElement>
+                                                    >
+                                                  ).props.className ?? ""
+                                                } ${
+                                                  childActive
+                                                    ? "text-[#334293]"
+                                                    : "text-gray-700"
+                                                }`.trim(),
+                                              }
+                                            )
+                                          : child.icon}
+                                      </span>
+                                    )}
+                                    <SidebarLabel
+                                      visible={labelsVisibleRef.current}
+                                      animating={animatingLabelsRef.current}
+                                      itemId={child.id}
+                                    >
+                                      {child.label}
+                                    </SidebarLabel>
+                                  </button>
+                                </li>
+                              );
+                            })}
                         </motion.ul>
                       )}
                   </AnimatePresence>

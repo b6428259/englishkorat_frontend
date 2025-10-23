@@ -50,6 +50,15 @@ export interface ApproveCancellationResponse {
   next_step?: string;
 }
 
+export interface UndoCancellationResponse {
+  success: boolean;
+  message: string;
+  session: {
+    id: number;
+    status: SessionStatus;
+  };
+}
+
 export interface BulkApproveCancellationRequest {
   session_ids: number[];
 }
@@ -86,6 +95,10 @@ export interface MakeupNeededSession {
   end_time: string;
   cancelling_reason: string;
   cancelled_at: string;
+  // Makeup quota fields (Schedule-level, added 2025-01-23)
+  make_up_quota?: number; // Total makeup quota
+  make_up_remaining?: number; // Remaining makeup quota
+  make_up_used?: number; // Used makeup quota
   group: {
     id: number;
     group_name: string;
@@ -276,4 +289,24 @@ export interface UpdateMakeupQuotaResponse {
   old_quota: number;
   new_quota: number;
   make_up_remaining: number;
+}
+
+// Schedule-Level Makeup Quota (New API - 2025-01-23)
+export interface UpdateScheduleMakeupQuotaRequest {
+  new_quota: number; // Required: จำนวนสิทธิ์ใหม่ (0-20)
+  reason?: string; // Optional: เหตุผลในการเปลี่ยน (สำหรับ audit log)
+}
+
+export interface UpdateScheduleMakeupQuotaResponse {
+  success: boolean;
+  message: string;
+  schedule: {
+    id: number;
+    old_quota: number;
+    new_quota: number;
+    old_remaining: number;
+    new_remaining: number;
+    make_up_used: number;
+    quota_difference: number;
+  };
 }

@@ -18,6 +18,7 @@ import {
   HiOutlineSquares2X2,
   HiOutlineUser,
 } from "react-icons/hi2";
+import { MdBusiness } from "react-icons/md";
 import { PiCashRegister } from "react-icons/pi";
 import { SidebarItem } from "./types";
 
@@ -26,6 +27,11 @@ const iconProps = {
   size: 20,
   className: "", // สีจะกำหนดใน Sidebar.tsx ตาม active
 };
+
+// Business icon for branch settings
+export const BranchIcon = (props: React.SVGProps<SVGElement>) => (
+  <MdBusiness {...iconProps} {...props} />
+);
 
 export const LogoutIcon = (props: React.SVGProps<SVGElement>) => (
   <HiOutlineDocumentText {...iconProps} {...props} />
@@ -236,6 +242,13 @@ export const getSidebarItems = (t: Translations): SidebarItem[] => [
         label: t.settingsProfile,
         href: "/settings/profile",
         icon: <HiOutlineUser {...iconProps} />,
+      },
+      {
+        id: "settings-branches",
+        label: "จัดการสาขา",
+        href: "/settings/branches",
+        icon: <MdBusiness {...iconProps} />,
+        roles: ["admin", "owner"], // เฉพาะ admin และ owner
       },
       {
         id: "settings-system",

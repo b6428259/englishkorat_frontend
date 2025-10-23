@@ -194,7 +194,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Update profile function
   const updateProfile = async (data: UpdateProfileRequest): Promise<void> => {
     if (!user) throw new Error('ไม่พบข้อมูลผู้ใช้');
-    
+
     setIsLoading(true);
     setError(null);
     try {
@@ -221,8 +221,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error(response.message);
       }
     } catch (err: unknown) {
-      const errorMessage = (isApiError(err) && err.response?.data?.message) || 
-        (err instanceof Error ? err.message : '') || 
+      const errorMessage = (isApiError(err) && err.response?.data?.message) ||
+        (err instanceof Error ? err.message : '') ||
         'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน';
       setError(errorMessage);
       throw err;

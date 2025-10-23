@@ -18,6 +18,7 @@ interface ScheduleTypeSelectionModalProps {
   onClose: () => void;
   onSelectClass: () => void;
   onSelectEvents: () => void;
+  onSelectMakeup?: () => void;
 }
 
 export default function ScheduleTypeSelectionModal({
@@ -25,12 +26,13 @@ export default function ScheduleTypeSelectionModal({
   onClose,
   onSelectClass,
   onSelectEvents,
-}: ScheduleTypeSelectionModalProps) {
+  onSelectMakeup,
+}: Readonly<ScheduleTypeSelectionModalProps>) {
   const { language } = useLanguage();
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl w-[95vw] sm:w-full bg-white animate-in fade-in-0 zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl w-[95vw] sm:w-full bg-white animate-in fade-in-0 zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -54,7 +56,7 @@ export default function ScheduleTypeSelectionModal({
           </p>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 p-4 sm:p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 p-4 sm:p-6">
           {/* Class Option */}
           <button
             onClick={onSelectClass}
@@ -118,6 +120,49 @@ export default function ScheduleTypeSelectionModal({
               </div>
             </div>
           </button>
+
+          {/* Makeup Session Option */}
+          {onSelectMakeup && (
+            <button
+              onClick={onSelectMakeup}
+              className="group relative overflow-hidden rounded-xl sm:rounded-2xl border-2 border-gray-200 bg-white p-5 sm:p-8 transition-all duration-200 hover:border-orange-500 hover:shadow-2xl hover:scale-105 active:scale-100 animate-in fade-in-0 slide-in-from-bottom-8 animation-duration-500 animation-delay-300"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-orange-50 to-amber-50 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+              <div className="relative z-10 flex flex-col items-center text-center space-y-3 sm:space-y-4">
+                <div className="p-3 sm:p-4 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl sm:rounded-2xl transition-transform duration-300 group-hover:scale-110">
+                  <svg
+                    className="h-10 w-10 sm:h-12 sm:w-12 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900">
+                  {language === "th" ? "คาบชดเชย" : "Makeup Session"}
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
+                  {language === "th"
+                    ? "สร้างคาบเรียนชดเชยสำหรับคาบที่ยกเลิกหรือเลื่อน"
+                    : "Create makeup session for cancelled or rescheduled classes"}
+                </p>
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center">
+                  <span className="px-2 sm:px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-[10px] sm:text-xs font-medium animate-in fade-in-0 zoom-in-90 duration-300 delay-[500ms]">
+                    {language === "th" ? "ชดเชย" : "Makeup"}
+                  </span>
+                  <span className="px-2 sm:px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-[10px] sm:text-xs font-medium animate-in fade-in-0 zoom-in-90 duration-300 delay-[600ms]">
+                    {language === "th" ? "โควต้า" : "Quota"}
+                  </span>
+                </div>
+              </div>
+            </button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

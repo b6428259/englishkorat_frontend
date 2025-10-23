@@ -121,6 +121,11 @@ export interface Schedule {
   session_start_time?: string;
   custom_recurring_days?: number[]; // 1=Monday, 2=Tuesday, etc.
 
+  // Makeup Quota (Schedule-level) - Added 2025-01-23
+  make_up_quota?: number; // Total makeup quota for this schedule (default: 2)
+  make_up_remaining?: number; // Remaining makeup quota
+  make_up_used?: number; // Number of makeup sessions already used
+
   // Relations
   group?: Group;
   participants?: ScheduleParticipant[];
@@ -273,6 +278,22 @@ export interface UpdateSessionStatusRequest {
     | "rescheduled"
     | "no-show";
   notes?: string;
+}
+
+// Add Session Request (from SESSION_MANAGEMENT_FRONTEND.md)
+export interface AddSessionRequest {
+  date: string; // Required: "2025-10-23" (YYYY-MM-DD)
+  start_time: string; // Required: "14:00" (HH:MM)
+  end_time?: string; // Optional: "16:00" (HH:MM)
+  hours?: number; // Optional: จำนวนชั่วโมง (ถ้าไม่ใส่ end_time)
+  assigned_teacher_id?: number; // Optional: ID ของครูที่สอน
+  room_id?: number; // Optional: ID ของห้องเรียน
+  notes?: string; // Optional: หมายเหตุ
+}
+
+export interface AddSessionResponse {
+  message: string;
+  session: Session;
 }
 
 export interface CreateMakeupSessionRequest {

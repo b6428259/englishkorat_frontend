@@ -3,6 +3,8 @@
 import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import SidebarLayout from "@/components/common/SidebarLayout";
+import CreateMakeupModal from "@/components/schedule/CreateMakeupModal";
+import MakeupQuotaBadge from "@/components/schedule/MakeupQuotaBadge";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -34,6 +36,7 @@ export default function MakeupNeededPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [showReasonModal, setShowReasonModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedSession, setSelectedSession] =
     useState<MakeupNeededSession | null>(null);
 
@@ -367,20 +370,55 @@ export default function MakeupNeededPage() {
                         {t.viewReason}
                       </Button>
                     </div>
+
+                    {/* Makeup Quota Display */}
+                    <div className="border-t border-gray-200 pt-4">
+                      <MakeupQuotaBadge
+                        schedule={session}
+                        variant="default"
+                        showWarning={true}
+                      />
+                    </div>
                   </div>
 
                   {/* Card Footer */}
                   <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
-                    <Link href="/schedule">
-                      <Button
-                        variant="monthViewClicked"
-                        className="w-full py-2.5 text-sm font-semibold shadow-sm hover:shadow-md transition-all"
-                      >
-                        <PlusCircle className="h-4 w-4 mr-2" />
-                        {t.createMakeup}
-                        <ChevronRight className="h-4 w-4 ml-auto" />
-                      </Button>
-                    </Link>
+                    {(() => {
+                      const hasQuota = (session.make_up_remaining ?? 0) > 0;
+
+                      return hasQuota ? (
+                        <Button
+                          variant="monthViewClicked"
+                          onClick={() => {
+                            setSelectedSession(session);
+                            setShowCreateModal(true);
+                          }}
+                          className="w-full py-2.5 text-sm font-semibold shadow-sm hover:shadow-md transition-all"
+                        >
+                          <PlusCircle className="h-4 w-4 mr-2" />
+                          {t.createMakeup}
+                          <ChevronRight className="h-4 w-4 ml-auto" />
+                        </Button>
+                      ) : (
+                        <div className="space-y-2">
+                          <Button
+                            variant="cancel"
+                            disabled
+                            className="w-full py-2.5 text-sm font-semibold opacity-60 cursor-not-allowed"
+                          >
+                            <AlertCircle className="h-4 w-4 mr-2" />
+                            {language === "th"
+                              ? "ไม่สามารถสร้าง Makeup ได้"
+                              : "Cannot Create Makeup"}
+                          </Button>
+                          <p className="text-xs text-center text-red-600">
+                            {language === "th"
+                              ? `ใช้โควต้าหมดแล้ว (${session.make_up_used}/${session.make_up_quota})`
+                              : `Quota exhausted (${session.make_up_used}/${session.make_up_quota})`}
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </motion.div>
               ))}
@@ -513,6 +551,34 @@ export default function MakeupNeededPage() {
             </div>
           </motion.div>
         </div>
+      )}
+
+      {/* Create Makeup Modal */}
+      {showCreateModal && selectedSession && (
+        <CreateMakeupModal
+          isOpen={showCreateModal}
+          onClose={() => {
+            setShowCreateModal(false);
+            setSelectedSession(null);
+          }}
+          sessionId={selectedSession.session_id}
+          sessionDate={formatDate(selectedSession.session_date)}
+          sessionTime={`${selectedSession.start_time} - ${selectedSession.end_time}`}
+          scheduleName={`${selectedSession.group.group_name} - ${selectedSession.course.course_name}`}
+          makeupQuota={selectedSession.make_up_quota}
+          makeupRemaining={selectedSession.make_up_remaining ?? 0}
+          makeupUsed={selectedSession.make_up_used}
+          onSuccess={() => {
+            // Refresh sessions list
+            fetchMakeupSessions();
+            toast.success(
+              language === "th"
+                ? "สร้าง Makeup Session สำเร็จ!"
+                : "Makeup session created successfully!",
+              { duration: 4000 }
+            );
+          }}
+        />
       )}
     </SidebarLayout>
   );

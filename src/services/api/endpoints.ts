@@ -6,7 +6,7 @@ export const API_ENDPOINTS = {
     REGISTER: "/auth/register",
     REFRESH: "/auth/refresh",
     VERIFY: "/auth/verify",
-    PROFILE: "/auth/profile",
+    PROFILE: "/profile",
     CHANGE_PASSWORD: "/auth/change-password",
   },
 

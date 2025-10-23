@@ -3,6 +3,7 @@
 import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import CancelSessionModal from "@/components/schedule/CancelSessionModal";
+import MakeupQuotaBadge from "@/components/schedule/MakeupQuotaBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -24,9 +25,12 @@ import {
   teacherConfirmSession,
   teacherDeclineSession,
   TeacherOption,
+  undoSessionCancellation,
+  updateScheduleMakeupQuota,
   updateSession,
   UpdateSessionRequest,
 } from "@/services/api/schedules";
+import { UpdateScheduleMakeupQuotaRequest } from "@/types/session-cancellation.types";
 import {
   AlertCircle,
   Award,
@@ -39,6 +43,7 @@ import {
   FileText,
   MapPin,
   MessageSquare,
+  Plus,
   RefreshCw,
   Save,
   Smile,
@@ -55,6 +60,12 @@ interface SessionDetailModalProps {
   onClose: () => void;
   sessionId: number;
   onUpdate?: () => void | Promise<void>;
+  onAddSessionBefore?: (session: SessionDetailResponse) => void;
+  onAddSessionAfter?: (session: SessionDetailResponse) => void;
+  onAddSessionCustom?: (
+    scheduleId: number,
+    sessionDetail: SessionDetailResponse
+  ) => void;
 }
 
 export default function SessionDetailModal({
@@ -62,9 +73,12 @@ export default function SessionDetailModal({
   onClose,
   sessionId,
   onUpdate,
+  onAddSessionBefore,
+  onAddSessionAfter,
+  onAddSessionCustom,
 }: SessionDetailModalProps) {
   const { language } = useLanguage();
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
 
   const [sessionDetail, setSessionDetail] =
     useState<SessionDetailResponse | null>(null);
@@ -91,11 +105,17 @@ export default function SessionDetailModal({
 
   // Cancel session state
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [isUndoingCancellation, setIsUndoingCancellation] = useState(false);
+
+  // Edit makeup quota state (Admin only)
+  const [editQuotaValue, setEditQuotaValue] = useState<number>(2);
+  const [editQuotaReason, setEditQuotaReason] = useState("");
+  const [isUpdatingQuota, setIsUpdatingQuota] = useState(false);
 
   // Check if user is admin or owner
   const canEdit = hasRole(["admin", "owner"]);
 
-  // Check if session can be cancelled (must be at least 24 hours before session)
+  // Check if session can be cancelled
   const canCancelSession = () => {
     if (!sessionDetail) return false;
 
@@ -105,48 +125,46 @@ export default function SessionDetailModal({
     if (
       session.status === "cancelled" ||
       session.status === "completed" ||
-      session.status === "pending_cancellation"
+      session.status === "cancellation_pending"
     ) {
       return false;
     }
 
-    // Check if user has permission (teacher, admin, or owner)
-    if (!hasRole(["teacher", "admin", "owner"])) {
-      return false;
+    // Admin/Owner can cancel any session anytime
+    if (hasRole(["admin", "owner"])) {
+      return true;
     }
 
-    // Check 24-hour deadline
-    try {
-      // Extract date part from session_date (might be in format YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss)
-      const datePart = session.session_date.split("T")[0];
-
-      // Extract time part from start_time (might be in format HH:mm:ss or YYYY-MM-DDTHH:mm:ss)
-      let timePart = session.start_time;
-      if (timePart.includes("T")) {
-        timePart = timePart.split("T")[1];
+    // Teacher can only cancel their own sessions
+    if (hasRole(["teacher"])) {
+      // Must be the assigned teacher
+      const isAssignedTeacher = session.assigned_teacher_id === user?.id;
+      if (!isAssignedTeacher) {
+        return false;
       }
-      // Get only HH:mm
-      timePart = timePart.substring(0, 5);
 
-      const sessionDateTime = new Date(`${datePart}T${timePart}:00`);
-      const now = new Date();
-      const hoursUntilSession =
-        (sessionDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+      // Must be at least 24 hours before session
+      try {
+        const datePart = session.session_date.split("T")[0];
+        let timePart = session.start_time;
+        if (timePart.includes("T")) {
+          timePart = timePart.split("T")[1];
+        }
+        timePart = timePart.substring(0, 5);
 
-      console.log("Cancel session check:", {
-        datePart,
-        timePart,
-        sessionDateTime: sessionDateTime.toISOString(),
-        now: now.toISOString(),
-        hoursUntilSession,
-        canCancel: hoursUntilSession >= 24,
-      });
+        const sessionDateTime = new Date(`${datePart}T${timePart}:00`);
+        const now = new Date();
+        const hoursUntilSession =
+          (sessionDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-      return hoursUntilSession >= 24;
-    } catch (error) {
-      console.error("Error checking cancel session deadline:", error);
-      return false;
+        return hoursUntilSession >= 24;
+      } catch (error) {
+        console.error("Error checking cancel session deadline:", error);
+        return false;
+      }
     }
+
+    return false;
   };
 
   const handleCancelSessionSuccess = () => {
@@ -187,6 +205,83 @@ export default function SessionDetailModal({
     }
   };
 
+  // Handle update makeup quota (Admin only)
+  const handleUpdateMakeupQuota = async () => {
+    if (!sessionDetail?.session?.schedule_id) {
+      toast.error(
+        language === "th"
+          ? "ไม่พบข้อมูล Schedule"
+          : "Schedule information not found"
+      );
+      return;
+    }
+
+    // Validate quota value
+    if (editQuotaValue < 0 || editQuotaValue > 20) {
+      toast.error(
+        language === "th"
+          ? "โควต้าต้องอยู่ระหว่าง 0-20"
+          : "Quota must be between 0-20"
+      );
+      return;
+    }
+
+    const currentQuota = sessionDetail.session.schedule?.make_up_quota ?? 2;
+    if (editQuotaValue === currentQuota) {
+      toast.error(
+        language === "th"
+          ? "โควต้าใหม่ต้องไม่เท่ากับโควต้าเดิม"
+          : "New quota must be different from current quota"
+      );
+      return;
+    }
+
+    try {
+      setIsUpdatingQuota(true);
+
+      const request: UpdateScheduleMakeupQuotaRequest = {
+        new_quota: editQuotaValue,
+        reason: editQuotaReason || undefined,
+      };
+
+      const response = await updateScheduleMakeupQuota(
+        sessionDetail.session.schedule_id,
+        request
+      );
+
+      if (response.success) {
+        toast.success(
+          language === "th"
+            ? `อัปเดตโควต้าชดเชยเรียบร้อย (${response.schedule.old_quota} → ${response.schedule.new_quota})`
+            : `Makeup quota updated successfully (${response.schedule.old_quota} → ${response.schedule.new_quota})`,
+          { duration: 4000 }
+        );
+
+        // Clear reason field
+        setEditQuotaReason("");
+
+        // Refresh session detail to get updated quota
+        await fetchSessionDetail();
+
+        // Notify parent to refresh if needed
+        if (onUpdate) {
+          onUpdate();
+        }
+      }
+    } catch (error: unknown) {
+      console.error("Failed to update makeup quota:", error);
+      const errorMessage =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message ||
+        (language === "th"
+          ? "ไม่สามารถอัปเดตโควต้าได้"
+          : "Failed to update quota");
+      toast.error(errorMessage, { duration: 5000 });
+    } finally {
+      setIsUpdatingQuota(false);
+    }
+  };
+
   useEffect(() => {
     if (isOpen && sessionId) {
       fetchSessionDetail();
@@ -194,6 +289,13 @@ export default function SessionDetailModal({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, sessionId]);
+
+  // Initialize quota value when session detail is loaded
+  useEffect(() => {
+    if (sessionDetail?.session?.schedule?.make_up_quota !== undefined) {
+      setEditQuotaValue(sessionDetail.session.schedule.make_up_quota);
+    }
+  }, [sessionDetail]);
 
   // Close emoji picker when clicking outside
   useEffect(() => {
@@ -398,6 +500,49 @@ export default function SessionDetailModal({
     }
   };
 
+  const handleUndoCancellation = async () => {
+    if (!sessionId) return;
+
+    const confirmMessage =
+      language === "th"
+        ? "คุณต้องการยกเลิกคำขอยกเลิกคาบเรียนนี้ใช่หรือไม่?"
+        : "Are you sure you want to withdraw the cancellation request?";
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      setIsUndoingCancellation(true);
+
+      await undoSessionCancellation(sessionId);
+
+      toast.success(
+        language === "th"
+          ? "ยกเลิกคำขอยกเลิกสำเร็จ คาบเรียนกลับมาเป็นปกติแล้ว"
+          : "Cancellation request withdrawn. Session is now scheduled.",
+        { position: "top-center", icon: "✅" }
+      );
+
+      await fetchSessionDetail();
+
+      // Refresh the schedule table in the parent component
+      if (onUpdate) {
+        await onUpdate();
+      }
+    } catch (error) {
+      console.error("Failed to undo cancellation:", error);
+      toast.error(
+        language === "th"
+          ? "ไม่สามารถยกเลิกคำขอได้"
+          : "Failed to withdraw cancellation request",
+        { position: "top-center" }
+      );
+    } finally {
+      setIsUndoingCancellation(false);
+    }
+  };
+
   const formatDateTime = (dateTime: string) => {
     const date = new Date(dateTime);
     return {
@@ -542,40 +687,47 @@ export default function SessionDetailModal({
                   <LoadingSpinner size="md" />
                 </div>
               ) : sessionDetail ? (
-                <div className="space-y-6 overflow-y-auto max-h-[65vh] p-2">
+                <div className="space-y-4 md:space-y-6 overflow-y-auto max-h-[65vh] p-1 md:p-2">
                   {/* Session Status & Basic Info */}
-                  <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-xl border border-indigo-200">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-xl font-semibold text-gray-900">
-                        {sessionDetail.session.schedule_name}
-                      </h3>
-                      <div className="flex items-center gap-3">
-                        {!isEditMode &&
-                          getStatusBadge(sessionDetail.session.status)}
+                  <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 md:p-6 rounded-xl border border-indigo-200 shadow-sm">
+                    {/* Header with Title and Status */}
+                    <div className="flex flex-col gap-3 mb-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="text-base md:text-xl font-semibold text-gray-900 break-words line-clamp-2 flex-1">
+                          {sessionDetail.session.schedule_name}
+                        </h3>
+                        {!isEditMode && (
+                          <div className="flex-shrink-0">
+                            {getStatusBadge(sessionDetail.session.status)}
+                          </div>
+                        )}
+                      </div>
 
+                      {/* Action Buttons */}
+                      <div className="flex flex-wrap items-center gap-2">
                         {/* Edit Mode Controls */}
                         {isEditMode ? (
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                             <Button
                               onClick={handleCancelEdit}
                               disabled={isSaving}
                               variant="cancel"
-                              className="px-4 py-2 text-sm"
+                              className="px-3 md:px-4 py-2 text-xs md:text-sm flex-1 sm:flex-none min-w-[100px]"
                             >
-                              <X className="h-4 w-4 mr-1" />
+                              <X className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5" />
                               {language === "th" ? "ยกเลิก" : "Cancel"}
                             </Button>
                             <Button
                               onClick={handleSaveSession}
                               disabled={isSaving}
                               variant="monthViewClicked"
-                              className="px-4 py-2 text-sm"
+                              className="px-3 md:px-4 py-2 text-xs md:text-sm flex-1 sm:flex-none min-w-[100px]"
                             >
                               {isSaving ? (
                                 <LoadingSpinner size="sm" />
                               ) : (
                                 <>
-                                  <Save className="h-4 w-4 mr-1" />
+                                  <Save className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5" />
                                   {language === "th" ? "บันทึก" : "Save"}
                                 </>
                               )}
@@ -583,48 +735,82 @@ export default function SessionDetailModal({
                           </div>
                         ) : (
                           <>
+                            {/* Undo Cancellation Button - แสดงเมื่อสถานะเป็น cancellation_pending */}
+                            {sessionDetail.session.status ===
+                              "cancellation_pending" && (
+                              <Button
+                                onClick={handleUndoCancellation}
+                                disabled={isUndoingCancellation}
+                                variant="cancel"
+                                className="px-3 md:px-5 py-2 text-xs md:text-sm font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-1.5 min-w-[120px] md:min-w-[160px]"
+                              >
+                                {isUndoingCancellation ? (
+                                  <LoadingSpinner size="sm" />
+                                ) : (
+                                  <>
+                                    <RefreshCw className="h-3.5 w-3.5 md:h-4 md:w-4 flex-shrink-0" />
+                                    <span className="hidden md:inline truncate">
+                                      {language === "th"
+                                        ? "ถอนคำขอยกเลิก"
+                                        : "Withdraw Request"}
+                                    </span>
+                                    <span className="md:hidden truncate">
+                                      {language === "th"
+                                        ? "ถอนคำขอ"
+                                        : "Withdraw"}
+                                    </span>
+                                  </>
+                                )}
+                              </Button>
+                            )}
+
                             {/* Cancel Session Button */}
                             {canCancelSession() && (
                               <Button
                                 onClick={() => setShowCancelModal(true)}
                                 variant="cancel"
-                                className="px-6 py-2.5 text-sm font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2"
+                                className="px-3 md:px-5 py-2 text-xs md:text-sm font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-1.5 min-w-[120px] md:min-w-[160px]"
                               >
-                                <Ban className="h-4 w-4" />
-                                {language === "th"
-                                  ? "ขอยกเลิกคาบเรียน"
-                                  : "Cancel Session"}
+                                <Ban className="h-3.5 w-3.5 md:h-4 md:w-4 flex-shrink-0" />
+                                <span className="hidden md:inline truncate">
+                                  {language === "th"
+                                    ? "ขอยกเลิกคาบเรียน"
+                                    : "Request Cancel"}
+                                </span>
+                                <span className="md:hidden truncate">
+                                  {language === "th" ? "ยกเลิก" : "Cancel"}
+                                </span>
                               </Button>
                             )}
 
-                            {/* Admin Edit Button - ปรับปรุงให้สวยขึ้น */}
+                            {/* Admin Edit Button */}
                             {canEdit && (
                               <Button
                                 onClick={handleEnterEditMode}
                                 variant="monthViewClicked"
-                                className="px-6 py-2.5 text-sm font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2"
+                                className="px-3 md:px-5 py-2 text-xs md:text-sm font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-1.5 min-w-[100px] md:min-w-[120px]"
                               >
-                                <Edit2 className="h-4 w-4" />
-                                {language === "th"
-                                  ? "แก้ไขเซสชัน"
-                                  : "Edit Session"}
+                                <Edit2 className="h-3.5 w-3.5 md:h-4 md:w-4 flex-shrink-0" />
+                                <span className="truncate">
+                                  {language === "th" ? "แก้ไข" : "Edit"}
+                                </span>
                               </Button>
                             )}
 
                             {/* Teacher Confirm/Decline */}
                             {sessionDetail.session.status === "pending" && (
-                              <div className="flex gap-2">
+                              <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                                 <Button
                                   onClick={handleDeclineSession}
                                   disabled={isDeclining || isConfirming}
                                   variant="cancel"
-                                  className="px-4 py-2 text-sm"
+                                  className="px-3 md:px-4 py-2 text-xs md:text-sm flex-1 sm:flex-none min-w-[100px]"
                                 >
                                   {isDeclining ? (
                                     <LoadingSpinner size="sm" />
                                   ) : (
                                     <>
-                                      <Ban className="h-4 w-4 mr-1" />
+                                      <Ban className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5" />
                                       {language === "th" ? "ปฏิเสธ" : "Decline"}
                                     </>
                                   )}
@@ -633,13 +819,13 @@ export default function SessionDetailModal({
                                   onClick={handleConfirmSession}
                                   disabled={isConfirming || isDeclining}
                                   variant="monthViewClicked"
-                                  className="px-4 py-2 text-sm"
+                                  className="px-3 md:px-4 py-2 text-xs md:text-sm flex-1 sm:flex-none min-w-[100px]"
                                 >
                                   {isConfirming ? (
                                     <LoadingSpinner size="sm" />
                                   ) : (
                                     <>
-                                      <CheckCircle className="h-4 w-4 mr-1" />
+                                      <CheckCircle className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5" />
                                       {language === "th" ? "ยืนยัน" : "Confirm"}
                                     </>
                                   )}
@@ -651,13 +837,52 @@ export default function SessionDetailModal({
                       </div>
                     </div>
 
+                    {/* Cancellation Pending Alert */}
+                    {sessionDetail.session.status === "cancellation_pending" &&
+                      sessionDetail.session.cancelling_reason && (
+                        <div className="mt-4 bg-gradient-to-r from-orange-50 to-amber-50 border-l-4 border-orange-400 p-3 md:p-4 rounded-lg shadow-sm">
+                          <div className="flex items-start gap-2 md:gap-3">
+                            <div className="flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full bg-orange-100 flex items-center justify-center">
+                              <AlertCircle className="h-4 w-4 md:h-5 md:w-5 text-orange-600" />
+                            </div>
+                            <div className="flex-1 min-w-0 space-y-1.5 md:space-y-2">
+                              <h4 className="text-xs md:text-sm font-semibold text-orange-900">
+                                {language === "th"
+                                  ? "📝 ส่งคำขอยกเลิกคาบเรียนแล้ว"
+                                  : "📝 Cancellation Request Submitted"}
+                              </h4>
+                              <div className="bg-white/60 rounded-md p-2 md:p-2.5">
+                                <p className="text-xs md:text-sm text-orange-800 break-words">
+                                  <span className="font-semibold">
+                                    {language === "th"
+                                      ? "เหตุผล: "
+                                      : "Reason: "}
+                                  </span>
+                                  <span className="text-gray-700">
+                                    {sessionDetail.session.cancelling_reason}
+                                  </span>
+                                </p>
+                              </div>
+                              <p className="text-[10px] md:text-xs text-orange-600 flex items-center gap-1.5">
+                                <Clock className="h-3 w-3" />
+                                <span>
+                                  {language === "th"
+                                    ? "รอการอนุมัติจากผู้ดูแลระบบ"
+                                    : "Waiting for admin approval"}
+                                </span>
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                     {isEditMode ? (
                       /* Edit Mode Form */
                       <div className="space-y-4 text-gray-700">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                           {/* Date */}
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1.5 md:mb-2">
                               {language === "th" ? "วันที่" : "Date"}
                             </label>
                             <input
@@ -669,13 +894,13 @@ export default function SessionDetailModal({
                                   session_date: e.target.value,
                                 })
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                              className="w-full px-3 py-2 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                             />
                           </div>
 
                           {/* Start Time */}
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1.5 md:mb-2">
                               {language === "th" ? "เวลาเริ่ม" : "Start Time"}
                             </label>
                             <input
@@ -687,13 +912,13 @@ export default function SessionDetailModal({
                                   start_time: e.target.value,
                                 })
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                              className="w-full px-3 py-2 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                             />
                           </div>
 
                           {/* End Time */}
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1.5 md:mb-2">
                               {language === "th" ? "เวลาสิ้นสุด" : "End Time"}
                             </label>
                             <input
@@ -705,13 +930,13 @@ export default function SessionDetailModal({
                                   end_time: e.target.value,
                                 })
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                              className="w-full px-3 py-2 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                             />
                           </div>
 
                           {/* Status */}
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1.5 md:mb-2">
                               {language === "th" ? "สถานะ" : "Status"}
                             </label>
                             <select
@@ -723,7 +948,7 @@ export default function SessionDetailModal({
                                     .value as UpdateSessionRequest["status"],
                                 })
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                              className="w-full px-3 py-2 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                             >
                               <option value="scheduled">
                                 {language === "th"
@@ -755,7 +980,7 @@ export default function SessionDetailModal({
 
                           {/* Teacher */}
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1.5 md:mb-2">
                               {language === "th" ? "ครู" : "Teacher"}
                             </label>
                             {isLoadingOptions ? (
@@ -769,10 +994,11 @@ export default function SessionDetailModal({
                                   setEditForm({
                                     ...editForm,
                                     assigned_teacher_id:
-                                      parseInt(e.target.value) || undefined,
+                                      Number.parseInt(e.target.value) ||
+                                      undefined,
                                   })
                                 }
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                className="w-full px-3 py-2 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                               >
                                 <option value="">
                                   {language === "th"
@@ -790,7 +1016,7 @@ export default function SessionDetailModal({
 
                           {/* Room */}
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1.5 md:mb-2">
                               {language === "th" ? "ห้องเรียน" : "Room"}
                             </label>
                             {isLoadingOptions ? (
@@ -804,10 +1030,11 @@ export default function SessionDetailModal({
                                   setEditForm({
                                     ...editForm,
                                     room_id:
-                                      parseInt(e.target.value) || undefined,
+                                      Number.parseInt(e.target.value) ||
+                                      undefined,
                                   })
                                 }
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                className="w-full px-3 py-2 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                               >
                                 <option value="">
                                   {language === "th"
@@ -826,7 +1053,7 @@ export default function SessionDetailModal({
 
                         {/* Notes */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1.5 md:mb-2">
                             {language === "th" ? "หมายเหตุ" : "Notes"}
                           </label>
                           <textarea
@@ -838,7 +1065,7 @@ export default function SessionDetailModal({
                               })
                             }
                             rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 resize-none"
+                            className="w-full px-3 py-2 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none transition-colors"
                             placeholder={
                               language === "th"
                                 ? "เพิ่มหมายเหตุ..."
@@ -850,7 +1077,7 @@ export default function SessionDetailModal({
                         {/* Cancelling Reason (if status is cancelled) */}
                         {editForm.status === "cancelled" && (
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1.5 md:mb-2">
                               {language === "th"
                                 ? "เหตุผลการยกเลิก"
                                 : "Cancelling Reason"}
@@ -864,7 +1091,7 @@ export default function SessionDetailModal({
                                 })
                               }
                               rows={2}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 resize-none"
+                              className="w-full px-3 py-2 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none transition-colors"
                               placeholder={
                                 language === "th"
                                   ? "ระบุเหตุผล..."
@@ -876,14 +1103,16 @@ export default function SessionDetailModal({
                       </div>
                     ) : (
                       /* View Mode */
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
-                          <Calendar className="h-5 w-5 text-indigo-600" />
-                          <div>
-                            <p className="text-sm text-black">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                        <div className="flex items-center gap-2.5 md:gap-3 p-3 md:p-3.5 bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+                          <div className="flex-shrink-0 w-9 h-9 md:w-10 md:h-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                            <Calendar className="h-4 w-4 md:h-5 md:w-5 text-indigo-600" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] md:text-xs text-gray-500 font-medium mb-0.5">
                               {language === "th" ? "วันที่" : "Date"}
                             </p>
-                            <p className="font-medium text-gray-700">
+                            <p className="text-xs md:text-sm font-semibold text-gray-900 truncate">
                               {
                                 formatDateTime(
                                   sessionDetail.session.session_date
@@ -893,13 +1122,15 @@ export default function SessionDetailModal({
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
-                          <Clock className="h-5 w-5 text-indigo-600" />
-                          <div>
-                            <p className="text-sm text-black">
+                        <div className="flex items-center gap-2.5 md:gap-3 p-3 md:p-3.5 bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+                          <div className="flex-shrink-0 w-9 h-9 md:w-10 md:h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <Clock className="h-4 w-4 md:h-5 md:w-5 text-blue-600" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] md:text-xs text-gray-500 font-medium mb-0.5">
                               {language === "th" ? "เวลา" : "Time"}
                             </p>
-                            <p className="font-medium text-gray-700">
+                            <p className="text-xs md:text-sm font-semibold text-gray-900 truncate">
                               {
                                 formatDateTime(sessionDetail.session.start_time)
                                   .time
@@ -913,13 +1144,20 @@ export default function SessionDetailModal({
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
-                          <MapPin className="h-5 w-5 text-indigo-600" />
-                          <div>
-                            <p className="text-sm text-black">
+                        <div className="flex items-center gap-2.5 md:gap-3 p-3 md:p-3.5 bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+                          <div className="flex-shrink-0 w-9 h-9 md:w-10 md:h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                            <MapPin className="h-4 w-4 md:h-5 md:w-5 text-purple-600" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] md:text-xs text-gray-500 font-medium mb-0.5">
                               {language === "th" ? "ห้องเรียน" : "Room"}
                             </p>
-                            <p className="font-medium text-gray-700">
+                            <p
+                              className="text-xs md:text-sm font-semibold text-gray-900 truncate"
+                              title={
+                                sessionDetail.session.room?.room_name || ""
+                              }
+                            >
                               {sessionDetail.session.room?.room_name ||
                                 (sessionDetail.session.room_id
                                   ? `Room ID: ${sessionDetail.session.room_id}`
@@ -930,13 +1168,15 @@ export default function SessionDetailModal({
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
-                          <Users className="h-5 w-5 text-indigo-600" />
-                          <div>
-                            <p className="text-sm text-black">
+                        <div className="flex items-center gap-2.5 md:gap-3 p-3 md:p-3.5 bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+                          <div className="flex-shrink-0 w-9 h-9 md:w-10 md:h-10 rounded-full bg-green-100 flex items-center justify-center">
+                            <Users className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] md:text-xs text-gray-500 font-medium mb-0.5">
                               {language === "th" ? "ครั้งที่" : "Session"}
                             </p>
-                            <p className="font-medium text-gray-700">
+                            <p className="text-xs md:text-sm font-semibold text-gray-900">
                               {sessionDetail.session.session_number} /{" "}
                               {language === "th"
                                 ? `สัปดาห์ ${sessionDetail.session.week_number}`
@@ -949,26 +1189,30 @@ export default function SessionDetailModal({
                   </div>
 
                   {/* Additional Session Information */}
-                  <div className="bg-white p-6 rounded-xl border border-gray-300 shadow-sm">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-indigo-600" />
-                      {language === "th"
-                        ? "ข้อมูลเพิ่มเติม"
-                        : "Additional Information"}
+                  <div className="bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <h4 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4 flex items-center gap-2">
+                      <div className="flex-shrink-0 w-7 h-7 md:w-8 md:h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
+                        <FileText className="h-3.5 w-3.5 md:h-4 md:w-4 text-indigo-600" />
+                      </div>
+                      <span className="truncate">
+                        {language === "th"
+                          ? "ข้อมูลเพิ่มเติม"
+                          : "Additional Information"}
+                      </span>
                     </h4>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      <div>
-                        <p className="text-sm text-black">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                      <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <p className="text-[10px] md:text-xs text-gray-500 font-medium mb-1">
                           {language === "th" ? "Schedule ID" : "Schedule ID"}
                         </p>
-                        <p className="font-medium text-gray-700">
+                        <p className="text-sm md:text-base font-semibold text-gray-900">
                           #{sessionDetail.session.schedule_id}
                         </p>
                       </div>
 
-                      <div>
-                        <p className="text-sm text-black">
+                      <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <p className="text-[10px] md:text-xs text-gray-500 font-medium mb-1">
                           {language === "th"
                             ? "คาบเรียนชดเชย"
                             : "Makeup Session"}
@@ -979,7 +1223,7 @@ export default function SessionDetailModal({
                               ? "warning"
                               : "secondary"
                           }
-                          className="text-gray-700"
+                          className="text-xs md:text-sm"
                         >
                           {sessionDetail.session.is_makeup
                             ? language === "th"
@@ -991,14 +1235,28 @@ export default function SessionDetailModal({
                         </Badge>
                       </div>
 
+                      {/* Makeup Quota */}
+                      <div>
+                        <p className="text-sm text-black mb-2">
+                          {language === "th" ? "โควต้าชดเชย" : "Makeup Quota"}
+                        </p>
+                        {sessionDetail.session.schedule && (
+                          <MakeupQuotaBadge
+                            schedule={sessionDetail.session.schedule}
+                            variant="compact"
+                            showWarning={false}
+                          />
+                        )}
+                      </div>
+
                       {/* Branch Information */}
                       {(sessionDetail.session.branch ||
                         sessionDetail.session.room?.branch) && (
-                        <div>
-                          <p className="text-sm text-black">
+                        <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                          <p className="text-[10px] md:text-xs text-gray-500 font-medium mb-1">
                             {language === "th" ? "สาขา" : "Branch"}
                           </p>
-                          <p className="font-medium text-gray-700">
+                          <p className="text-sm md:text-base font-semibold text-gray-900">
                             {language === "th"
                               ? sessionDetail.session.branch?.name_th ||
                                 sessionDetail.session.room?.branch?.name_th
@@ -1012,24 +1270,28 @@ export default function SessionDetailModal({
                     {/* Room Details Section */}
                     {sessionDetail.session.room && (
                       <div className="mt-4 pt-4 border-t border-gray-200">
-                        <h5 className="text-md font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-indigo-600" />
-                          {language === "th"
-                            ? "รายละเอียดห้องเรียน"
-                            : "Room Details"}
+                        <h5 className="text-sm md:text-base font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                          <div className="flex-shrink-0 w-6 h-6 md:w-7 md:h-7 rounded-lg bg-purple-100 flex items-center justify-center">
+                            <MapPin className="h-3 w-3 md:h-3.5 md:w-3.5 text-purple-600" />
+                          </div>
+                          <span>
+                            {language === "th"
+                              ? "รายละเอียดห้องเรียน"
+                              : "Room Details"}
+                          </span>
                         </h5>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                          <div>
-                            <p className="text-sm text-gray-600">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <p className="text-[10px] md:text-xs text-gray-500 font-medium mb-1">
                               {language === "th" ? "ความจุ" : "Capacity"}
                             </p>
-                            <p className="font-medium text-gray-700">
+                            <p className="text-sm md:text-base font-semibold text-gray-900">
                               {sessionDetail.session.room.capacity}{" "}
                               {language === "th" ? "คน" : "people"}
                             </p>
                           </div>
-                          <div>
-                            <p className="text-sm text-gray-600">
+                          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <p className="text-[10px] md:text-xs text-gray-500 font-medium mb-1">
                               {language === "th" ? "สถานะ" : "Status"}
                             </p>
                             <Badge
@@ -1039,6 +1301,7 @@ export default function SessionDetailModal({
                                   ? "success"
                                   : "secondary"
                               }
+                              className="text-xs md:text-sm"
                             >
                               {sessionDetail.session.room.status === "available"
                                 ? language === "th"
@@ -1051,17 +1314,17 @@ export default function SessionDetailModal({
                           </div>
                           {sessionDetail.session.room.equipment &&
                             sessionDetail.session.room.equipment.length > 0 && (
-                              <div className="md:col-span-2 lg:col-span-1">
-                                <p className="text-sm text-gray-600 mb-1">
+                              <div className="sm:col-span-2 lg:col-span-1 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                <p className="text-[10px] md:text-xs text-gray-500 font-medium mb-2">
                                   {language === "th" ? "อุปกรณ์" : "Equipment"}
                                 </p>
-                                <div className="flex flex-wrap gap-1">
+                                <div className="flex flex-wrap gap-1.5">
                                   {sessionDetail.session.room.equipment.map(
                                     (item, index) => (
                                       <Badge
-                                        key={index}
+                                        key={`equipment-${item}-${index}`}
                                         variant="secondary"
-                                        className="text-xs"
+                                        className="text-[10px] md:text-xs"
                                       >
                                         {item}
                                       </Badge>
@@ -1074,6 +1337,241 @@ export default function SessionDetailModal({
                       </div>
                     )}
                   </div>
+
+                  {/* Admin: Edit Makeup Quota */}
+                  {canEdit && sessionDetail?.session?.schedule && (
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 md:p-6 rounded-xl border border-blue-200 shadow-sm">
+                      <h5 className="text-sm md:text-base font-semibold text-gray-900 flex items-center gap-2 mb-3 md:mb-4">
+                        <div className="flex-shrink-0 w-6 h-6 md:w-7 md:h-7 rounded-lg bg-blue-100 flex items-center justify-center">
+                          <Edit2 className="h-3 w-3 md:h-3.5 md:w-3.5 text-blue-600" />
+                        </div>
+                        <span className="truncate">
+                          {language === "th"
+                            ? "แก้ไขโควต้าชดเชย (Admin)"
+                            : "Edit Makeup Quota (Admin)"}
+                        </span>
+                      </h5>
+
+                      <div className="bg-white p-3 md:p-4 rounded-lg space-y-3">
+                        <div className="flex items-center justify-between text-xs md:text-sm">
+                          <span className="text-gray-600">
+                            {language === "th"
+                              ? "สถานะปัจจุบัน:"
+                              : "Current Status:"}
+                          </span>
+                          <MakeupQuotaBadge
+                            schedule={sessionDetail.session.schedule}
+                            variant="compact"
+                            showWarning={false}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs md:text-sm">
+                          <div>
+                            <label className="block text-gray-600 font-medium mb-1.5">
+                              {language === "th" ? "โควต้าใหม่" : "New Quota"}
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              max="20"
+                              value={editQuotaValue}
+                              onChange={(e) =>
+                                setEditQuotaValue(
+                                  Number.parseInt(e.target.value) || 0
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="0-20"
+                              disabled={isUpdatingQuota}
+                            />
+                          </div>
+                          <div className="flex items-end">
+                            <Button
+                              variant="monthViewClicked"
+                              className="w-full text-xs md:text-sm px-3 py-2"
+                              onClick={handleUpdateMakeupQuota}
+                              disabled={isUpdatingQuota}
+                            >
+                              {isUpdatingQuota ? (
+                                <>
+                                  <RefreshCw className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5 animate-spin" />
+                                  <span className="truncate">
+                                    {language === "th"
+                                      ? "กำลังบันทึก..."
+                                      : "Saving..."}
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <Save className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5" />
+                                  <span className="truncate">
+                                    {language === "th" ? "บันทึก" : "Save"}
+                                  </span>
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-gray-600 text-xs md:text-sm font-medium mb-1.5">
+                            {language === "th"
+                              ? "เหตุผล (ไม่บังคับ)"
+                              : "Reason (Optional)"}
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={editQuotaReason}
+                            onChange={(e) => setEditQuotaReason(e.target.value)}
+                            className="w-full px-3 py-2 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                            placeholder={
+                              language === "th"
+                                ? "เช่น: เพิ่มโควต้าเนื่องจาก..."
+                                : "e.g., Increase quota due to..."
+                            }
+                            disabled={isUpdatingQuota}
+                          />
+                        </div>
+
+                        <p className="text-[10px] md:text-xs text-gray-500 flex items-start gap-1.5">
+                          <span className="flex-shrink-0">💡</span>
+                          <span>
+                            {language === "th"
+                              ? "หมายเหตุ: การเปลี่ยนแปลงจะมีผลทันที และจะส่งการแจ้งเตือนไปยังครูที่เกี่ยวข้อง"
+                              : "Note: Changes will take effect immediately and notifications will be sent to relevant teachers"}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Quick Actions - Add Sessions (Admin only) */}
+                  {canEdit &&
+                    sessionDetail &&
+                    (onAddSessionBefore ||
+                      onAddSessionAfter ||
+                      onAddSessionCustom) && (
+                      <div className="bg-gradient-to-r from-yellow-50 to-amber-50 p-4 md:p-6 rounded-xl border border-yellow-200 shadow-sm">
+                        <div className="mb-3 md:mb-4">
+                          <h5 className="text-sm md:text-base font-semibold text-gray-900 flex items-center gap-2">
+                            <div className="flex-shrink-0 w-6 h-6 md:w-7 md:h-7 rounded-lg bg-yellow-100 flex items-center justify-center">
+                              <Plus className="h-3 w-3 md:h-3.5 md:w-3.5 text-yellow-600" />
+                            </div>
+                            <span className="truncate">
+                              {language === "th"
+                                ? "เพิ่ม Session ใหม่"
+                                : "Add New Session"}
+                            </span>
+                          </h5>
+                          <p className="text-xs md:text-sm text-gray-600 mt-1 ml-8 md:ml-9">
+                            {language === "th"
+                              ? "เลือกวิธีการเพิ่ม Session ลงในตารางเรียน"
+                              : "Choose how to add a session to the schedule"}
+                          </p>
+                        </div>
+
+                        <div className="space-y-2 md:space-y-3">
+                          {/* Custom Session - Main option */}
+                          {onAddSessionCustom && sessionDetail?.session && (
+                            <button
+                              onClick={() => {
+                                if (
+                                  sessionDetail?.session?.schedule_id &&
+                                  sessionDetail
+                                ) {
+                                  onAddSessionCustom(
+                                    sessionDetail.session.schedule_id,
+                                    sessionDetail
+                                  );
+                                }
+                              }}
+                              className="group w-full flex items-start gap-2.5 md:gap-3 p-3 md:p-4 bg-white rounded-lg border-2 border-yellow-400 hover:border-yellow-500 hover:shadow-md transition-all duration-200 text-left"
+                            >
+                              <div className="flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full bg-yellow-100 group-hover:bg-yellow-200 flex items-center justify-center transition-colors">
+                                <Plus className="h-4 w-4 md:h-5 md:w-5 text-yellow-600" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs md:text-base font-semibold text-gray-900 group-hover:text-yellow-700 transition-colors truncate">
+                                  {language === "th"
+                                    ? "สร้าง Session ใหม่"
+                                    : "Create New Session"}
+                                </p>
+                                <p className="text-[10px] md:text-sm text-gray-600 mt-0.5 md:mt-1 line-clamp-2">
+                                  {language === "th"
+                                    ? "กำหนดวันเวลาและรายละเอียดด้วยตัวเอง"
+                                    : "Set date, time, and details manually"}
+                                </p>
+                              </div>
+                            </button>
+                          )}
+
+                          {/* Quick insert options */}
+                          {(onAddSessionBefore || onAddSessionAfter) &&
+                            sessionDetail && (
+                              <div className="pt-2 md:pt-3 border-t border-yellow-200">
+                                <p className="text-[10px] md:text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider flex items-center gap-1">
+                                  <span className="flex-shrink-0">🚀</span>
+                                  <span className="truncate">
+                                    {language === "th"
+                                      ? "แทรกด่วน (คัดลอกข้อมูลจาก Session นี้)"
+                                      : "Quick Insert (Copy from this session)"}
+                                  </span>
+                                </p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  {onAddSessionBefore && (
+                                    <button
+                                      onClick={() => {
+                                        if (sessionDetail) {
+                                          onAddSessionBefore(sessionDetail);
+                                        }
+                                      }}
+                                      className="group flex items-center gap-2 p-2.5 sm:p-3 bg-white/70 rounded-lg border border-yellow-300 hover:border-yellow-400 hover:bg-white hover:shadow transition-all duration-200 text-left"
+                                    >
+                                      <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-600 flex-shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-xs sm:text-sm font-medium text-gray-900">
+                                          {language === "th"
+                                            ? "แทรกก่อนหน้า"
+                                            : "Insert Before"}
+                                        </p>
+                                        <p className="text-xs text-gray-600 truncate">
+                                          Session #
+                                          {sessionDetail.session.session_number}
+                                        </p>
+                                      </div>
+                                    </button>
+                                  )}
+
+                                  {onAddSessionAfter && (
+                                    <button
+                                      onClick={() => {
+                                        if (sessionDetail) {
+                                          onAddSessionAfter(sessionDetail);
+                                        }
+                                      }}
+                                      className="group flex items-center gap-2 p-2.5 sm:p-3 bg-white/70 rounded-lg border border-yellow-300 hover:border-yellow-400 hover:bg-white hover:shadow transition-all duration-200 text-left"
+                                    >
+                                      <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-600 flex-shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-xs sm:text-sm font-medium text-gray-900">
+                                          {language === "th"
+                                            ? "แทรกถัดไป"
+                                            : "Insert After"}
+                                        </p>
+                                        <p className="text-xs text-gray-600 truncate">
+                                          Session #
+                                          {sessionDetail.session.session_number}
+                                        </p>
+                                      </div>
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                        </div>
+                      </div>
+                    )}
                 </div>
               ) : (
                 <div className="flex justify-center items-center h-64 text-black">
@@ -1094,13 +1592,15 @@ export default function SessionDetailModal({
                   <LoadingSpinner size="md" />
                 </div>
               ) : sessionDetail?.group ? (
-                <div className="space-y-6 overflow-y-auto max-h-[65vh] p-2">
+                <div className="space-y-4 md:space-y-6 overflow-y-auto max-h-[65vh] p-1 md:p-2">
                   {/* Group Information */}
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <Users className="h-6 w-6 text-blue-600" />
-                        <h3 className="text-xl font-semibold text-gray-900">
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 md:p-6 rounded-xl border border-blue-200 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3 md:mb-4">
+                      <div className="flex items-center gap-2 md:gap-3 min-w-0">
+                        <div className="flex-shrink-0 w-9 h-9 md:w-11 md:h-11 rounded-full bg-blue-100 flex items-center justify-center">
+                          <Users className="h-4 w-4 md:h-5 md:w-5 text-blue-600" />
+                        </div>
+                        <h3 className="text-base md:text-xl font-semibold text-gray-900 truncate">
                           {sessionDetail.group.group_name}
                         </h3>
                       </div>
@@ -1111,26 +1611,30 @@ export default function SessionDetailModal({
                           onClick={() => {
                             // Navigate to group edit page
                             if (sessionDetail.group) {
-                              window.location.href = `/groups?edit=${sessionDetail.group.group_id}`;
+                              globalThis.location.href = `/groups?edit=${sessionDetail.group.group_id}`;
                             }
                           }}
                           variant="secondary"
-                          className="px-4 py-2 text-sm font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-2 bg-white border-2 border-blue-300 hover:border-blue-400 text-blue-700 hover:text-blue-800"
+                          className="px-3 md:px-4 py-2 text-xs md:text-sm font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-1.5 md:gap-2 bg-white border-2 border-blue-300 hover:border-blue-400 text-blue-700 hover:text-blue-800 min-w-[120px] flex-shrink-0"
                         >
-                          <Edit2 className="h-4 w-4" />
-                          {language === "th" ? "แก้ไขกลุ่ม" : "Edit Group"}
+                          <Edit2 className="h-3.5 w-3.5 md:h-4 md:w-4 flex-shrink-0" />
+                          <span className="truncate">
+                            {language === "th" ? "แก้ไขกลุ่ม" : "Edit Group"}
+                          </span>
                         </Button>
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
-                        <Award className="h-5 w-5 text-blue-600" />
-                        <div>
-                          <p className="text-sm text-black">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                      <div className="flex items-center gap-2.5 md:gap-3 p-3 md:p-3.5 bg-white rounded-lg border border-gray-200 shadow-sm">
+                        <div className="flex-shrink-0 w-8 h-8 md:w-9 md:h-9 rounded-full bg-blue-100 flex items-center justify-center">
+                          <Award className="h-3.5 w-3.5 md:h-4 md:w-4 text-blue-600" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] md:text-xs text-gray-500 font-medium mb-0.5">
                             {language === "th" ? "ระดับ" : "Level"}
                           </p>
-                          <p className="font-medium text-gray-700">
+                          <p className="text-xs md:text-sm font-semibold text-gray-900 truncate">
                             {sessionDetail.group.level}
                           </p>
                         </div>

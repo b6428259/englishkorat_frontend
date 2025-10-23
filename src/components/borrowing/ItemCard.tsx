@@ -57,8 +57,6 @@ export function ItemCard({
   useEffect(() => {
     let mounted = true;
     const src = item.cover_image_url;
-    // If cover image appears to be an S3 key (relative path) or belongs to our S3 bucket, try to presign it
-    const s3Bucket = process.env.NEXT_PUBLIC_S3_BUCKET;
 
     const handle = async () => {
       if (!src) return setResolvedSrc(null);
@@ -98,11 +96,12 @@ export function ItemCard({
           <Image
             src={resolvedSrc ?? item.cover_image_url}
             alt={item.title}
-            fill
-            className="object-cover"
+            width={400}
+            height={400}
+            quality={90}
+            className="object-cover w-full h-full"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            // If using presigned URLs (temporal), skip next/image optimization to avoid edge caching issues
-            unoptimized={true}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
         ) : (
           <div className="flex items-center justify-center h-full text-gray-400">
