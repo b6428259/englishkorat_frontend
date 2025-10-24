@@ -91,7 +91,7 @@ export default function SelectMakeupSessionModal({
     try {
       setIsLoading(true);
       const response = await getMakeupNeededSessions();
-      setSessions(response.sessions_needing_makeup || []);
+      setSessions(response.sessions || []);
     } catch (error) {
       console.error("Failed to fetch makeup sessions:", error);
       toast.error(
@@ -114,9 +114,9 @@ export default function SelectMakeupSessionModal({
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
     return (
-      session.group?.group_name?.toLowerCase().includes(search) ||
-      session.course?.course_name?.toLowerCase().includes(search) ||
-      session.schedule_name?.toLowerCase().includes(search)
+      session.schedule_name?.toLowerCase().includes(search) ||
+      session.assigned_teacher?.username?.toLowerCase().includes(search) ||
+      session.room?.name?.toLowerCase().includes(search)
     );
   });
 
@@ -179,18 +179,18 @@ export default function SelectMakeupSessionModal({
           ) : (
             <div className="space-y-3">
               {filteredSessions.map((session) => {
-                const hasQuota = (session.make_up_remaining ?? 0) > 0;
+                const hasQuota = (session.schedule_makeup_remaining ?? 0) > 0;
                 const handleClick = () => {
                   if (hasQuota) {
                     onSelectSession({
-                      sessionId: session.session_id,
+                      sessionId: session.id,
                       sessionDate: formatDate(session.session_date),
                       sessionTime: `${session.start_time} - ${session.end_time}`,
-                      scheduleName: `${session.group.group_name} - ${session.course.course_name}`,
+                      scheduleName: session.schedule_name,
                       scheduleId: session.schedule_id,
-                      makeupQuota: session.make_up_quota ?? 2,
-                      makeupRemaining: session.make_up_remaining ?? 0,
-                      makeupUsed: session.make_up_used ?? 0,
+                      makeupQuota: session.schedule_makeup_quota ?? 2,
+                      makeupRemaining: session.schedule_makeup_remaining ?? 0,
+                      makeupUsed: session.schedule_makeup_used ?? 0,
                     });
                     onClose();
                   }
@@ -198,7 +198,7 @@ export default function SelectMakeupSessionModal({
 
                 return (
                   <button
-                    key={session.session_id}
+                    key={session.id}
                     onClick={handleClick}
                     disabled={!hasQuota}
                     className={`w-full text-left border rounded-lg p-4 transition-all ${
@@ -212,11 +212,13 @@ export default function SelectMakeupSessionModal({
                         {/* Header */}
                         <div className="flex items-center gap-2 mb-2">
                           <h3 className="font-semibold text-gray-900">
-                            {session.group.group_name}
+                            {session.schedule_name}
                           </h3>
-                          <Badge variant="outline">
-                            {session.course.course_name}
-                          </Badge>
+                          {session.assigned_teacher && (
+                            <Badge variant="outline">
+                              {session.assigned_teacher.username}
+                            </Badge>
+                          )}
                         </div>
 
                         {/* Details */}
@@ -239,8 +241,9 @@ export default function SelectMakeupSessionModal({
                             {t.quota}:
                           </span>
                           <Badge variant={hasQuota ? "default" : "destructive"}>
-                            {t.remaining}: {session.make_up_remaining ?? 0}/
-                            {session.make_up_quota}
+                            {t.remaining}:{" "}
+                            {session.schedule_makeup_remaining ?? 0}/
+                            {session.schedule_makeup_quota}
                           </Badge>
                         </div>
                       </div>
