@@ -4,12 +4,13 @@ import Button from "@/components/common/Button";
 import SidebarLayout from "@/components/common/SidebarLayout";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Select, SelectItem, Switch } from "@heroui/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function LinePage() {
   const { t } = useLanguage();
   const [isEnabled, setIsEnabled] = useState(true);
   const [selectedTime, setSelectedTime] = useState("11:00");
+  const [loading, setLoading] = useState(true);
 
   const times = [
     "07:00",
@@ -25,8 +26,31 @@ export default function LinePage() {
     "17:00",
   ];
 
-  const handleSave = () => {
-    alert(`แจ้งเตือน: ${isEnabled ? "เปิด" : "ปิด"} / เวลา: ${selectedTime}`);
+    useEffect(() => {
+    fetch("/api/line-reminder")
+      .then((res) => res.json())
+      .then((data) => {
+        setIsEnabled(data.is_enabled);
+        setSelectedTime(data.time);
+      })
+      .catch((err) => console.error("Failed to load reminder settings", err))
+      .finally(() => setLoading(false));
+  }, []);
+
+const handleSave = async () => {
+  const payload = { is_enabled: isEnabled, time: selectedTime };
+
+  const res = await fetch("/api/line-reminder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.ok) {
+      alert(`✅ ตั้งค่าการแจ้งเตือนสำเร็จ: ${isEnabled ? "เปิด" : "ปิด"} เวลา ${selectedTime}`);
+    } else {
+      alert("❌ เกิดข้อผิดพลาดในการบันทึก");
+    }
   };
 
   return (
