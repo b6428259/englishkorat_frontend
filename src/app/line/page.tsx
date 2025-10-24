@@ -27,7 +27,7 @@ export default function LinePage() {
   ];
 
     useEffect(() => {
-    fetch("/api/line-reminder")
+    fetch("/api/line/reminder/settings")
       .then((res) => res.json())
       .then((data) => {
         setIsEnabled(data.is_enabled);
@@ -40,7 +40,7 @@ export default function LinePage() {
 const handleSave = async () => {
   const payload = { is_enabled: isEnabled, time: selectedTime };
 
-  const res = await fetch("/api/line-reminder", {
+  const res = await fetch("/api/line/reminder/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
