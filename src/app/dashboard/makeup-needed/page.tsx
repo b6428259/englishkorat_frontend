@@ -116,7 +116,7 @@ export default function MakeupNeededPage() {
     try {
       setIsLoading(true);
       const response = await getMakeupNeededSessions();
-      setSessions(response.sessions_needing_makeup || []);
+      setSessions(response.sessions || []);
     } catch (error) {
       console.error("Failed to fetch makeup sessions:", error);
       toast.error(t.error, { position: "top-center" });
@@ -133,14 +133,36 @@ export default function MakeupNeededPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Handle return from schedule selection
+  useEffect(() => {
+    const params = new URLSearchParams(globalThis.location.search);
+    const selectedDate = params.get("selectedDate");
+    const selectedTime = params.get("selectedTime");
+    const sessionIdParam = params.get("sessionId");
+
+    if (selectedDate && sessionIdParam && sessions.length > 0) {
+      const session = sessions.find((s) => s.id === Number(sessionIdParam));
+      if (session) {
+        setSelectedSession(session);
+        setShowCreateModal(true);
+        // Store selected date and time for modal
+        sessionStorage.setItem("prefilledDate", selectedDate);
+        if (selectedTime) {
+          sessionStorage.setItem("prefilledTime", selectedTime);
+        }
+        // Clean URL
+        globalThis.history.replaceState({}, "", globalThis.location.pathname);
+      }
+    }
+  }, [sessions]);
+
   const filteredSessions = (sessions || []).filter((session) => {
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
     return (
-      session.group?.group_name?.toLowerCase().includes(search) ||
-      session.course?.course_name?.toLowerCase().includes(search) ||
       session.schedule_name?.toLowerCase().includes(search) ||
-      session.cancelling_reason?.toLowerCase().includes(search)
+      session.cancelling_reason?.toLowerCase().includes(search) ||
+      session.assigned_teacher?.username?.toLowerCase().includes(search)
     );
   });
 
@@ -175,25 +197,27 @@ export default function MakeupNeededPage() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white px-8 py-10 shadow-lg"
+          className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10 shadow-lg"
         >
           <div className="max-w-7xl mx-auto">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-                  <Calendar className="h-10 w-10" />
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex-1">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 flex items-center gap-2 sm:gap-3">
+                  <Calendar className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10" />
                   {t.title}
                 </h1>
-                <p className="text-indigo-100 text-lg">{t.subtitle}</p>
+                <p className="text-indigo-100 text-sm sm:text-base lg:text-lg">
+                  {t.subtitle}
+                </p>
               </div>
 
               {sessions.length > 0 && (
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="bg-white/20 backdrop-blur-sm px-6 py-3 rounded-lg"
+                  className="bg-white/20 backdrop-blur-sm px-4 sm:px-6 py-2 sm:py-3 rounded-lg self-start sm:self-auto"
                 >
-                  <div className="text-sm font-medium">
+                  <div className="text-xs sm:text-sm font-medium whitespace-nowrap">
                     {t.total}: {sessions.length} {t.sessions}
                   </div>
                 </motion.div>
@@ -203,31 +227,31 @@ export default function MakeupNeededPage() {
         </motion.div>
 
         {/* Content */}
-        <div className="max-w-7xl mx-auto px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           {/* Search & Actions */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-xl shadow-md p-6 mb-6"
+            className="bg-white rounded-lg sm:rounded-xl shadow-md p-4 sm:p-6 mb-4 sm:mb-6"
           >
-            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+            <div className="flex flex-col lg:flex-row gap-3 sm:gap-4">
               {/* Search */}
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder={t.search}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full pl-9 sm:pl-10 pr-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
 
               {/* Action Buttons */}
-              <Link href="/schedule">
+              <Link href="/schedule" className="w-full lg:w-auto">
                 <Button
                   variant="monthViewClicked"
-                  className="px-6 py-2.5 text-sm font-semibold shadow-md hover:shadow-lg transition-all"
+                  className="w-full lg:w-auto px-4 sm:px-6 py-2 sm:py-2.5 text-sm font-semibold shadow-md hover:shadow-lg transition-all"
                 >
                   <Calendar className="h-4 w-4 mr-2" />
                   {t.goToSchedule}
@@ -238,51 +262,56 @@ export default function MakeupNeededPage() {
 
           {/* Sessions Grid */}
           {isLoading ? (
-            <div className="bg-white rounded-xl shadow-md p-12 flex items-center justify-center">
+            <div className="bg-white rounded-lg sm:rounded-xl shadow-md p-8 sm:p-12 flex items-center justify-center">
               <div className="text-center">
                 <LoadingSpinner size="lg" />
-                <p className="text-gray-600 mt-4">{t.loading}</p>
+                <p className="text-gray-600 mt-4 text-sm sm:text-base">
+                  {t.loading}
+                </p>
               </div>
             </div>
           ) : filteredSessions.length === 0 ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-white rounded-xl shadow-md p-12"
+              className="bg-white rounded-lg sm:rounded-xl shadow-md p-8 sm:p-12"
             >
               <div className="text-center">
-                <AlertCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                <AlertCircle className="h-12 w-12 sm:h-16 sm:w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
                   {t.noData}
                 </h3>
-                <p className="text-gray-600">{t.noDataDesc}</p>
+                <p className="text-sm sm:text-base text-gray-600">
+                  {t.noDataDesc}
+                </p>
               </div>
             </motion.div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               {filteredSessions.map((session, index) => (
                 <motion.div
-                  key={session.session_id}
+                  key={session.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100"
+                  className="bg-white rounded-lg sm:rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100"
                 >
                   {/* Card Header */}
-                  <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Users className="h-5 w-5" />
-                        <div>
-                          <h3 className="font-bold text-lg">
-                            {session.group.group_name}
-                          </h3>
-                          <p className="text-indigo-100 text-sm">
+                  <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 sm:px-6 py-3 sm:py-4">
+                    <div className="flex items-start sm:items-center justify-between gap-3">
+                      <div className="flex items-start sm:items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                        <Users className="h-4 w-4 sm:h-5 sm:w-5 mt-0.5 sm:mt-0 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-base sm:text-lg truncate">
                             {session.schedule_name}
+                          </h3>
+                          <p className="text-indigo-100 text-xs sm:text-sm">
+                            {language === "th" ? "คาบที่" : "Session"} #
+                            {session.session_number}
                           </p>
                         </div>
                       </div>
-                      <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                      <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 text-xs sm:text-sm flex-shrink-0">
                         <AlertCircle className="h-3 w-3 mr-1" />
                         Makeup
                       </Badge>
@@ -290,41 +319,28 @@ export default function MakeupNeededPage() {
                   </div>
 
                   {/* Card Body */}
-                  <div className="p-6 space-y-4">
-                    {/* Course & Level */}
-                    <div className="flex items-start gap-4">
+                  <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+                    {/* Teacher Info */}
+                    <div className="flex items-start gap-3 sm:gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <BookOpen className="h-4 w-4 text-gray-400" />
+                          <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400" />
                           <span className="text-xs text-gray-600 font-medium">
-                            {t.course}
+                            {language === "th" ? "ครู" : "Teacher"}
                           </span>
                         </div>
                         <p className="text-sm font-semibold text-gray-900">
-                          {session.course.course_name}
-                        </p>
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge
-                            variant="secondary"
-                            className="text-xs bg-indigo-100 text-indigo-800"
-                          >
-                            {t.level}
-                          </Badge>
-                        </div>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {session.group.level}
+                          {session.assigned_teacher?.username || "N/A"}
                         </p>
                       </div>
                     </div>
 
                     {/* Original Session Date & Time */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="grid grid-cols-1 gap-3">
+                    <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <Calendar className="h-4 w-4 text-gray-400" />
+                            <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400" />
                             <span className="text-xs text-gray-600 font-medium">
                               {t.sessionDate}
                             </span>
@@ -335,7 +351,7 @@ export default function MakeupNeededPage() {
                         </div>
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <Clock className="h-4 w-4 text-gray-400" />
+                            <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400" />
                             <span className="text-xs text-gray-600 font-medium">
                               {t.time}
                             </span>
@@ -348,15 +364,15 @@ export default function MakeupNeededPage() {
                     </div>
 
                     {/* Cancellation Info */}
-                    <div className="border-t border-gray-200 pt-4">
+                    <div className="border-t border-gray-200 pt-3 sm:pt-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <FileText className="h-4 w-4 text-red-500" />
+                        <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500" />
                         <span className="text-xs text-gray-600 font-medium">
                           {t.cancelledAt}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-700 mb-2">
-                        {formatDateTime(session.cancelled_at)}
+                      <p className="text-xs sm:text-sm text-gray-700 mb-2">
+                        {formatDateTime(session.cancellation_approved_at)}
                       </p>
                       <Button
                         onClick={() => {
@@ -364,7 +380,7 @@ export default function MakeupNeededPage() {
                           setShowReasonModal(true);
                         }}
                         variant="cancel"
-                        className="px-3 py-1.5 text-xs"
+                        className="px-2.5 sm:px-3 py-1.5 text-xs"
                       >
                         <FileText className="h-3 w-3 mr-1" />
                         {t.viewReason}
@@ -372,9 +388,13 @@ export default function MakeupNeededPage() {
                     </div>
 
                     {/* Makeup Quota Display */}
-                    <div className="border-t border-gray-200 pt-4">
+                    <div className="border-t border-gray-200 pt-3 sm:pt-4">
                       <MakeupQuotaBadge
-                        schedule={session}
+                        schedule={{
+                          make_up_quota: session.schedule_makeup_quota,
+                          make_up_remaining: session.schedule_makeup_remaining,
+                          make_up_used: session.schedule_makeup_used,
+                        }}
                         variant="default"
                         showWarning={true}
                       />
@@ -382,9 +402,14 @@ export default function MakeupNeededPage() {
                   </div>
 
                   {/* Card Footer */}
-                  <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+                  <div className="bg-gray-50 px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200">
                     {(() => {
-                      const hasQuota = (session.make_up_remaining ?? 0) > 0;
+                      // Better quota checking with fallback
+                      const quota = session.schedule_makeup_quota ?? 2; // Default to 2 if not set
+                      const used = session.schedule_makeup_used ?? 0;
+                      const remaining =
+                        session.schedule_makeup_remaining ?? quota - used;
+                      const hasQuota = remaining > 0;
 
                       return hasQuota ? (
                         <Button
@@ -393,7 +418,7 @@ export default function MakeupNeededPage() {
                             setSelectedSession(session);
                             setShowCreateModal(true);
                           }}
-                          className="w-full py-2.5 text-sm font-semibold shadow-sm hover:shadow-md transition-all"
+                          className="w-full py-2 sm:py-2.5 text-sm font-semibold shadow-sm hover:shadow-md transition-all"
                         >
                           <PlusCircle className="h-4 w-4 mr-2" />
                           {t.createMakeup}
@@ -413,8 +438,8 @@ export default function MakeupNeededPage() {
                           </Button>
                           <p className="text-xs text-center text-red-600">
                             {language === "th"
-                              ? `ใช้โควต้าหมดแล้ว (${session.make_up_used}/${session.make_up_quota})`
-                              : `Quota exhausted (${session.make_up_used}/${session.make_up_quota})`}
+                              ? `ใช้โควต้าหมดแล้ว (${used}/${quota})`
+                              : `Quota exhausted (${used}/${quota})`}
                           </p>
                         </div>
                       );
@@ -461,15 +486,19 @@ export default function MakeupNeededPage() {
                   </h4>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className="text-gray-600 font-medium">{t.group}</p>
+                      <p className="text-gray-600 font-medium">
+                        {language === "th" ? "ตาราง" : "Schedule"}
+                      </p>
                       <p className="text-gray-900 font-semibold">
-                        {selectedSession.group.group_name}
+                        {selectedSession.schedule_name}
                       </p>
                     </div>
                     <div>
-                      <p className="text-gray-600 font-medium">{t.course}</p>
+                      <p className="text-gray-600 font-medium">
+                        {language === "th" ? "ครู" : "Teacher"}
+                      </p>
                       <p className="text-gray-900 font-semibold">
-                        {selectedSession.course.course_name}
+                        {selectedSession.assigned_teacher?.username || "N/A"}
                       </p>
                     </div>
                     <div>
@@ -498,7 +527,7 @@ export default function MakeupNeededPage() {
                     <div>
                       <p className="text-gray-600 font-medium">{t.sessionId}</p>
                       <p className="text-gray-900 font-semibold">
-                        #{selectedSession.session_id}
+                        #{selectedSession.id}
                       </p>
                     </div>
                   </div>
@@ -525,7 +554,7 @@ export default function MakeupNeededPage() {
                     </span>
                   </div>
                   <p className="text-sm text-red-700">
-                    {formatDateTime(selectedSession.cancelled_at)}
+                    {formatDateTime(selectedSession.cancellation_approved_at)}
                   </p>
                 </div>
               </div>
@@ -561,13 +590,15 @@ export default function MakeupNeededPage() {
             setShowCreateModal(false);
             setSelectedSession(null);
           }}
-          sessionId={selectedSession.session_id}
+          sessionId={selectedSession.id}
           sessionDate={formatDate(selectedSession.session_date)}
           sessionTime={`${selectedSession.start_time} - ${selectedSession.end_time}`}
-          scheduleName={`${selectedSession.group.group_name} - ${selectedSession.course.course_name}`}
-          makeupQuota={selectedSession.make_up_quota}
-          makeupRemaining={selectedSession.make_up_remaining ?? 0}
-          makeupUsed={selectedSession.make_up_used}
+          scheduleName={selectedSession.schedule_name}
+          teacherId={selectedSession.assigned_teacher?.id}
+          teacherName={selectedSession.assigned_teacher?.username}
+          makeupQuota={selectedSession.schedule_makeup_quota ?? 2}
+          makeupRemaining={selectedSession.schedule_makeup_remaining ?? 0}
+          makeupUsed={selectedSession.schedule_makeup_used ?? 0}
           onSuccess={() => {
             // Refresh sessions list
             fetchMakeupSessions();

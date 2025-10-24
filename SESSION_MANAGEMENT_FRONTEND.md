@@ -360,6 +360,464 @@ const approveCancellation = async (sessionId) => {
 - ต้องได้รับการอนุมัติจาก Admin ก่อน (Step 2) ถึงจะสร้าง Makeup Session ได้
 - ถ้ายังไม่ได้รับการอนุมัติ API จะ return error: `"Cannot create makeup session - cancellation has not been approved by admin"`
 
+---
+
+#### Step 3.1: ดูรายการ Sessions ที่พร้อมสร้าง Makeup (Optional)
+
+**Endpoint:**
+```
+GET /api/schedules/sessions/makeup-needed
+```
+
+**Authentication:** Teacher, Admin, Owner
+
+**Use Case:**
+- ดูรายการ session ทั้งหมดที่ถูกยกเลิกและได้รับการอนุมัติแล้ว
+- ยังไม่มีการสร้าง makeup session
+- Teacher จะเห็นเฉพาะ session ที่ตัวเองสอน
+- Admin เห็นทั้งหมด
+
+**Example:**
+```javascript
+const getMakeupNeededSessions = async () => {
+  const response = await fetch('/api/schedules/sessions/makeup-needed', {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  const result = await response.json();
+  
+  if (response.ok) {
+    console.log(`Found ${result.count} sessions ready for makeup`);
+    
+    result.sessions.forEach(session => {
+      console.log(`Session #${session.session_number}`);
+      console.log(`  Schedule: ${session.schedule_name}`);
+      console.log(`  Date: ${session.session_date}`);
+      console.log(`  Reason: ${session.cancelling_reason}`);
+      console.log(`  Quota: ${session.schedule_makeup_remaining}/${session.schedule_makeup_quota}`);
+      console.log(`  Can create: ${session.can_create_makeup ? 'Yes' : 'No (quota exhausted)'}`);
+    });
+  }
+};
+```
+
+**Response (Success):**
+```json
+{
+  "success": true,
+  "count": 3,
+  "message": "Found 3 session(s) ready for makeup creation",
+  "sessions": [
+    {
+      "id": 123,
+      "schedule_id": 12,
+      "schedule_name": "English Conversation - Beginner A",
+      "session_number": 15,
+      "session_date": "2025-10-23T00:00:00Z",
+      "start_time": "2025-10-23T14:00:00+07:00",
+      "end_time": "2025-10-23T16:00:00+07:00",
+      "status": "cancelled",
+      "cancelling_reason": "ครูป่วย ไม่สามารถสอนได้",
+      "cancellation_approved_at": "2025-10-23T10:30:00Z",
+      "assigned_teacher_id": 5,
+      "assigned_teacher": {
+        "id": 5,
+        "username": "teacher_john",
+        "first_name": "John",
+        "last_name": "Doe"
+      },
+      "room_id": 3,
+      "room": {
+        "id": 3,
+        "room_name": "Room A"
+      },
+      "schedule_makeup_quota": 2,
+      "schedule_makeup_remaining": 1,
+      "schedule_makeup_used": 1,
+      "can_create_makeup": true
+    },
+    {
+      "id": 145,
+      "schedule_id": 15,
+      "schedule_name": "TOEIC Preparation",
+      "session_number": 8,
+      "session_date": "2025-10-24T00:00:00Z",
+      "start_time": "2025-10-24T09:00:00+07:00",
+      "end_time": "2025-10-24T11:00:00+07:00",
+      "status": "cancelled",
+      "cancelling_reason": "ฉุกเฉิน",
+      "cancellation_approved_at": "2025-10-24T08:00:00Z",
+      "assigned_teacher_id": 5,
+      "schedule_makeup_quota": 2,
+      "schedule_makeup_remaining": 0,
+      "schedule_makeup_used": 2,
+      "can_create_makeup": false
+    }
+  ]
+}
+```
+
+**Frontend Example: List View**
+```javascript
+const MakeupNeededList = () => {
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchMakeupNeeded();
+  }, []);
+
+  const fetchMakeupNeeded = async () => {
+    const response = await fetch('/api/schedules/sessions/makeup-needed', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await response.json();
+    setSessions(data.sessions || []);
+    setLoading(false);
+  };
+
+  return (
+    <div>
+      <h2>Sessions Ready for Makeup ({sessions.length})</h2>
+      {sessions.map(session => (
+        <Card key={session.id}>
+          <h3>{session.schedule_name} - Session #{session.session_number}</h3>
+          <p>📅 Original Date: {formatDate(session.session_date)}</p>
+          <p>💬 Reason: {session.cancelling_reason}</p>
+          <p>🎫 Quota: {session.schedule_makeup_remaining}/{session.schedule_makeup_quota}</p>
+          
+          {session.can_create_makeup ? (
+            <Button onClick={() => openCreateMakeupModal(session)}>
+              🔄 Create Makeup Session
+            </Button>
+          ) : (
+            <Alert type="error">
+              ⚠️ Cannot create makeup - quota exhausted
+            </Alert>
+          )}
+        </Card>
+      ))}
+    </div>
+  );
+};
+```
+
+---
+
+#### Step 3.2: ดูรายละเอียด Session เฉพาะ (Optional)
+
+**Endpoint:**
+```
+GET /api/schedules/sessions/:id/detail
+```
+
+**Authentication:** Teacher, Admin, Owner
+
+**Use Case:**
+- ดูข้อมูลละเอียดของ session
+- เช็คว่ามี makeup session แล้วหรือยัง
+- เช็คว่า session นี้เป็น makeup ของ session ไหน
+- ดู cancellation history
+
+**Example:**
+```javascript
+const getSessionDetail = async (sessionId) => {
+  const response = await fetch(`/api/schedules/sessions/${sessionId}/detail`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  return await response.json();
+};
+
+// ตัวอย่างการใช้งาน
+const sessionDetail = await getSessionDetail(123);
+
+if (sessionDetail.session.status === 'cancelled') {
+  if (sessionDetail.session.makeup_session) {
+    console.log('Makeup already created:', sessionDetail.session.makeup_session);
+  } else if (sessionDetail.session.can_create_makeup) {
+    console.log('Can create makeup. Remaining quota:', sessionDetail.session.schedule_makeup_remaining);
+  } else {
+    console.log('Cannot create makeup - quota exhausted');
+  }
+}
+```
+
+**Response (Cancelled Session with Makeup):**
+```json
+{
+  "success": true,
+  "session": {
+    "id": 123,
+    "schedule_id": 12,
+    "schedule_name": "English Conversation",
+    "session_number": 15,
+    "week_number": 15,
+    "session_date": "2025-10-23T00:00:00Z",
+    "start_time": "2025-10-23T14:00:00+07:00",
+    "end_time": "2025-10-23T16:00:00+07:00",
+    "status": "cancelled",
+    "is_makeup": false,
+    "cancelling_reason": "ครูป่วย",
+    "cancellation_requested_at": "2025-10-23T09:00:00Z",
+    "cancellation_requested_by": 5,
+    "cancellation_approved_at": "2025-10-23T10:00:00Z",
+    "cancellation_approved_by": 1,
+    "makeup_session": {
+      "id": 158,
+      "session_number": 15,
+      "session_date": "2025-10-30T00:00:00Z",
+      "start_time": "2025-10-30T16:00:00+07:00",
+      "end_time": "2025-10-30T18:00:00+07:00",
+      "status": "scheduled"
+    }
+  }
+}
+```
+
+**Response (Cancelled Session without Makeup - Can Create):**
+```json
+{
+  "success": true,
+  "session": {
+    "id": 123,
+    "status": "cancelled",
+    "cancelling_reason": "ครูป่วย",
+    "can_create_makeup": true,
+    "schedule_makeup_remaining": 1,
+    "schedule_makeup_quota": 2
+  }
+}
+```
+
+**Response (Makeup Session - Shows Original):**
+```json
+{
+  "success": true,
+  "session": {
+    "id": 158,
+    "status": "scheduled",
+    "is_makeup": true,
+    "original_session": {
+      "id": 123,
+      "session_number": 15,
+      "session_date": "2025-10-23T00:00:00Z",
+      "status": "cancelled"
+    }
+  }
+}
+```
+
+---
+
+#### Step 3.3: Admin ดูคำขอยกเลิกที่รออนุมัติ
+
+**Endpoint:**
+```
+GET /api/schedules/sessions/pending-cancellations
+```
+
+**Authentication:** Admin, Owner only
+
+**Use Case:**
+- Admin เข้าหน้า Dashboard เพื่อดูรายการคำขอยกเลิกที่ยังไม่ได้อนุมัติ
+- แสดงว่าใครขอยกเลิก คลาสไหน เมื่อไหร่
+- เช็คว่ามี quota พอสำหรับสร้าง makeup หรือไม่
+- เรียงตามเวลาที่ขอ (เก่าสุดก่อน)
+
+**Example:**
+```javascript
+const getPendingCancellations = async () => {
+  const response = await fetch('/api/schedules/sessions/pending-cancellations', {
+    headers: {
+      'Authorization': `Bearer ${adminToken}`
+    }
+  });
+
+  return await response.json();
+};
+
+// ตัวอย่างการใช้งานใน Dashboard
+const AdminDashboard = () => {
+  const [pendingRequests, setPendingRequests] = useState([]);
+
+  useEffect(() => {
+    const loadPending = async () => {
+      const data = await getPendingCancellations();
+      setPendingRequests(data.pending_cancellations || []);
+    };
+    
+    loadPending();
+  }, []);
+
+  return (
+    <div>
+      <h2>Pending Cancellation Requests ({pendingRequests.length})</h2>
+      {pendingRequests.length === 0 ? (
+        <p>No pending requests</p>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>Session</th>
+              <th>Date & Time</th>
+              <th>Requested By</th>
+              <th>Reason</th>
+              <th>Pending For</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pendingRequests.map(req => (
+              <tr key={req.session_id}>
+                <td>
+                  <strong>{req.schedule_name}</strong>
+                  <br />
+                  Session #{req.session_number}
+                  <br />
+                  Room: {req.room_name}
+                </td>
+                <td>
+                  {new Date(req.session_date).toLocaleDateString('th-TH')}
+                  <br />
+                  {req.start_time} - {req.end_time}
+                </td>
+                <td>
+                  {req.cancellation_requested_by}
+                  <br />
+                  <small>({req.cancellation_requested_by_role})</small>
+                </td>
+                <td>{req.cancelling_reason}</td>
+                <td>
+                  <Badge color="orange">
+                    {req.hours_since_request} hours ago
+                  </Badge>
+                </td>
+                <td>
+                  <button onClick={() => approveRequest(req.session_id)}>
+                    ✅ Approve
+                  </button>
+                  {req.can_create_makeup ? (
+                    <small>Quota: {req.makeup_quota_left}/{req.makeup_quota_total}</small>
+                  ) : (
+                    <small style={{color: 'red'}}>⚠️ No quota left</small>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+};
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "pending_cancellations": [
+    {
+      "session_id": 123,
+      "session_date": "2025-10-25T00:00:00Z",
+      "start_time": "14:00",
+      "end_time": "16:00",
+      "session_number": 15,
+      "schedule_id": 12,
+      "schedule_name": "English Conversation - Group A",
+      "room_name": "Room 101",
+      "assigned_teacher_name": "สมชาย ใจดี",
+      "cancellation_requested_by": "สมชาย ใจดี",
+      "cancellation_requested_by_role": "teacher",
+      "cancelling_reason": "ติดธุระด่วน",
+      "requested_at": "2025-10-24T10:30:00Z",
+      "hours_since_request": 24,
+      "makeup_quota_total": 2,
+      "makeup_quota_used": 1,
+      "makeup_quota_left": 1,
+      "can_create_makeup": true
+    },
+    {
+      "session_id": 456,
+      "session_date": "2025-10-26T00:00:00Z",
+      "start_time": "10:00",
+      "end_time": "12:00",
+      "session_number": 8,
+      "schedule_id": 15,
+      "schedule_name": "Math Tutoring - Group B",
+      "room_name": "Room 203",
+      "assigned_teacher_name": "สมหญิง มีสุข",
+      "cancellation_requested_by": "Admin User",
+      "cancellation_requested_by_role": "admin",
+      "cancelling_reason": "Student requested change",
+      "requested_at": "2025-10-24T14:00:00Z",
+      "hours_since_request": 20,
+      "makeup_quota_total": 2,
+      "makeup_quota_used": 0,
+      "makeup_quota_left": 2,
+      "can_create_makeup": true
+    }
+  ]
+}
+```
+
+**Response (No Pending):**
+```json
+{
+  "success": true,
+  "pending_cancellations": []
+}
+```
+
+**Frontend Tips:**
+- เรียง `hours_since_request` จากมากไปน้อย = urgent first
+- แสดง badge สีแดงถ้า `can_create_makeup = false`
+- แสดง badge สีเหลืองถ้า `makeup_quota_left = 1` (เหลือสุดท้าย)
+- ทำ auto-refresh ทุก 30 วินาที เพื่อดู request ใหม่
+- เพิ่ม filter: ทั้งหมด / Teacher requests / Admin requests
+- เพิ่ม sort: เก่าสุดก่อน / ใหม่สุดก่อน / urgent (hours_since_request)
+
+**Approve Function Example:**
+```javascript
+const approveRequest = async (sessionId) => {
+  if (!confirm('Are you sure you want to approve this cancellation request?')) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/schedules/sessions/${sessionId}/approve-cancellation`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${adminToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      alert('✅ Cancellation approved! Teacher can now create makeup session.');
+      // Refresh pending list
+      loadPending();
+    } else {
+      alert(`❌ Error: ${result.error}`);
+    }
+  } catch (error) {
+    console.error('Failed to approve:', error);
+    alert('Network error. Please try again.');
+  }
+};
+```
+
+---
+
+#### Step 3.4: สร้าง Makeup Session
+
 ### ⚠️ สำคัญ: Makeup Quota System
 
 **แต่ละ Schedule มีจำนวน makeup class จำกัด** (default: 2 classes)
@@ -1362,8 +1820,13 @@ const formatSession = (session) => {
 | Feature | Endpoint | Method | Auth | Common Use |
 |---------|----------|--------|------|-----------|
 | สร้าง Session | `/api/schedules/:id/sessions` | POST | Required | เพิ่มคาบเรียนใหม่ |
-| ขอยกเลิก Session | `/api/schedules/sessions/:id/request-cancellation` | POST | Teacher+ | Teacher ขอยกเลิกคาบ |
+| ขอยกเลิก Session | `/api/schedules/sessions/:id/request-cancellation` | POST | Teacher+ | Teacher/Admin ขอยกเลิกคาบ |
+| ยกเลิกคำขอยกเลิก | `/api/schedules/sessions/:id/undo-cancellation` | POST | Teacher+ | ถอนคำขอยกเลิก |
 | อนุมัติการยกเลิก | `/api/schedules/sessions/:id/approve-cancellation` | POST | Admin | Admin อนุมัติให้ยกเลิก |
+| ยกเลิกโดยตรง | `/api/schedules/sessions/:id/cancel` | POST | Admin | Admin ยกเลิกทันที (ไม่ต้อง approve) |
+| **ดูคำขอที่รออนุมัติ** | `/api/schedules/sessions/pending-cancellations` | GET | **Admin** | **Admin ดูรายการคำขอยกเลิกที่รออนุมัติ** |
+| ดู Sessions ที่ต้อง Makeup | `/api/schedules/sessions/makeup-needed` | GET | Teacher+ | ดูรายการ session ที่พร้อมสร้าง makeup |
+| ดูรายละเอียด Session | `/api/schedules/sessions/:id/detail` | GET | Teacher+ | ดูข้อมูลละเอียด + makeup relationship |
 | สร้าง Makeup | `/api/schedules/sessions/makeup` | POST | Required | เรียนชดเชย (ต้อง approve ก่อน) |
 | อัปเดต Session | `/api/schedules/sessions/:id` | PATCH | Required | แก้ไขเวลา/ห้อง/ครู |
 | เช็ค Quota | `/api/schedules/:id` | GET | Required | ดูสิทธิ์ makeup ที่เหลือ |
@@ -1372,7 +1835,7 @@ const formatSession = (session) => {
 
 ---
 
-## Key Changes (2025-01-23 Makeup System Refactoring)
+## Key Changes (2025-01-23 & 2025-10-24 Updates)
 
 ### ⚡ Breaking Changes
 1. **Quota Tracking Moved**: จาก `Student.make_up_remaining` → `Schedule.make_up_remaining`
@@ -1384,12 +1847,15 @@ const formatSession = (session) => {
 2. **System Settings API**: Admin ปรับค่า default quota ได้ผ่าน API
 3. **Better Error Messages**: บอกจำนวนสิทธิ์ที่ใช้/เหลือเมื่อ quota หมด
 4. **Cancellation Approval System**: Teacher ขอยกเลิก → Admin อนุมัติ → สามารถสร้าง makeup ได้
+5. **Pending Cancellations Dashboard**: Admin ดูรายการคำขอยกเลิกทั้งหมดในที่เดียว (NEW)
 
 ### 📝 Frontend Action Items
 - [ ] เพิ่มการแสดง quota badge ใน schedule list
 - [ ] เพิ่ม UI สำหรับ Teacher ขอยกเลิก session
+- [ ] **เพิ่ม Admin Dashboard แสดงรายการคำขอยกเลิกที่รออนุมัติ** ← ใหม่
 - [ ] เพิ่ม UI สำหรับ Admin อนุมัติการยกเลิก
 - [ ] แสดง status "cancellation_pending" ใน session list
+- [ ] **เพิ่ม Badge แสดง urgent level (hours_since_request)** ← ใหม่
 - [ ] แสดง warning เมื่อสิทธิ์ใกล้หมด (remaining = 1)
 - [ ] Disable ปุ่ม "Create Makeup" ถ้ายังไม่ได้รับการอนุมัติ
 - [ ] จัดการ error case เมื่อ quota หมด (แสดง contact admin message)

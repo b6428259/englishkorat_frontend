@@ -8,9 +8,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
   bulkApproveCancellations,
-  getAllCancellations,
+  getPendingCancellations,
 } from "@/services/api/schedules";
-import { CancellationRequestItem } from "@/types/session-cancellation.types";
+import { PendingCancellationItem } from "@/types/session-cancellation.types";
+import {
+  formatDateReadable,
+  formatDateTime,
+  formatRelativeTime,
+  formatTime,
+} from "@/utils/dateFormatter";
 import { motion } from "framer-motion";
 import {
   AlertCircle,
@@ -22,7 +28,6 @@ import {
   FileText,
   Search,
   User,
-  Users,
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -34,7 +39,7 @@ export default function PendingCancellationsPage() {
   const { hasRole } = useAuth();
   const router = useRouter();
 
-  const [cancellations, setCancellations] = useState<CancellationRequestItem[]>(
+  const [cancellations, setCancellations] = useState<PendingCancellationItem[]>(
     []
   );
   const [isLoading, setIsLoading] = useState(true);
@@ -42,10 +47,9 @@ export default function PendingCancellationsPage() {
   const [isApproving, setIsApproving] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [showReasonModal, setShowReasonModal] = useState(false);
   const [selectedReason, setSelectedReason] = useState<{
-    request: CancellationRequestItem;
+    request: PendingCancellationItem;
   } | null>(null);
 
   const itemsPerPage = 20;
@@ -61,18 +65,11 @@ export default function PendingCancellationsPage() {
   const fetchCancellations = async (page: number = 1) => {
     try {
       setIsLoading(true);
-      const offset = (page - 1) * itemsPerPage;
-      const response = await getAllCancellations({
-        status: "pending",
-        offset,
-        limit: itemsPerPage,
-      });
 
-      setCancellations(response.requests || []);
-      const calculatedTotalPages = Math.ceil(
-        (response.pagination?.total || 0) / itemsPerPage
-      );
-      setTotalPages(calculatedTotalPages);
+      // ⚠️ NEW API: /schedules/sessions/pending-cancellations (no pagination)
+      const response = await getPendingCancellations();
+
+      setCancellations(response.pending_cancellations || []);
       setCurrentPage(page);
     } catch (error) {
       console.error("Failed to fetch cancellations:", error);
@@ -85,16 +82,37 @@ export default function PendingCancellationsPage() {
 
   useEffect(() => {
     if (hasRole(["admin", "owner"])) {
-      fetchCancellations(currentPage);
+      fetchCancellations(1); // Always fetch page 1, pagination is client-side
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage]);
+  }, []); // Fetch once on mount
+
+  // Calculate filtered and paginated data BEFORE using it in handlers
+  const filteredCancellations = (cancellations || []).filter((cancellation) => {
+    if (!searchTerm) return true;
+    const search = searchTerm.toLowerCase();
+    const teacherName = cancellation.assigned_teacher?.username || "";
+    return (
+      teacherName.toLowerCase().includes(search) ||
+      cancellation.schedule_name?.toLowerCase().includes(search) ||
+      cancellation.cancelling_reason?.toLowerCase().includes(search)
+    );
+  });
+
+  // Client-side pagination (since API returns all items)
+  const totalPages = Math.ceil(
+    (filteredCancellations?.length || 0) / itemsPerPage
+  );
+  const paginatedCancellations = (filteredCancellations || []).slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const handleSelectAll = () => {
-    if (selectedIds.length === filteredCancellations.length) {
+    if (selectedIds.length === (paginatedCancellations?.length || 0)) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(filteredCancellations.map((c) => c.session_id));
+      setSelectedIds((paginatedCancellations || []).map((c) => c.id));
     }
   };
 
@@ -175,32 +193,12 @@ export default function PendingCancellationsPage() {
     }
   };
 
-  const filteredCancellations = (cancellations || []).filter((cancellation) => {
-    if (!searchTerm) return true;
-    const search = searchTerm.toLowerCase();
-    return (
-      cancellation.teacher_name?.toLowerCase().includes(search) ||
-      cancellation.students?.some((s) => s.name?.toLowerCase().includes(search))
-    );
-  });
-
   const isUrgent = (requestedAt: string) => {
     const requested = new Date(requestedAt);
     const now = new Date();
     const hoursSinceRequest =
       (now.getTime() - requested.getTime()) / (1000 * 60 * 60);
     return hoursSinceRequest > 23; // Urgent if requested more than 23 hours ago
-  };
-
-  const formatDateTime = (dateTime: string) => {
-    const date = new Date(dateTime);
-    return date.toLocaleString(language === "th" ? "th-TH" : "en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
   };
 
   if (!hasRole(["admin", "owner"])) {
@@ -214,16 +212,18 @@ export default function PendingCancellationsPage() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white px-8 py-10 shadow-lg"
+          className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10 shadow-lg"
         >
           <div className="max-w-7xl mx-auto">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-                  <CheckCircle className="h-10 w-10" />
-                  {t.approveCancellationRequestsTitle}
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 flex items-center gap-2 sm:gap-3">
+                  <CheckCircle className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10" />
+                  <span className="break-words">
+                    {t.approveCancellationRequestsTitle}
+                  </span>
                 </h1>
-                <p className="text-indigo-100 text-lg">
+                <p className="text-indigo-100 text-sm sm:text-base lg:text-lg">
                   {t.approveCancellationRequestsSubtitle}
                 </p>
               </div>
@@ -232,9 +232,9 @@ export default function PendingCancellationsPage() {
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="bg-white/20 backdrop-blur-sm px-6 py-3 rounded-lg"
+                  className="bg-white/20 backdrop-blur-sm px-4 sm:px-6 py-2 sm:py-3 rounded-lg w-full sm:w-auto"
                 >
-                  <div className="text-sm font-medium">
+                  <div className="text-sm font-medium text-center sm:text-left">
                     {t.selectedItemsCount}: {selectedIds.length}{" "}
                     {language === "th" ? "รายการ" : "items"}
                   </div>
@@ -245,32 +245,32 @@ export default function PendingCancellationsPage() {
         </motion.div>
 
         {/* Content */}
-        <div className="max-w-7xl mx-auto px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           {/* Actions Bar */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-xl shadow-md p-6 mb-6"
+            className="bg-white rounded-xl shadow-md p-4 sm:p-6 mb-4 sm:mb-6"
           >
-            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+            <div className="flex flex-col gap-4">
               {/* Search */}
-              <div className="relative flex-1 max-w-md">
+              <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder={t.searchByTeacherOrStudent}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base"
                 />
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-3 flex-wrap">
+              <div className="flex gap-2 sm:gap-3 flex-wrap">
                 <Button
                   onClick={handleSelectAll}
                   variant="cancel"
-                  className="px-4 py-2.5 text-sm"
+                  className="px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm flex-1 sm:flex-none"
                   disabled={filteredCancellations.length === 0}
                 >
                   {selectedIds.length === filteredCancellations.length
@@ -282,7 +282,7 @@ export default function PendingCancellationsPage() {
                   onClick={handleBulkApprove}
                   disabled={selectedIds.length === 0 || isApproving}
                   variant="monthViewClicked"
-                  className="px-6 py-2.5 text-sm font-semibold shadow-md hover:shadow-lg transition-all"
+                  className="px-4 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold shadow-md hover:shadow-lg transition-all flex-1 sm:flex-none"
                 >
                   {isApproving ? (
                     <>
@@ -328,7 +328,8 @@ export default function PendingCancellationsPage() {
               animate={{ opacity: 1, y: 0 }}
               className="bg-white rounded-xl shadow-md overflow-hidden"
             >
-              <div className="overflow-x-auto">
+              {/* Desktop Table View */}
+              <div className="hidden lg:block overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gradient-to-r from-indigo-50 to-purple-50">
                     <tr>
@@ -354,7 +355,7 @@ export default function PendingCancellationsPage() {
                         {t.requestedAt}
                       </th>
                       <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                        {t.students}
+                        {language === "th" ? "โควต้า/สถานะ" : "Quota/Status"}
                       </th>
                       <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
                         {t.reason}
@@ -365,142 +366,285 @@ export default function PendingCancellationsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {filteredCancellations.map((cancellation, index) => (
-                      <motion.tr
-                        key={cancellation.session_id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className={`hover:bg-indigo-50/50 transition-colors ${
-                          selectedIds.includes(cancellation.session_id)
-                            ? "bg-indigo-50"
-                            : ""
-                        }`}
-                      >
-                        <td className="px-6 py-4">
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.includes(
-                              cancellation.session_id
-                            )}
-                            onChange={() =>
-                              handleSelectItem(cancellation.session_id)
-                            }
-                            className="h-4 w-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
-                          />
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-col gap-1">
-                            <div className="font-medium text-gray-900">
-                              #{cancellation.session_id}
+                    {(paginatedCancellations || []).map(
+                      (cancellation, index) => (
+                        <motion.tr
+                          key={cancellation.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          className={`hover:bg-indigo-50/50 transition-colors ${
+                            selectedIds.includes(cancellation.id)
+                              ? "bg-indigo-50"
+                              : ""
+                          }`}
+                        >
+                          <td className="px-6 py-4">
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.includes(cancellation.id)}
+                              onChange={() => handleSelectItem(cancellation.id)}
+                              className="h-4 w-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                            />
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col gap-1">
+                              <div className="font-medium text-gray-900">
+                                #{cancellation.id}
+                              </div>
+                              <div className="text-sm text-gray-600 flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {formatDateReadable(
+                                  cancellation.session_date,
+                                  language
+                                )}
+                              </div>
+                              <div className="text-sm text-gray-600 flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {formatTime(cancellation.start_time)} -{" "}
+                                {formatTime(cancellation.end_time)}
+                              </div>
+                              {isUrgent(
+                                cancellation.cancellation_requested_at
+                              ) && (
+                                <Badge className="bg-red-100 text-red-800 border-red-300 w-fit">
+                                  <AlertCircle className="h-3 w-3 mr-1" />
+                                  {t.urgentRequest}
+                                </Badge>
+                              )}
                             </div>
-                            <div className="text-sm text-gray-600 flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {cancellation.session_date}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4 text-gray-400" />
+                              <span className="text-sm text-gray-900">
+                                {cancellation.assigned_teacher?.username ||
+                                  "N/A"}
+                              </span>
                             </div>
-                            <div className="text-sm text-gray-600 flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {cancellation.start_time} -{" "}
-                              {cancellation.end_time}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col gap-1">
+                              <div className="text-sm text-gray-900 font-medium">
+                                {formatRelativeTime(
+                                  cancellation.cancellation_requested_at,
+                                  language
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {formatDateTime(
+                                  cancellation.cancellation_requested_at,
+                                  language
+                                )}
+                              </div>
                             </div>
-                            {isUrgent(cancellation.requested_at) && (
-                              <Badge className="bg-red-100 text-red-800 border-red-300 w-fit">
-                                <AlertCircle className="h-3 w-3 mr-1" />
-                                {t.urgentRequest}
-                              </Badge>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-900">
-                              {cancellation.teacher_name || "N/A"}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-600">
-                            {formatDateTime(cancellation.requested_at)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm font-medium text-gray-900">
-                              {cancellation.students.length}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {language === "th" ? "คน" : "students"}
-                            </span>
-                          </div>
-                          {cancellation.students.slice(0, 2).map((student) => (
-                            <div
-                              key={student.id}
-                              className="text-xs text-gray-600 ml-6"
-                            >
-                              {student.name}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-gray-900">
+                                  {cancellation.schedule_makeup_remaining}/
+                                  {cancellation.schedule_makeup_quota}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {language === "th" ? "โควต้า" : "quota"}
+                                </span>
+                              </div>
+                              {cancellation.can_create_makeup_after_approval && (
+                                <div className="text-xs text-green-600 flex items-center gap-1">
+                                  <CheckCircle className="h-3 w-3" />
+                                  {language === "th"
+                                    ? "สามารถสร้าง makeup"
+                                    : "Can create makeup"}
+                                </div>
+                              )}
+                              <div className="text-xs text-gray-500">
+                                {cancellation.hours_since_request}h{" "}
+                                {language === "th" ? "ที่แล้ว" : "ago"}
+                              </div>
                             </div>
-                          ))}
-                          {cancellation.students.length > 2 && (
-                            <div className="text-xs text-indigo-600 ml-6">
-                              +{cancellation.students.length - 2}{" "}
-                              {language === "th" ? "เพิ่มเติม" : "more"}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <Button
-                            onClick={() => {
-                              setSelectedReason({ request: cancellation });
-                              setShowReasonModal(true);
-                            }}
-                            variant="cancel"
-                            className="px-3 py-1.5 text-xs"
-                          >
-                            <FileText className="h-3 w-3 mr-1" />
-                            {t.viewReason}
-                          </Button>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex justify-center">
+                          </td>
+                          <td className="px-6 py-4">
                             <Button
-                              onClick={() =>
-                                handleApproveSingle(cancellation.session_id)
-                              }
-                              disabled={isApproving}
-                              variant="monthViewClicked"
-                              className="px-4 py-2 text-sm shadow-sm hover:shadow-md transition-all"
+                              onClick={() => {
+                                setSelectedReason({ request: cancellation });
+                                setShowReasonModal(true);
+                              }}
+                              variant="cancel"
+                              className="px-3 py-1.5 text-xs"
                             >
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              {t.approve}
+                              <FileText className="h-3 w-3 mr-1" />
+                              {t.viewReason}
                             </Button>
-                          </div>
-                        </td>
-                      </motion.tr>
-                    ))}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex justify-center">
+                              <Button
+                                onClick={() =>
+                                  handleApproveSingle(cancellation.id)
+                                }
+                                disabled={isApproving}
+                                variant="monthViewClicked"
+                                className="px-4 py-2 text-sm shadow-sm hover:shadow-md transition-all"
+                              >
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                {t.approve}
+                              </Button>
+                            </div>
+                          </td>
+                        </motion.tr>
+                      )
+                    )}
                   </tbody>
                 </table>
               </div>
 
+              {/* Mobile Card View */}
+              <div className="lg:hidden divide-y divide-gray-200">
+                {(paginatedCancellations || []).map((cancellation, index) => (
+                  <motion.div
+                    key={cancellation.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className={`p-4 ${
+                      selectedIds.includes(cancellation.id)
+                        ? "bg-indigo-50"
+                        : "hover:bg-gray-50"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-start gap-3 flex-1">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(cancellation.id)}
+                          onChange={() => handleSelectItem(cancellation.id)}
+                          className="mt-1 h-4 w-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <div className="flex-1">
+                          <div className="font-semibold text-gray-900 mb-1">
+                            #{cancellation.id} - {cancellation.schedule_name}
+                          </div>
+                          <div className="text-sm text-gray-600 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4" />
+                              <span>
+                                {formatDateReadable(
+                                  cancellation.session_date,
+                                  language
+                                )}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4" />
+                              <span>
+                                {formatTime(cancellation.start_time)} -{" "}
+                                {formatTime(cancellation.end_time)}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4" />
+                              <span>
+                                {cancellation.assigned_teacher?.username ||
+                                  "N/A"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      {isUrgent(cancellation.cancellation_requested_at) && (
+                        <Badge className="bg-red-100 text-red-800 border-red-300 text-xs">
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                          {language === "th" ? "ด่วน" : "Urgent"}
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="space-y-2 mb-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">{t.requestedAt}:</span>
+                        <div className="text-right">
+                          <div className="font-medium text-gray-900">
+                            {formatRelativeTime(
+                              cancellation.cancellation_requested_at,
+                              language
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {formatDateTime(
+                              cancellation.cancellation_requested_at,
+                              language
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">
+                          {language === "th" ? "โควต้า Makeup" : "Makeup Quota"}
+                          :
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-900">
+                            {cancellation.schedule_makeup_remaining}/
+                            {cancellation.schedule_makeup_quota}
+                          </span>
+                          {cancellation.can_create_makeup_after_approval && (
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-start justify-between text-sm">
+                        <span className="text-gray-600">{t.reason}:</span>
+                        <button
+                          onClick={() => {
+                            setSelectedReason({ request: cancellation });
+                            setShowReasonModal(true);
+                          }}
+                          className="text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
+                        >
+                          <span className="text-right line-clamp-2 max-w-[200px]">
+                            {cancellation.cancelling_reason}
+                          </span>
+                          <FileText className="h-4 w-4 flex-shrink-0" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => handleApproveSingle(cancellation.id)}
+                        disabled={isApproving}
+                        variant="monthViewClicked"
+                        className="flex-1 py-2 text-sm"
+                      >
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        {t.approve}
+                      </Button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-                  <div className="flex items-center justify-between">
+                <div className="px-4 sm:px-6 py-4 bg-gray-50 border-t border-gray-200">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
                     <div className="text-sm text-gray-600">
                       {t.page} {currentPage} {t.of} {totalPages}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 w-full sm:w-auto">
                       <Button
                         onClick={() =>
                           setCurrentPage((p) => Math.max(1, p - 1))
                         }
                         disabled={currentPage === 1}
                         variant="cancel"
-                        className="px-3 py-2"
+                        className="px-3 py-2 flex-1 sm:flex-none text-sm"
                       >
-                        <ChevronLeft className="h-4 w-4 mr-1" />
-                        {t.previous}
+                        <ChevronLeft className="h-4 w-4 sm:mr-1" />
+                        <span className="hidden sm:inline">{t.previous}</span>
                       </Button>
                       <Button
                         onClick={() =>
@@ -508,10 +652,10 @@ export default function PendingCancellationsPage() {
                         }
                         disabled={currentPage === totalPages}
                         variant="cancel"
-                        className="px-3 py-2"
+                        className="px-3 py-2 flex-1 sm:flex-none text-sm"
                       >
-                        {t.next}
-                        <ChevronRight className="h-4 w-4 ml-1" />
+                        <span className="hidden sm:inline">{t.next}</span>
+                        <ChevronRight className="h-4 w-4 sm:ml-1" />
                       </Button>
                     </div>
                   </div>
@@ -524,15 +668,15 @@ export default function PendingCancellationsPage() {
 
       {/* Reason Modal */}
       {showReasonModal && selectedReason && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden"
+            className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
           >
-            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white px-6 py-5">
+            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white px-4 sm:px-6 py-4 sm:py-5 sticky top-0 z-10">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold flex items-center gap-2">
+                <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2">
                   <FileText className="h-5 w-5" />
                   {t.cancellationReason}
                 </h3>
@@ -547,24 +691,45 @@ export default function PendingCancellationsPage() {
                 </button>
               </div>
             </div>
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <div className="space-y-4">
-                <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="bg-indigo-50 p-3 sm:p-4 rounded-lg border border-indigo-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
                     <div>
                       <p className="text-gray-600 font-medium">
                         {t.session} ID
                       </p>
                       <p className="text-gray-900 font-semibold">
-                        #{selectedReason.request.session_id}
+                        #{selectedReason.request.id}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600 font-medium">{t.teacher}</p>
+                      <p className="text-gray-900 font-semibold break-words">
+                        {selectedReason.request.assigned_teacher?.username ||
+                          "N/A"}
                       </p>
                     </div>
                     <div>
                       <p className="text-gray-600 font-medium">
                         {t.requestedBy}
                       </p>
+                      <p className="text-gray-900 font-semibold break-words">
+                        {selectedReason.request.requested_by?.name} (
+                        {selectedReason.request.requested_by?.role})
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600 font-medium">
+                        {language === "th" ? "โควต้า Makeup" : "Makeup Quota"}
+                      </p>
                       <p className="text-gray-900 font-semibold">
-                        {selectedReason.request.teacher_name || "N/A"}
+                        {selectedReason.request.schedule_makeup_remaining}/
+                        {selectedReason.request.schedule_makeup_quota}
+                        {selectedReason.request
+                          .can_create_makeup_after_approval && (
+                          <span className="ml-2 text-green-600 text-xs">✓</span>
+                        )}
                       </p>
                     </div>
                     <div>
@@ -572,7 +737,10 @@ export default function PendingCancellationsPage() {
                         {language === "th" ? "วันที่" : "Date"}
                       </p>
                       <p className="text-gray-900 font-semibold">
-                        {selectedReason.request.session_date}
+                        {formatDateReadable(
+                          selectedReason.request.session_date,
+                          language
+                        )}
                       </p>
                     </div>
                     <div>
@@ -580,8 +748,8 @@ export default function PendingCancellationsPage() {
                         {language === "th" ? "เวลา" : "Time"}
                       </p>
                       <p className="text-gray-900 font-semibold">
-                        {selectedReason.request.start_time} -{" "}
-                        {selectedReason.request.end_time}
+                        {formatTime(selectedReason.request.start_time)} -{" "}
+                        {formatTime(selectedReason.request.end_time)}
                       </p>
                     </div>
                   </div>
@@ -591,57 +759,59 @@ export default function PendingCancellationsPage() {
                   <label className="block text-sm font-semibold text-gray-900 mb-2">
                     {t.reason}
                   </label>
-                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 min-h-[120px]">
-                    <p className="text-gray-800 whitespace-pre-wrap">
-                      {selectedReason.request.reason}
+                  <div className="bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-200 min-h-[100px] sm:min-h-[120px]">
+                    <p className="text-gray-800 whitespace-pre-wrap text-sm sm:text-base">
+                      {selectedReason.request.cancelling_reason}
                     </p>
                   </div>
                 </div>
 
-                {selectedReason.request.students.length > 0 && (
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">
-                      {t.affectedStudents} (
-                      {selectedReason.request.students.length})
-                    </label>
-                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 max-h-40 overflow-y-auto">
-                      <div className="space-y-2">
-                        {selectedReason.request.students.map((student) => (
-                          <div
-                            key={student.id}
-                            className="flex items-center justify-between py-2 px-3 bg-white rounded-lg"
-                          >
-                            <span className="text-sm text-gray-900">
-                              {student.name}
-                            </span>
-                          </div>
-                        ))}
+                <div className="bg-amber-50 p-3 sm:p-4 rounded-lg border border-amber-200">
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 space-y-2">
+                      <p className="text-sm font-medium text-amber-900">
+                        {language === "th" ? "ข้อมูลเวลา" : "Time Information"}
+                      </p>
+                      <div className="space-y-1 text-sm text-amber-700">
+                        <p className="font-medium">
+                          {formatRelativeTime(
+                            selectedReason.request.cancellation_requested_at,
+                            language
+                          )}
+                        </p>
+                        <p className="text-xs">
+                          {formatDateTime(
+                            selectedReason.request.cancellation_requested_at,
+                            language
+                          )}
+                        </p>
                       </div>
                     </div>
                   </div>
-                )}
+                </div>
               </div>
 
-              <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-200">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end mt-6 pt-4 border-t border-gray-200">
                 <Button
                   onClick={() => {
                     setShowReasonModal(false);
                     setSelectedReason(null);
                   }}
                   variant="cancel"
-                  className="px-6 py-2.5"
+                  className="px-6 py-2.5 w-full sm:w-auto"
                 >
                   {t.close}
                 </Button>
                 <Button
                   onClick={() => {
-                    handleApproveSingle(selectedReason.request.session_id);
+                    handleApproveSingle(selectedReason.request.id);
                     setShowReasonModal(false);
                     setSelectedReason(null);
                   }}
                   disabled={isApproving}
                   variant="monthViewClicked"
-                  className="px-6 py-2.5"
+                  className="px-6 py-2.5 w-full sm:w-auto"
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
                   {t.approve}

@@ -38,8 +38,16 @@ import {
   validateSessionForm,
 } from "@/utils/scheduleValidation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Search, Users, X } from "lucide-react";
+import {
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  Users,
+  X,
+} from "lucide-react";
 import dynamic from "next/dynamic";
+import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { SessionDetailModal } from "./components";
 import CompactDayViewModal from "./components/CompactDayViewModal";
@@ -732,7 +740,19 @@ const timeSlots = Array.from({ length: (22 - 8) * 2 + 1 }, (_, i) => {
 export default function SchedulePage() {
   const { t, language } = useLanguage();
   const { user } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [density] = useState<"comfortable" | "compact">("comfortable");
+
+  // Check if we're in selection mode for makeup
+  const selectMode = searchParams.get("selectMode");
+  const sessionIdParam = searchParams.get("sessionId");
+  const selectedTeacherIdParam = searchParams.get("teacherId");
+  const selectedTeacherName = searchParams.get("teacherName");
+  const isSelectionMode = selectMode === "makeup" && sessionIdParam;
+  const highlightTeacherId = selectedTeacherIdParam
+    ? Number(selectedTeacherIdParam)
+    : null;
 
   // State management
   const [viewMode, setViewMode] = useState<"day" | "week" | "month">("day");
@@ -1385,6 +1405,18 @@ export default function SchedulePage() {
       "timeSlot.minute:",
       timeSlot.minute
     );
+
+    // If in selection mode, navigate back with selected date and time
+    if (isSelectionMode) {
+      const formattedDate = currentDate; // Already in YYYY-MM-DD format
+      const formattedTime = `${timeSlot.hour
+        .toString()
+        .padStart(2, "0")}:${timeSlot.minute.toString().padStart(2, "0")}`;
+      router.push(
+        `/dashboard/makeup-needed?selectedDate=${formattedDate}&selectedTime=${formattedTime}&sessionId=${sessionIdParam}`
+      );
+      return;
+    }
 
     // Validate teacher ID
     if (!_teacherId || _teacherId <= 0) {
@@ -2067,6 +2099,55 @@ export default function SchedulePage() {
   return (
     <SidebarLayout breadcrumbItems={[{ label: t.schedule }]}>
       <div className="h-full flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100">
+        {/* Selection Mode Banner */}
+        {isSelectionMode && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-r from-blue-100 to-indigo-100 border-2 border-blue-300 rounded-lg p-4 mb-3 shadow-lg"
+          >
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-1">
+                <AlertCircle className="h-6 w-6 text-blue-600 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="font-semibold text-blue-900 flex items-center gap-2">
+                    🎯{" "}
+                    {language === "th"
+                      ? "โหมดเลือกวันที่สำหรับ Makeup Class"
+                      : "Date Selection Mode for Makeup Class"}
+                    {selectedTeacherName && (
+                      <span className="px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-bold">
+                        {decodeURIComponent(selectedTeacherName)}
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-sm text-blue-700 mt-1">
+                    {language === "th"
+                      ? selectedTeacherName
+                        ? `คลิกที่ช่องว่างในคอลัมน์ของ ${decodeURIComponent(
+                            selectedTeacherName
+                          )} เพื่อเลือกวันที่และเวลา`
+                        : "คลิกที่ช่องว่างในปฏิทินเพื่อเลือกวันที่ต้องการ"
+                      : selectedTeacherName
+                      ? `Click on an empty cell in ${decodeURIComponent(
+                          selectedTeacherName
+                        )}'s column to select date & time`
+                      : "Click on an empty cell in the calendar to select a date"}
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => router.push("/dashboard/makeup-needed")}
+                variant="outline"
+                className="bg-white hover:bg-gray-50 text-blue-600 border-blue-300 flex-shrink-0"
+              >
+                <X className="h-4 w-4 mr-2" />
+                {language === "th" ? "ยกเลิก" : "Cancel"}
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Header Section - Responsive */}
         <div className="bg-white rounded-lg sm:rounded-xl shadow-md sm:shadow-lg mb-2 sm:mb-3 flex-shrink-0 border border-gray-200 p-3 sm:p-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 mb-3 sm:mb-4">
@@ -2834,32 +2915,45 @@ export default function SchedulePage() {
                         <tr className="relative h-[14px] sm:h-[16px]">
                           {filteredTeachers.length > 0 &&
                             teachersByBranch.map(([, teachers]) =>
-                              teachers.map((teacher) => (
-                                <th
-                                  key={teacher.id}
-                                  className="
+                              teachers.map((teacher) => {
+                                const isHighlighted =
+                                  highlightTeacherId &&
+                                  teacher.id === highlightTeacherId;
+                                return (
+                                  <th
+                                    key={teacher.id}
+                                    className={`
                                     sticky top-[16px] sm:top-[18px]
                                     text-center font-bold text-white
                                     border border-gray-300
-                                    text-[6px] sm:text-[7px] w-[40px] sm:w-[45px]
-                                    bg-gradient-to-br from-indigo-600 to-purple-700
+                                    text-[7px] sm:text-[8px] w-[40px] sm:w-[45px]
                                     px-0
-                                  "
-                                >
-                                  <div
-                                    className="p-0.5 truncate"
-                                    title={
-                                      teacher.name.nickname_en ||
-                                      teacher.name.first_en
+                                    ${
+                                      isHighlighted
+                                        ? "bg-gradient-to-br from-blue-500 to-indigo-600 ring-2 ring-blue-400 z-10 shadow-lg"
+                                        : "bg-gradient-to-br from-indigo-600 to-purple-700"
                                     }
+                                  `}
                                   >
-                                    {(
-                                      teacher.name.nickname_en ||
-                                      teacher.name.first_en
-                                    ).substring(0, 5)}
-                                  </div>
-                                </th>
-                              ))
+                                    <div
+                                      className={`p-0.5 truncate ${
+                                        isHighlighted
+                                          ? "font-extrabold text-[8px] sm:text-[9px]"
+                                          : ""
+                                      }`}
+                                      title={
+                                        teacher.name.nickname_en ||
+                                        teacher.name.first_en
+                                      }
+                                    >
+                                      {(
+                                        teacher.name.nickname_en ||
+                                        teacher.name.first_en
+                                      ).substring(0, isHighlighted ? 8 : 5)}
+                                    </div>
+                                  </th>
+                                );
+                              })
                             )}
                         </tr>
                       </thead>
@@ -3066,13 +3160,19 @@ export default function SchedulePage() {
                                     dropTarget?.timeSlot.minute ===
                                       timeSlot.minute;
 
+                                  const isHighlightedColumn =
+                                    highlightTeacherId &&
+                                    teacher.id === highlightTeacherId;
+
                                   return (
                                     <td
                                       key={teacher.id}
-                                      className={`border border-gray-300 transition-all duration-200 ${
+                                      className={`border transition-all duration-200 ${
                                         isDropTarget
                                           ? "bg-blue-100 border-blue-400"
-                                          : "bg-white hover:bg-gray-50"
+                                          : isHighlightedColumn
+                                          ? "bg-blue-50/30 hover:bg-blue-100/40 border-l-4 border-r-4 border-l-blue-400 border-r-blue-400 border-t-gray-300 border-b-gray-300"
+                                          : "bg-white hover:bg-gray-50 border-gray-300"
                                       } cursor-pointer`}
                                       onClick={() =>
                                         handleEmptyCellClick(
@@ -3104,8 +3204,20 @@ export default function SchedulePage() {
                                         </motion.div>
                                       ) : (
                                         <div className="w-full h-5 flex items-center justify-center">
-                                          <div className="w-3 h-3 rounded-full bg-gray-100 hover:bg-blue-100 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200">
-                                            <span className="text-[7px] text-gray-400 hover:text-blue-600">
+                                          <div
+                                            className={`w-3 h-3 rounded-full flex items-center justify-center transition-all duration-200 ${
+                                              isHighlightedColumn
+                                                ? "bg-blue-100 opacity-30 hover:opacity-50"
+                                                : "bg-gray-100 hover:bg-blue-100 opacity-0 hover:opacity-100"
+                                            }`}
+                                          >
+                                            <span
+                                              className={`text-[7px] ${
+                                                isHighlightedColumn
+                                                  ? "text-blue-600"
+                                                  : "text-gray-400 hover:text-blue-600"
+                                              }`}
+                                            >
                                               +
                                             </span>
                                           </div>

@@ -18,7 +18,8 @@ import {
   Save,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
 interface CreateMakeupModalProps {
@@ -28,6 +29,8 @@ interface CreateMakeupModalProps {
   sessionDate: string;
   sessionTime: string;
   scheduleName: string;
+  teacherId?: number | null;
+  teacherName?: string;
   // Quota info
   makeupQuota?: number;
   makeupRemaining?: number;
@@ -42,12 +45,15 @@ export default function CreateMakeupModal({
   sessionDate,
   sessionTime,
   scheduleName,
+  teacherId,
+  teacherName,
   makeupQuota = 2,
   makeupRemaining = 0,
   makeupUsed = 0,
   onSuccess,
 }: Readonly<CreateMakeupModalProps>) {
   const { language } = useLanguage();
+  const router = useRouter();
 
   const [formData, setFormData] = useState<{
     new_session_date: string;
@@ -62,6 +68,39 @@ export default function CreateMakeupModal({
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Check if we're returning from schedule selection
+  useEffect(() => {
+    if (isOpen) {
+      // Check URL params first
+      const params = new URLSearchParams(globalThis.location.search);
+      const selectedDate = params.get("selectedDate");
+      const selectedTime = params.get("selectedTime");
+
+      // Check sessionStorage for prefilled date and time
+      const prefilledDate = sessionStorage.getItem("prefilledDate");
+      const prefilledTime = sessionStorage.getItem("prefilledTime");
+
+      if (selectedDate) {
+        setFormData((prev) => ({
+          ...prev,
+          new_session_date: selectedDate,
+          new_start_time: selectedTime || prev.new_start_time,
+        }));
+        // Clean up URL
+        globalThis.history.replaceState({}, "", globalThis.location.pathname);
+      } else if (prefilledDate) {
+        setFormData((prev) => ({
+          ...prev,
+          new_session_date: prefilledDate,
+          new_start_time: prefilledTime || prev.new_start_time,
+        }));
+        // Clean up sessionStorage
+        sessionStorage.removeItem("prefilledDate");
+        sessionStorage.removeItem("prefilledTime");
+      }
+    }
+  }, [isOpen]);
 
   const translations = {
     th: {
@@ -231,25 +270,27 @@ export default function CreateMakeupModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Calendar className="h-6 w-6 text-blue-600" />
+          <DialogTitle className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+            <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
             {t.title}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 mt-4">
+        <div className="space-y-4 sm:space-y-6 mt-3 sm:mt-4">
           {/* Original Session Info */}
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <div className="bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-200">
+            <h3 className="font-semibold text-gray-900 mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
               <FileText className="h-4 w-4 text-gray-600" />
               {t.originalSession}
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
               <div>
                 <span className="text-gray-600">{t.scheduleName}:</span>
-                <p className="font-medium text-gray-900">{scheduleName}</p>
+                <p className="font-medium text-gray-900 break-words">
+                  {scheduleName}
+                </p>
               </div>
               <div>
                 <span className="text-gray-600">{t.sessionDate}:</span>
@@ -263,12 +304,14 @@ export default function CreateMakeupModal({
           </div>
 
           {/* Quota Info */}
-          <div className={`p-4 rounded-lg border-2 ${getQuotaBorderClass()}`}>
-            <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+          <div
+            className={`p-3 sm:p-4 rounded-lg border-2 ${getQuotaBorderClass()}`}
+          >
+            <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2 text-sm sm:text-base">
               <AlertCircle className={`h-4 w-4 ${getQuotaIconClass()}`} />
               {t.quotaInfo}
             </h3>
-            <div className="flex items-center gap-4 text-sm">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm">
               <div>
                 <span className="text-gray-600">{t.remaining}:</span>
                 <span className="font-bold ml-1">{makeupRemaining}</span>
@@ -295,33 +338,97 @@ export default function CreateMakeupModal({
           </div>
 
           {/* New Session Form */}
-          <div className="space-y-4">
-            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+          <div className="space-y-3 sm:space-y-4">
+            <h3 className="font-semibold text-gray-900 flex items-center gap-2 text-sm sm:text-base">
               <Calendar className="h-4 w-4 text-blue-600" />
               {t.newSession}
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   {t.newDate} <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="date"
-                  value={formData.new_session_date}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      new_session_date: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  disabled={isSubmitting || !hasQuota}
-                />
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="date"
+                    value={formData.new_session_date}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        new_session_date: e.target.value,
+                      })
+                    }
+                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled={isSubmitting || !hasQuota}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const params = new URLSearchParams({
+                        selectMode: "makeup",
+                        sessionId: sessionId.toString(),
+                      });
+                      if (teacherId) {
+                        params.set("teacherId", teacherId.toString());
+                      }
+                      if (teacherName) {
+                        params.set(
+                          "teacherName",
+                          encodeURIComponent(teacherName)
+                        );
+                      }
+                      router.push(`/schedule?${params.toString()}`);
+                    }}
+                    className="w-full sm:w-auto px-3 py-2 text-sm bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-1 whitespace-nowrap"
+                    disabled={isSubmitting || !hasQuota}
+                    title={
+                      language === "th"
+                        ? "เลือกจาก Schedule"
+                        : "Select from Schedule"
+                    }
+                  >
+                    <Calendar className="h-4 w-4" />
+                    <span className="sm:hidden">
+                      {language === "th" ? "เลือกจากปฏิทิน" : "From Calendar"}
+                    </span>
+                    <span className="hidden sm:inline">
+                      {language === "th"
+                        ? "เลือกจาก Schedule"
+                        : "Select from Schedule"}
+                    </span>
+                  </button>
+                </div>
+                {formData.new_session_date && (
+                  <p className="text-xs sm:text-sm text-green-600 mt-2 flex items-center gap-1 bg-green-50 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-green-200">
+                    <span className="text-sm sm:text-base">✓</span>
+                    <span className="font-medium break-words">
+                      {language === "th"
+                        ? `เลือกวันที่: ${new Date(
+                            formData.new_session_date
+                          ).toLocaleDateString("th-TH", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}`
+                        : `Selected: ${new Date(
+                            formData.new_session_date
+                          ).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}`}
+                      {formData.new_start_time &&
+                        ` ${language === "th" ? "เวลา" : "at"} ${
+                          formData.new_start_time
+                        } ${language === "th" ? "น." : ""}`}
+                    </span>
+                  </p>
+                )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   {t.newTime} <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -330,14 +437,14 @@ export default function CreateMakeupModal({
                   onChange={(e) =>
                     setFormData({ ...formData, new_start_time: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   disabled={isSubmitting || !hasQuota}
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 {t.status} <span className="text-red-500">*</span>
               </label>
               <select
@@ -351,7 +458,7 @@ export default function CreateMakeupModal({
                       | "no-show",
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={isSubmitting || !hasQuota}
               >
                 <option value="cancelled">{t.cancelled}</option>
@@ -361,7 +468,7 @@ export default function CreateMakeupModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 {t.reason} <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -373,7 +480,7 @@ export default function CreateMakeupModal({
                     cancelling_reason: e.target.value,
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 placeholder={t.reasonPlaceholder}
                 disabled={isSubmitting || !hasQuota}
               />
@@ -381,12 +488,12 @@ export default function CreateMakeupModal({
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4 border-t border-gray-200">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-gray-200">
             <Button
               variant="cancel"
               onClick={onClose}
               disabled={isSubmitting}
-              className="flex-1"
+              className="flex-1 text-sm sm:text-base py-2 sm:py-2.5"
             >
               <X className="h-4 w-4 mr-2" />
               {t.cancel}
@@ -395,7 +502,7 @@ export default function CreateMakeupModal({
               variant="monthViewClicked"
               onClick={handleSubmit}
               disabled={isSubmitting || !hasQuota}
-              className="flex-1"
+              className="flex-1 text-sm sm:text-base py-2 sm:py-2.5"
             >
               {isSubmitting ? (
                 <>

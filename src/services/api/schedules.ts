@@ -2588,6 +2588,7 @@ import type {
   DashboardStatsParams,
   DashboardStatsResponse,
   MakeupNeededResponse,
+  PendingCancellationsResponse,
   ScheduleCancellationStatusResponse,
   UndoCancellationResponse,
   UpdateMakeupQuotaRequest,
@@ -2654,7 +2655,7 @@ export const bulkApproveCancellations = async (
   request: BulkApproveCancellationRequest
 ): Promise<BulkApproveCancellationResponse> => {
   const response = await api.post(
-    `/schedules/cancellations/bulk-approve`,
+    `/schedules/sessions/bulk-approve-cancellation`,
     request
   );
   return response.data;
@@ -2686,6 +2687,21 @@ export const getScheduleCancellationStatus = async (
 };
 
 /**
+ * Get pending cancellation requests for admin approval (Admin only)
+ * GET /api/schedules/sessions/pending-cancellations
+ * Permissions: Admin, Owner
+ *
+ * ⚠️ NEW ENDPOINT (2025-10-24): Replaces /schedules/cancellations/all?status=pending
+ * Returns sessions with status="cancellation_pending" waiting for admin approval
+ */
+export const getPendingCancellations =
+  async (): Promise<PendingCancellationsResponse> => {
+    const response = await api.get(`/schedules/sessions/pending-cancellations`);
+    return response.data;
+  };
+
+/**
+ * @deprecated Use getPendingCancellations() instead
  * Get all cancellation requests (Admin only)
  * GET /api/schedules/cancellations/all
  * Permissions: Admin, Owner

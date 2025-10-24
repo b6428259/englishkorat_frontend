@@ -87,33 +87,42 @@ export interface BulkApproveCancellationResponse {
 }
 
 export interface MakeupNeededSession {
-  session_id: number;
+  id: number;
   schedule_id: number;
   schedule_name: string;
+  session_number: number;
   session_date: string;
   start_time: string;
   end_time: string;
+  status: string;
   cancelling_reason: string;
-  cancelled_at: string;
-  // Makeup quota fields (Schedule-level, added 2025-01-23)
-  make_up_quota?: number; // Total makeup quota
-  make_up_remaining?: number; // Remaining makeup quota
-  make_up_used?: number; // Used makeup quota
-  group: {
+  cancellation_approved_at: string;
+  assigned_teacher_id: number | null;
+  assigned_teacher: {
     id: number;
-    group_name: string;
-    level: string;
-  };
-  course: {
+    username: string;
+    email: string | null;
+    phone: string;
+    role: string;
+    status: string;
+  } | null;
+  room_id: number | null;
+  room: {
     id: number;
-    course_name: string;
-  };
+    name: string;
+    building: string;
+  } | null;
+  schedule_makeup_quota: number;
+  schedule_makeup_remaining: number;
+  schedule_makeup_used: number;
+  can_create_makeup: boolean;
 }
 
 export interface MakeupNeededResponse {
   success: boolean;
-  sessions_needing_makeup: MakeupNeededSession[];
-  total: number;
+  count: number;
+  message: string;
+  sessions: MakeupNeededSession[];
 }
 
 export interface ScheduleCancellationStatusResponse {
@@ -194,6 +203,54 @@ export interface CancellationRequestItem {
     id: number;
     name: string;
   }>;
+}
+
+// ⚠️ NEW: Type for pending cancellations from /schedules/sessions/pending-cancellations
+export interface PendingCancellationItem {
+  id: number; // session_id
+  schedule_id: number;
+  schedule_name: string;
+  session_number: number;
+  session_date: string;
+  start_time: string;
+  end_time: string;
+  status: SessionStatus;
+  cancelling_reason: string;
+  cancellation_requested_at: string;
+  requested_by_id: number;
+  requested_by: {
+    id: number;
+    name: string;
+    username: string;
+    role: string;
+  };
+  assigned_teacher_id: number | null;
+  assigned_teacher: {
+    id: number;
+    username: string;
+    email: string | null;
+    phone: string;
+    role: string;
+    branch_id: number;
+    status: string;
+  } | null;
+  room_id: number | null;
+  room: {
+    id: number;
+    room_name: string;
+  } | null;
+  hours_since_request: number;
+  schedule_makeup_quota: number;
+  schedule_makeup_remaining: number;
+  schedule_makeup_used: number;
+  can_create_makeup_after_approval: boolean;
+}
+
+export interface PendingCancellationsResponse {
+  success: boolean;
+  count: number;
+  message: string;
+  pending_cancellations: PendingCancellationItem[];
 }
 
 export interface AllCancellationsResponse {
