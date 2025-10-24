@@ -2,7 +2,7 @@
  * TypeScript interfaces for sidebar components
  */
 
-import { ReactNode } from 'react';
+import { ReactNode } from "react";
 
 /**
  * Interface for child menu items in sidebar
@@ -16,6 +16,8 @@ export interface SidebarChildItem {
   href: string;
   /** Optional icon for the child item */
   icon?: React.ReactNode;
+  /** Optional roles that can access this item */
+  roles?: string[];
 }
 
 /**

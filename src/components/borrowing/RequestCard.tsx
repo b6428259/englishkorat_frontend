@@ -70,12 +70,14 @@ export function RequestCard({
             {formatDate(request.scheduled_pickup_date)}
           </span>
         </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600">วันที่คืน:</span>
-          <span className="font-medium">
-            {formatDate(request.scheduled_return_date)}
-          </span>
-        </div>
+        {request.scheduled_return_date && (
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">วันที่คืน:</span>
+            <span className="font-medium">
+              {formatDate(request.scheduled_return_date)}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Notes */}

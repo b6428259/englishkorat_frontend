@@ -3,6 +3,8 @@
 import Button from "@/components/common/Button";
 import ErrorMessage from "@/components/common/ErrorMessage";
 import Loading from "@/components/common/Loading";
+import CreateMakeupModal from "@/components/schedule/CreateMakeupModal";
+import SelectMakeupSessionModal from "@/components/schedule/SelectMakeupSessionModal";
 import { colors } from "@/styles/colors";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import SidebarLayout from "../../components/common/SidebarLayout";
@@ -10,8 +12,10 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useLanguage } from "../../contexts/LanguageContext";
 // import { ButtonGroup } from "@heroui/react";
 import CalendarLoading from "@/components/common/CalendarLoading";
+import { AddSessionModal } from "@/components/schedule/AddSessionModal";
 import { useSwipeGestures } from "@/hooks/useSwipeGestures";
 import {
+  addSession,
   CalendarDay,
   CalendarSession,
   CalendarViewApiResponse,
@@ -27,13 +31,14 @@ import {
   TeacherSession,
   updateSession,
 } from "@/services/api/schedules";
+import { AddSessionRequest, Schedule } from "@/types/group.types";
 import {
   deriveScheduleFields,
   validateScheduleForm,
   validateSessionForm,
 } from "@/utils/scheduleValidation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Search, Users, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, Users, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import toast from "react-hot-toast";
 import { SessionDetailModal } from "./components";
@@ -161,13 +166,13 @@ const WeekView: React.FC<{
   onSessionClick: (session: CalendarSession) => void;
   onDayClick?: (date: string) => void;
   onAddSession?: (date: string) => void;
-  density?: "comfortable" | "compact";
+  // density?: "comfortable" | "compact"; // Unused parameter, kept for future use
 }> = ({
   calendarData,
   onSessionClick,
   onDayClick,
   onAddSession,
-  density = "comfortable",
+  // density = "comfortable",
 }) => {
   const { language } = useLanguage();
 
@@ -753,10 +758,50 @@ export default function SchedulePage() {
   // Teacher filter visibility state
   const [showTeacherFilter, setShowTeacherFilter] = useState(true);
 
+  // Mobile-specific modals
+  const [showMobileCalendar, setShowMobileCalendar] = useState(false);
+
+  // Calendar view state (for display only, doesn't affect currentDate)
+  const [calendarViewDate, setCalendarViewDate] = useState<Date>(
+    () => new Date(currentDate)
+  );
+
+  // Sync calendar view with currentDate when modal opens or teacher filter changes
+  useEffect(() => {
+    if (showMobileCalendar || showTeacherFilter) {
+      setCalendarViewDate(new Date(currentDate));
+    }
+  }, [showMobileCalendar, showTeacherFilter, currentDate]);
+
   // Create/Edit schedule modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreateSessionModalOpen, setIsCreateSessionModalOpen] =
     useState(false);
+  const [isSelectMakeupModalOpen, setIsSelectMakeupModalOpen] = useState(false);
+  const [isCreateMakeupModalOpen, setIsCreateMakeupModalOpen] = useState(false);
+  const [selectedMakeupSession, setSelectedMakeupSession] = useState<{
+    sessionId: number;
+    sessionDate: string;
+    sessionTime: string;
+    scheduleName: string;
+    scheduleId: number;
+    makeupQuota: number;
+    makeupRemaining: number;
+    makeupUsed: number;
+  } | null>(null);
+
+  // Add Session Modal states
+  const [isAddSessionModalOpen, setIsAddSessionModalOpen] = useState(false);
+  const [addSessionContext, setAddSessionContext] = useState<{
+    scheduleId?: number;
+    schedule?: Schedule;
+    prefillDate?: string;
+    prefillTeacherId?: number;
+    prefillRoomId?: number;
+    insertAfter?: CalendarSession;
+    insertBefore?: CalendarSession;
+  }>({});
+
   // Prevent overlapping or looping fetches
   const isFetchingRef = useRef(false);
   const selectedTeachersRef = useRef<number[]>(selectedTeachers);
@@ -766,12 +811,12 @@ export default function SchedulePage() {
     selectedTeachersRef.current = selectedTeachers;
   }, [selectedTeachers]);
 
-  // Drag-to-scroll states
+  // Drag-to-scroll states (disabled but kept for future use)
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartPos = useRef({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
-  const lastVelocity = useRef({ x: 0, y: 0 });
-  const momentumAnimation = useRef<number | null>(null);
+  // const [isDragging, setIsDragging] = useState(false);
+  // const dragStartPos = useRef({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
+  // const lastVelocity = useRef({ x: 0, y: 0 });
+  // const momentumAnimation = useRef<number | null>(null);
 
   // Drag & Drop session states
   const [draggedSession, setDraggedSession] = useState<
@@ -813,6 +858,9 @@ export default function SchedulePage() {
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formOptionsLoaded, setFormOptionsLoaded] = useState(false);
+
+  // Flag to track when schedule form should trigger modal opening
+  const [scheduleFormPending, setScheduleFormPending] = useState(false);
 
   // Schedule form data
   const [scheduleForm, setScheduleForm] = useState<
@@ -884,6 +932,18 @@ export default function SchedulePage() {
   // ปุ่มกระชับ
   const [isCompactModalOpen, setIsCompactModalOpen] = useState(false);
 
+  // Open modal when schedule form is set and pending flag is true
+  useEffect(() => {
+    if (scheduleFormPending && scheduleForm.default_teacher_id) {
+      console.log(
+        "🚀 Opening Create Schedule modal after state update with teacher_id:",
+        scheduleForm.default_teacher_id
+      );
+      openModal("createSchedule");
+      setScheduleFormPending(false);
+    }
+  }, [scheduleFormPending, scheduleForm, openModal]);
+
   // Update current time every minute for realtime line
   useEffect(() => {
     const updateCurrentTime = () => {
@@ -901,99 +961,15 @@ export default function SchedulePage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Drag-to-scroll handlers
-  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
+  // Drag-to-scroll handlers (currently disabled but kept for future use)
+  // const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+  //   const container = scrollContainerRef.current;
+  //   if (!container) return;
+  //   ...
+  // }, []);
 
-    // Cancel any ongoing momentum animation
-    if (momentumAnimation.current) {
-      cancelAnimationFrame(momentumAnimation.current);
-      momentumAnimation.current = null;
-    }
-
-    setIsDragging(true);
-    dragStartPos.current = {
-      x: e.pageX,
-      y: e.pageY,
-      scrollLeft: container.scrollLeft,
-      scrollTop: container.scrollTop,
-    };
-    lastVelocity.current = { x: 0, y: 0 };
-  }, []);
-
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!isDragging) return;
-
-      const container = scrollContainerRef.current;
-      if (!container) return;
-
-      e.preventDefault();
-
-      const deltaX = e.pageX - dragStartPos.current.x;
-      const deltaY = e.pageY - dragStartPos.current.y;
-
-      // Calculate velocity for momentum
-      lastVelocity.current = {
-        x: deltaX - lastVelocity.current.x,
-        y: deltaY - lastVelocity.current.y,
-      };
-
-      container.scrollLeft = dragStartPos.current.scrollLeft - deltaX;
-      container.scrollTop = dragStartPos.current.scrollTop - deltaY;
-    },
-    [isDragging]
-  );
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-
-    // Apply momentum scrolling with easing
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const velocityX = lastVelocity.current.x;
-    const velocityY = lastVelocity.current.y;
-    const friction = 0.94; // Smoother momentum (increased from 0.92)
-    const threshold = 0.3; // Smoother stop (decreased from 0.5)
-
-    let currentVelocityX = velocityX * 1.5; // Amplify initial velocity for smoother feel
-    let currentVelocityY = velocityY * 1.5;
-
-    // Easing function for smoother deceleration
-    const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
-
-    let frame = 0;
-    const maxFrames = 60; // Maximum animation frames
-
-    const applyMomentum = () => {
-      frame++;
-      const progress = Math.min(frame / maxFrames, 1);
-      const easedProgress = easeOut(progress);
-
-      if (
-        Math.abs(currentVelocityX) < threshold &&
-        Math.abs(currentVelocityY) < threshold
-      ) {
-        momentumAnimation.current = null;
-        return;
-      }
-
-      // Apply eased scroll with smoother deceleration
-      container.scrollLeft -= currentVelocityX * (1 - easedProgress * 0.3);
-      container.scrollTop -= currentVelocityY * (1 - easedProgress * 0.3);
-
-      currentVelocityX *= friction;
-      currentVelocityY *= friction;
-
-      momentumAnimation.current = requestAnimationFrame(applyMomentum);
-    };
-
-    if (Math.abs(velocityX) > 0.5 || Math.abs(velocityY) > 0.5) {
-      applyMomentum();
-    }
-  }, []);
+  // const handleMouseMove = useCallback(...);
+  // const handleMouseUp = useCallback(...);
 
   // Optimize fetchData to avoid unnecessary re-renders
   const fetchData = useCallback(async () => {
@@ -1327,6 +1303,35 @@ export default function SchedulePage() {
     return Math.max(1, Math.ceil(diffMinutes / 30)); // 30 minutes per slot
   };
 
+  // Check if a cell is covered by a session with rowSpan
+  // เช็คว่า cell นี้ถูก "ครอบคลุม" โดย session ที่มี rowSpan หรือไม่
+  const isCellCoveredBySession = (
+    teacher: (typeof filteredTeachers)[0] & {
+      sessions: TeacherSession[];
+    },
+    timeSlot: (typeof timeSlots)[0]
+  ): boolean => {
+    return teacher.sessions.some((session: TeacherSession) => {
+      const [sessionStartHour, sessionStartMinute] = session.start_time
+        .split(":")
+        .map(Number);
+      const [sessionEndHour, sessionEndMinute] = session.end_time
+        .split(":")
+        .map(Number);
+
+      const sessionStartMinutes = sessionStartHour * 60 + sessionStartMinute;
+      const sessionEndMinutes = sessionEndHour * 60 + sessionEndMinute;
+      const currentSlotMinutes = timeSlot.hour * 60 + timeSlot.minute;
+
+      // ถ้า current time slot อยู่ระหว่าง session start-end แต่ไม่ใช่ start time
+      // แสดงว่า cell นี้ถูกครอบคลุมโดย rowSpan ไม่ต้อง render <td>
+      return (
+        currentSlotMinutes > sessionStartMinutes &&
+        currentSlotMinutes < sessionEndMinutes
+      );
+    });
+  };
+
   // Handle session click for details
   const handleSessionClick = (session: TeacherSession | CalendarSession) => {
     const sessionId = session.id;
@@ -1367,12 +1372,31 @@ export default function SchedulePage() {
   };
 
   // Handle empty cell click for creating schedule
+  // Handle empty cell click for creating schedule
   const handleEmptyCellClick = (
     _teacherId: number,
     timeSlot: { hour: number; minute: number }
   ) => {
     console.log("🔍 handleEmptyCellClick called with teacherId:", _teacherId);
-    console.log("🔍 timeSlot:", timeSlot);
+    console.log("🔍 timeSlot received:", timeSlot);
+    console.log(
+      "🔍 timeSlot.hour:",
+      timeSlot.hour,
+      "timeSlot.minute:",
+      timeSlot.minute
+    );
+
+    // Validate teacher ID
+    if (!_teacherId || _teacherId <= 0) {
+      console.error("❌ Invalid teacher ID:", _teacherId);
+      toast.error(
+        language === "th"
+          ? "ไม่สามารถระบุครูได้ กรุณาลองใหม่อีกครั้ง"
+          : "Cannot identify teacher. Please try again."
+      );
+      return;
+    }
+
     // Reset any previous form errors
     setFormError(null);
 
@@ -1387,24 +1411,9 @@ export default function SchedulePage() {
       .toString()
       .padStart(2, "0")}`;
 
-    setSessionForm((prev) => ({
-      ...prev,
-      mode: "single",
-      session_date: currentDate,
-      start_time,
-      end_time,
-      repeat: {
-        enabled: false,
-        frequency: prev.repeat?.frequency ?? "weekly",
-        interval: prev.repeat?.interval ?? 1,
-        end: prev.repeat?.end ?? { type: "after", count: 1 },
-        days_of_week: prev.repeat?.days_of_week ?? [],
-      },
-      is_makeup_session: false,
-      session_count: 1,
-    }));
+    console.log("⏰ Calculated start_time:", start_time, "end_time:", end_time);
 
-    // Compute day_of_week for ModernSessionsModal prefill
+    // Compute day_of_week for time slots
     const jsDate = new Date(currentDate);
     const weekdayIdx = jsDate.getDay(); // 0=Sun..6=Sat
     const dayOfWeekMap = [
@@ -1418,21 +1427,43 @@ export default function SchedulePage() {
     ] as const;
     const day_of_week = dayOfWeekMap[weekdayIdx];
 
-    // We intentionally no longer auto-select existing schedule here because
-    // we're seeding the Create Schedule flow (instead of ModernSessionsModal).
+    console.log("✅ Setting schedule form with teacher_id:", _teacherId);
 
-    // Seed the Schedule modal (create schedule) with a single time slot
-    // so clicking an empty cell opens the Schedule creation flow.
-    const teacherId = _teacherId && _teacherId > 0 ? _teacherId : 0;
-    console.log("🔍 Setting teacher_id to:", teacherId);
+    // Find the teacher to get user_id
+    const teacher = teachers.find((t) => t.id === _teacherId);
+    const userId = teacher?.user_id;
 
-    const newScheduleForm = {
+    if (!userId) {
+      console.error("❌ Cannot find user_id for teacher_id:", _teacherId);
+      toast.error(
+        language === "th"
+          ? "ไม่พบข้อมูลครู กรุณาลองใหม่อีกครั้ง"
+          : "Teacher data not found. Please try again."
+      );
+      return;
+    }
+
+    console.log("✅ Found user_id:", userId, "for teacher_id:", _teacherId);
+    console.log("⏰ Time slot clicked:", start_time, "to", end_time);
+    console.log("📅 Weekday index:", weekdayIdx, "day:", day_of_week);
+
+    // Create session_times with the clicked time
+    const sessionTimes = [
+      {
+        weekday: weekdayIdx, // 0=Sunday, 1=Monday, etc.
+        start_time: start_time,
+      },
+    ];
+    console.log("📝 Creating session_times:", JSON.stringify(sessionTimes));
+
+    // Update schedule form with teacher ID and clicked time slot
+    const newForm: Partial<CreateScheduleRequest> = {
       schedule_name: "",
       schedule_type: "class" as const,
       course_id: 0,
       group_id: 0,
-      teacher_id: teacherId,
-      default_teacher_id: teacherId,
+      teacher_id: _teacherId,
+      default_teacher_id: userId, // Use user_id for the combobox
       room_id: 0,
       default_room_id: 0,
       total_hours: 30,
@@ -1446,17 +1477,19 @@ export default function SchedulePage() {
           end_time,
         },
       ],
-      // Also set the standalone session_start_time so the modal shows the time in Basic tab
+      session_times: sessionTimes,
       session_start_time: start_time,
-      // Default recurring to none for this quick add flow
       recurring_pattern: undefined,
       notes: "",
+      auto_reschedule: false,
+      auto_reschedule_holidays: false,
     };
 
-    setScheduleForm(newScheduleForm);
+    // Set form first
+    setScheduleForm(newForm);
 
-    // Open Create Schedule modal (modern schedule modal)
-    openModal("createSchedule");
+    // Set a flag to trigger modal opening after state update
+    setScheduleFormPending(true);
   };
 
   // Drag & Drop handlers for moving sessions
@@ -1823,6 +1856,39 @@ export default function SchedulePage() {
     }
   };
 
+  // Handle Add Session submission
+  const handleAddSessionSubmit = async (data: AddSessionRequest) => {
+    if (!addSessionContext.scheduleId) {
+      toast.error(
+        language === "th" ? "ไม่พบ Schedule ID" : "Schedule ID not found"
+      );
+      return;
+    }
+
+    try {
+      const result = await addSession(addSessionContext.scheduleId, data);
+
+      toast.success(
+        result.message ||
+          (language === "th"
+            ? "เพิ่ม Session สำเร็จ"
+            : "Session added successfully")
+      );
+
+      // Refresh data
+      await fetchData();
+
+      // Close modal
+      setIsAddSessionModalOpen(false);
+      setAddSessionContext({});
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to add session";
+      toast.error(errorMessage);
+      throw error;
+    }
+  };
+
   // Date navigation functions
   const navigateDate = useCallback(
     (direction: "prev" | "next") => {
@@ -2183,10 +2249,10 @@ export default function SchedulePage() {
 
         {/* Main Content */}
         <div className="flex gap-2 flex-1 min-h-0 relative">
-          {/* Teacher Filters - Only show for day view - Responsive */}
+          {/* Teacher Filters - Desktop: combined, Mobile: teachers only */}
           {viewMode === "day" && showTeacherFilter && (
             <div
-              className="fixed sm:relative z-50 inset-0 sm:inset-auto bg-black/50 sm:bg-transparent flex sm:block"
+              className="fixed sm:relative z-30 inset-0 sm:inset-auto bg-black/50 sm:bg-transparent flex sm:block"
               onClick={(e) => {
                 // Close when clicking backdrop (only on mobile)
                 if (e.target === e.currentTarget && window.innerWidth < 640) {
@@ -2194,79 +2260,199 @@ export default function SchedulePage() {
                 }
               }}
             >
-              <div className="w-80 sm:w-48 lg:w-52 xl:w-56 bg-white border-r sm:border border-gray-200 sm:rounded-lg p-3 sm:p-2 flex flex-col flex-shrink-0 mr-auto sm:ml-0 shadow-2xl sm:shadow-md h-full sm:h-auto max-h-screen sm:max-h-[calc(100vh-200px)] overflow-y-auto">
-                {/* Header with close button */}
-                <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-[#334293] sticky top-0 bg-white z-10">
-                  <h2 className="font-bold text-[#334293] text-sm sm:text-xs lg:text-sm">
+              <div className="w-64 sm:w-36 md:w-40 lg:w-44 xl:w-48 bg-white border-r sm:border border-gray-200 sm:rounded-lg flex flex-col flex-shrink-0 mr-auto sm:ml-0 shadow-2xl sm:shadow-sm h-full sm:h-auto max-h-screen sm:max-h-[calc(100vh-180px)] overflow-hidden">
+                {/* Mini Calendar - Desktop only (hidden on mobile) */}
+                <div
+                  className="hidden sm:block p-1.5 sm:p-2 border-b border-gray-200"
+                  style={{
+                    background: `linear-gradient(135deg, ${colors.blueLogo}15 0%, ${colors.yellowLogo}25 100%)`,
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <button
+                      onClick={() => {
+                        const newDate = new Date(calendarViewDate);
+                        newDate.setMonth(newDate.getMonth() - 1);
+                        setCalendarViewDate(newDate);
+                      }}
+                      className="p-0.5 hover:bg-white/60 rounded transition-colors active:scale-95"
+                      style={{ color: colors.blueLogo }}
+                    >
+                      <ChevronLeft className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                    </button>
+                    <h3
+                      className="text-[9px] sm:text-[10px] md:text-xs font-bold truncate px-1"
+                      style={{ color: colors.blueLogo }}
+                    >
+                      {calendarViewDate.toLocaleDateString(
+                        language === "th" ? "th-TH" : "en-US",
+                        { month: "short", year: "numeric" }
+                      )}
+                    </h3>
+                    <button
+                      onClick={() => {
+                        const newDate = new Date(calendarViewDate);
+                        newDate.setMonth(newDate.getMonth() + 1);
+                        setCalendarViewDate(newDate);
+                      }}
+                      className="p-0.5 hover:bg-white/60 rounded transition-colors active:scale-95"
+                      style={{ color: colors.blueLogo }}
+                    >
+                      <ChevronRight className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Calendar Grid - IMPROVED COMPACT */}
+                  <div className="grid grid-cols-7 gap-[1px] sm:gap-0.5 text-center">
+                    {["S", "M", "T", "W", "T", "F", "S"].map((day, idx) => (
+                      <div
+                        key={idx}
+                        className="text-[7px] sm:text-[8px] md:text-[9px] font-semibold py-0.5"
+                        style={{ color: colors.blueLogo }}
+                      >
+                        {day}
+                      </div>
+                    ))}
+                    {(() => {
+                      const year = calendarViewDate.getFullYear();
+                      const month = calendarViewDate.getMonth();
+                      const firstDay = new Date(year, month, 1).getDay();
+                      const daysInMonth = new Date(
+                        year,
+                        month + 1,
+                        0
+                      ).getDate();
+                      const today = new Date().toISOString().split("T")[0];
+                      const selected = currentDate;
+
+                      const days = [];
+                      // Empty cells before first day
+                      for (let i = 0; i < firstDay; i++) {
+                        days.push(
+                          <div
+                            key={`empty-${i}`}
+                            className="text-[7px] sm:text-[8px] md:text-[9px] py-0.5"
+                          />
+                        );
+                      }
+                      // Days of month
+                      for (let day = 1; day <= daysInMonth; day++) {
+                        const dateStr = `${year}-${String(month + 1).padStart(
+                          2,
+                          "0"
+                        )}-${String(day).padStart(2, "0")}`;
+                        const isToday = dateStr === today;
+                        const isSelected = dateStr === selected;
+                        days.push(
+                          <button
+                            key={day}
+                            onClick={() => setCurrentDate(dateStr)}
+                            className={`text-[7px] sm:text-[8px] md:text-[9px] py-0.5 sm:py-1 rounded transition-all duration-200 ${
+                              isSelected
+                                ? "font-bold shadow-sm scale-105"
+                                : isToday
+                                ? "font-semibold ring-1"
+                                : "text-gray-700 hover:bg-white/50"
+                            }`}
+                            style={{
+                              backgroundColor: isSelected
+                                ? colors.blueLogo
+                                : isToday
+                                ? colors.yellowLogo
+                                : undefined,
+                              color: isSelected
+                                ? "#ffffff"
+                                : isToday
+                                ? colors.blueLogo
+                                : undefined,
+                              outline: isToday
+                                ? `1px solid ${colors.blueLogo}`
+                                : undefined,
+                            }}
+                          >
+                            {day}
+                          </button>
+                        );
+                      }
+                      return days;
+                    })()}
+                  </div>
+                </div>
+
+                {/* Header with close button - IMPROVED COMPACT */}
+                <div
+                  className="flex items-center justify-between px-1.5 sm:px-2 py-1 sm:py-1.5 border-b bg-white"
+                  style={{ borderColor: colors.blueLogo }}
+                >
+                  <h2
+                    className="font-bold text-[9px] sm:text-[10px] md:text-xs"
+                    style={{ color: colors.blueLogo }}
+                  >
                     {t.SelectTeachers}
                   </h2>
                   <button
                     onClick={() => setShowTeacherFilter(false)}
-                    className="p-1.5 hover:bg-gray-100 rounded-full transition-colors sm:hidden active:scale-95"
+                    className="p-1 hover:bg-gray-100 rounded-full transition-colors sm:hidden active:scale-95"
                     aria-label="Close"
                   >
-                    <X className="h-5 w-5 text-gray-500" />
+                    <X className="h-4 w-4 text-gray-500" />
                   </button>
                 </div>
 
-                <div className="mb-2 flex gap-1">
+                {/* Action Buttons - IMPROVED COMPACT */}
+                <div className="px-1.5 sm:px-2 py-1 sm:py-1.5 flex gap-1">
                   <Button
                     variant="monthView"
                     onClick={selectAllTeachers}
-                    className="text-[10px] sm:text-[9px] rounded-md flex-1 px-1.5 py-1"
+                    className="text-[7px] sm:text-[8px] md:text-[9px] rounded-md flex-1 px-1 py-0.5 h-5 sm:h-6 whitespace-nowrap"
                   >
-                    {t.selectAllTeachers}
+                    {language === "th" ? "เลือกทั้งหมด" : "All"}
                   </Button>
                   <Button
                     variant="monthView"
                     onClick={clearSelection}
-                    className="text-[10px] sm:text-[9px] rounded-md flex-1 px-1.5 py-1"
+                    className="text-[7px] sm:text-[8px] md:text-[9px] rounded-md flex-1 px-1 py-0.5 h-5 sm:h-6 whitespace-nowrap"
                   >
-                    {t.clearSelection}
+                    {language === "th" ? "ล้าง" : "Clear"}
                   </Button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto">
+                {/* Teacher List - IMPROVED COMPACT */}
+                <div className="flex-1 overflow-y-auto px-1.5 sm:px-2 pb-2 space-y-0.5">
                   {teachers.length === 0 ? (
-                    <p className="text-xs text-gray-500 text-center py-3">
+                    <p className="text-[9px] sm:text-[10px] text-gray-500 text-center py-2">
                       {t.noScheduleData}
                     </p>
                   ) : (
                     teachers.map((teacher) => (
                       <label
                         key={teacher.id}
-                        className="flex items-center space-x-1.5 p-1.5 hover:bg-gray-50 rounded cursor-pointer text-sm"
+                        className="flex items-center space-x-1 p-0.5 sm:p-1 hover:bg-gray-50 rounded cursor-pointer transition-colors"
                       >
                         <input
                           type="checkbox"
                           checked={selectedTeachers.includes(teacher.id)}
                           onChange={() => toggleTeacher(teacher.id)}
-                          className="h-3 w-3 rounded focus:ring-0 flex-shrink-0"
+                          className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded focus:ring-0 flex-shrink-0"
                           style={{ accentColor: colors.yellowLogo }}
                         />
                         {/* Branch color indicator */}
                         <div
-                          className={`w-2 h-2 rounded-full flex-shrink-0 ${getBranchColorByTeacher(
+                          className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full flex-shrink-0 ${getBranchColorByTeacher(
                             teacher
                           )}`}
                         />
                         <div className="min-w-0 flex-1">
                           <span
-                            className="text-xs sm:text-[11px] font-medium block truncate"
+                            className="text-[9px] sm:text-[10px] md:text-[11px] font-medium block truncate leading-tight"
                             style={{ color: colors.blueLogo }}
                           >
-                            T.{" "}
                             {teacher.name.nickname_en || teacher.name.first_en}
                           </span>
-                          <p className="text-[9px] text-gray-600">
+                          <p className="text-[7px] sm:text-[8px] text-gray-600 leading-tight">
                             {teacher.sessions.length}{" "}
-                            {language === "th" ? "ครั้งเรียน" : "sessions"}
+                            {language === "th" ? "ครั้ง" : "class"}
                           </p>
-                          {teacher.branch.name_en && (
-                            <p className="text-[9px] sm:text-[10px] text-blue-600 truncate">
-                              {teacher.branch.name_en}
-                            </p>
-                          )}
                         </div>
                       </label>
                     ))
@@ -2276,109 +2462,308 @@ export default function SchedulePage() {
             </div>
           )}
 
-          {/* Toggle Teacher Filter Button - Mobile Only */}
-          {viewMode === "day" && !showTeacherFilter && (
-            <button
-              onClick={() => setShowTeacherFilter(true)}
-              className="fixed bottom-20 left-4 sm:hidden z-40 bg-indigo-600 text-white p-3 rounded-full shadow-lg hover:bg-indigo-700 transition-colors active:scale-95"
-              aria-label="Show Teacher Filter"
-            >
-              <Users className="h-5 w-5" />
-            </button>
+          {/* Mobile Action Buttons - Bottom Left */}
+          {viewMode === "day" && (
+            <div className="fixed bottom-20 left-4 sm:hidden z-40 flex flex-col gap-3">
+              {/* Teacher Filter Button */}
+              {!showTeacherFilter && (
+                <button
+                  onClick={() => setShowTeacherFilter(true)}
+                  className="text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all active:scale-95"
+                  style={{
+                    backgroundColor: colors.blueLogo,
+                  }}
+                  aria-label="Show Teacher Filter"
+                >
+                  <Users className="h-5 w-5" />
+                </button>
+              )}
+
+              {/* Calendar Button */}
+              <button
+                onClick={() => setShowMobileCalendar(true)}
+                className="text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all active:scale-95"
+                style={{
+                  backgroundColor: colors.yellowLogo,
+                  color: colors.blueLogo,
+                }}
+                aria-label="Show Calendar"
+              >
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+              </button>
+            </div>
           )}
 
-          {/* Calendar Content - Scrollable */}
+          {/* Mobile Calendar Modal */}
+          {showMobileCalendar && (
+            <div
+              className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 sm:hidden"
+              onClick={() => setShowMobileCalendar(false)}
+            >
+              <div
+                className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-4"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <h2
+                    className="text-lg font-bold"
+                    style={{ color: colors.blueLogo }}
+                  >
+                    {language === "th" ? "เลือกวันที่" : "Select Date"}
+                  </h2>
+                  <button
+                    onClick={() => setShowMobileCalendar(false)}
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <X className="h-5 w-5 text-gray-500" />
+                  </button>
+                </div>
+
+                {/* Calendar */}
+                <div
+                  className="p-3 rounded-xl"
+                  style={{
+                    background: `linear-gradient(135deg, ${colors.blueLogo}15 0%, ${colors.yellowLogo}25 100%)`,
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <button
+                      onClick={() => {
+                        const newDate = new Date(calendarViewDate);
+                        newDate.setMonth(newDate.getMonth() - 1);
+                        setCalendarViewDate(newDate);
+                      }}
+                      className="p-2 hover:bg-white/60 rounded-lg transition-colors"
+                      style={{ color: colors.blueLogo }}
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+                    <h3
+                      className="text-base font-bold"
+                      style={{ color: colors.blueLogo }}
+                    >
+                      {calendarViewDate.toLocaleDateString(
+                        language === "th" ? "th-TH" : "en-US",
+                        { month: "long", year: "numeric" }
+                      )}
+                    </h3>
+                    <button
+                      onClick={() => {
+                        const newDate = new Date(calendarViewDate);
+                        newDate.setMonth(newDate.getMonth() + 1);
+                        setCalendarViewDate(newDate);
+                      }}
+                      className="p-2 hover:bg-white/60 rounded-lg transition-colors"
+                      style={{ color: colors.blueLogo }}
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                  </div>
+
+                  {/* Calendar Grid */}
+                  <div className="grid grid-cols-7 gap-1 text-center">
+                    {["S", "M", "T", "W", "T", "F", "S"].map((day, idx) => (
+                      <div
+                        key={idx}
+                        className="text-xs font-semibold py-2"
+                        style={{ color: colors.blueLogo }}
+                      >
+                        {day}
+                      </div>
+                    ))}
+                    {(() => {
+                      const year = calendarViewDate.getFullYear();
+                      const month = calendarViewDate.getMonth();
+                      const firstDay = new Date(year, month, 1).getDay();
+                      const daysInMonth = new Date(
+                        year,
+                        month + 1,
+                        0
+                      ).getDate();
+                      const today = new Date().toISOString().split("T")[0];
+                      const selected = currentDate;
+
+                      const days = [];
+                      for (let i = 0; i < firstDay; i++) {
+                        days.push(<div key={`empty-${i}`} className="py-2" />);
+                      }
+                      for (let day = 1; day <= daysInMonth; day++) {
+                        const dateStr = `${year}-${String(month + 1).padStart(
+                          2,
+                          "0"
+                        )}-${String(day).padStart(2, "0")}`;
+                        const isToday = dateStr === today;
+                        const isSelected = dateStr === selected;
+                        days.push(
+                          <button
+                            key={day}
+                            onClick={() => {
+                              setCurrentDate(dateStr);
+                              setShowMobileCalendar(false);
+                            }}
+                            className={`py-2 rounded-lg transition-all text-sm font-medium ${
+                              isSelected
+                                ? "shadow-md scale-110"
+                                : isToday
+                                ? "ring-2"
+                                : "hover:bg-white/50"
+                            }`}
+                            style={{
+                              backgroundColor: isSelected
+                                ? colors.blueLogo
+                                : isToday
+                                ? colors.yellowLogo
+                                : undefined,
+                              color: isSelected
+                                ? "#ffffff"
+                                : isToday
+                                ? colors.blueLogo
+                                : "#374151",
+                              borderColor: isToday
+                                ? colors.blueLogo
+                                : undefined,
+                            }}
+                          >
+                            {day}
+                          </button>
+                        );
+                      }
+                      return days;
+                    })()}
+                  </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="mt-4 flex gap-2">
+                  <button
+                    onClick={() => {
+                      const today = new Date();
+                      setCurrentDate(today.toISOString().split("T")[0]);
+                      setCalendarViewDate(today);
+                      setShowMobileCalendar(false);
+                    }}
+                    className="flex-1 py-2.5 rounded-lg font-medium text-sm transition-colors"
+                    style={{
+                      backgroundColor: colors.blueLogo,
+                      color: "#ffffff",
+                    }}
+                  >
+                    {language === "th" ? "วันนี้" : "Today"}
+                  </button>
+                  <button
+                    onClick={() => setShowMobileCalendar(false)}
+                    className="flex-1 py-2.5 border-2 rounded-lg font-medium text-sm transition-colors"
+                    style={{
+                      borderColor: colors.blueLogo,
+                      color: colors.blueLogo,
+                    }}
+                  >
+                    {language === "th" ? "ปิด" : "Close"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Calendar Content - Responsive & Scrollable */}
           <div
-            className={`flex-1 bg-white border border-gray-200 rounded-xl shadow-lg relative min-w-0 min-h-0`}
+            className={`flex-1 bg-white border border-gray-200 rounded-lg sm:rounded-xl shadow-md sm:shadow-lg relative min-w-0 min-h-0 overflow-hidden`}
           >
             {loading ? (
               <CalendarLoading view={viewMode} />
             ) : error ? (
-              <div className="h-full flex items-center justify-center">
+              <div className="h-full flex items-center justify-center p-4">
                 <ErrorMessage message={error} onRetry={fetchData} />
               </div>
             ) : viewMode === "day" ? (
-              /* Day View - Improved Horizontal Scrollable Table */
-              <div className="h-full relative min-h-0">
-                {/* Horizontal scroll container with drag-to-scroll */}
+              /* Day View - Ultra Compact Full View - Responsive */
+              <div className="h-full relative min-h-0 overflow-hidden">
+                {/* Full view container - responsive scroll */}
                 <div
                   ref={scrollContainerRef}
-                  className="h-full overflow-auto relative z-0 select-none"
-                  style={{
-                    cursor: isDragging ? "grabbing" : "grab",
-                    scrollBehavior: isDragging ? "auto" : "smooth",
-                  }}
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseUp}
+                  className="h-full w-full relative z-0 overflow-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
                 >
-                  <div
-                    className="relative min-h-full"
-                    style={{
-                      minWidth: `${Math.max(
-                        filteredTeachers.length * 150 + 80,
-                        600
-                      )}px`,
-                    }}
-                  >
-                    {/* Current Time Line - spans across entire table width */}
-                    <div
-                      className="absolute left-0 right-0 z-50 pointer-events-none"
-                      style={{
-                        top: `${
-                          36 +
-                          (() => {
-                            const currentMinutes =
-                              currentTime.hour * 60 + currentTime.minute;
-                            const startMinutes = 8 * 60; // 8:00 AM
-                            const endMinutes = 22 * 60; // 10:00 PM
+                  <div className="relative h-full w-full min-w-[600px] sm:min-w-full">
+                    {/* Current Time Line - spans across entire table width - Only show on current date */}
+                    {currentDate === new Date().toISOString().split("T")[0] && (
+                      <div
+                        className="absolute left-0 right-0 z-40 pointer-events-none"
+                        style={{
+                          top: `${
+                            28 +
+                            (() => {
+                              const currentMinutes =
+                                currentTime.hour * 60 + currentTime.minute;
+                              const startMinutes = 8 * 60; // 8:00 AM
+                              const endMinutes = 22 * 60; // 10:00 PM
 
-                            if (
-                              currentMinutes < startMinutes ||
-                              currentMinutes > endMinutes
-                            ) {
-                              return -1000; // Hide line if outside schedule hours
-                            }
+                              if (
+                                currentMinutes < startMinutes ||
+                                currentMinutes > endMinutes
+                              ) {
+                                return -1000; // Hide line if outside schedule hours
+                              }
 
-                            const minutesFromStart =
-                              currentMinutes - startMinutes;
-                            const pixelsPerSlot = 40; // Increased height per slot for better spacing
+                              const minutesFromStart =
+                                currentMinutes - startMinutes;
+                              const pixelsPerSlot = 20; // Reduced for ultra compact
 
-                            return (minutesFromStart / 30) * pixelsPerSlot;
-                          })()
-                        }px`,
-                      }}
-                    >
-                      <div className="relative">
-                        <div className="h-0.5 bg-red-500 shadow-lg"></div>
-                        <div className="absolute -left-1 -top-1 w-2 h-2 bg-red-500 rounded-full shadow-md"></div>
-                        <div className="absolute -right-1 -top-1 w-2 h-2 bg-red-500 rounded-full shadow-md"></div>
-                        {/* Time label */}
-                        <div className="absolute -top-6 left-2 bg-red-500 text-white px-2 py-0.5 rounded text-xs font-bold shadow-lg">
-                          {currentTime.hour.toString().padStart(2, "0")}:
-                          {currentTime.minute.toString().padStart(2, "0")}
+                              return (minutesFromStart / 30) * pixelsPerSlot;
+                            })()
+                          }px`,
+                        }}
+                      >
+                        <div className="relative">
+                          <div className="h-0.5 bg-red-600 shadow-md"></div>
+                          <div className="absolute -left-1 -top-1 w-2 h-2 bg-red-600 rounded-full shadow-md"></div>
+                          <div className="absolute -right-1 -top-1 w-2 h-2 bg-red-600 rounded-full shadow-md"></div>
+                          {/* Time label */}
+                          <div className="absolute -top-5 left-1 bg-red-600 text-white px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-bold shadow-md">
+                            {currentTime.hour.toString().padStart(2, "0")}:
+                            {currentTime.minute.toString().padStart(2, "0")}
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
 
-                    <table className="w-full text-sm border-collapse relative">
-                      {/* thead with branch groups */}
-                      <thead className="sticky top-0 z-30 text-white shadow-lg">
+                    <table
+                      className="w-full text-[9px] sm:text-[10px] border-collapse relative"
+                      style={{ tableLayout: "fixed" }}
+                    >
+                      {/* thead with branch groups - Responsive */}
+                      <thead className="sticky top-0 z-30 text-white shadow-sm sm:shadow-md">
                         {/* Branch header row */}
-                        <tr className="relative h-[35px]">
+                        <tr className="relative h-[16px] sm:h-[18px]">
                           {/* คอลัมน์เวลา - sticky ด้านซ้ายเท่านั้น */}
                           <th
                             className="
                               text-center font-bold text-white
                               bg-gradient-to-br from-indigo-600 to-purple-700
                               border border-gray-300
-                              text-xs
-                              w-[60px] sm:w-[70px]
+                              text-[7px] sm:text-[8px]
                               sticky left-0
                               z-40
-                              shadow-lg
+                              shadow-sm sm:shadow-md
+                              px-0
                             "
+                            style={{
+                              width: "28px",
+                              minWidth: "28px",
+                              maxWidth: "28px",
+                            }}
                             rowSpan={2}
                           >
                             {t.time}
@@ -2386,7 +2771,7 @@ export default function SchedulePage() {
 
                           {/* Branch group headers */}
                           {filteredTeachers.length === 0 ? (
-                            <th className="relative text-center font-bold text-white bg-gray-400 border border-gray-300 p-3 w-[120px] sm:w-[140px]">
+                            <th className="relative text-center font-bold text-white bg-gray-400 border border-gray-300 p-0.5 text-[8px] sm:text-[9px]">
                               {t.noScheduleData}
                             </th>
                           ) : (
@@ -2397,19 +2782,19 @@ export default function SchedulePage() {
 
                               if (branchIdNum === 1) {
                                 branchBgColor = "bg-[#334293]";
-                                branchName = "Branch 1";
+                                branchName = "B1";
                               } else if (branchIdNum === 2) {
                                 branchBgColor = "bg-[#EFE957]";
-                                branchName = "Branch 3";
+                                branchName = "B3";
                               } else if (branchIdNum === 3) {
                                 branchBgColor = "bg-[#58B2FF]";
-                                branchName = "Online";
+                                branchName = "OL";
                               } else if (branchIdNum === 4) {
                                 branchBgColor = "bg-[#FF90B3]";
-                                branchName = "Chinese";
+                                branchName = "CH";
                               } else if (branchIdNum === 0) {
                                 branchBgColor = "bg-gray-500";
-                                branchName = "Unassigned";
+                                branchName = "NA";
                               }
 
                               return (
@@ -2419,17 +2804,23 @@ export default function SchedulePage() {
                                   className={`
                                     sticky top-0
                                     text-center font-bold text-white
-                                    border-2 border-white
-                                    text-sm
+                                    border border-white
+                                    text-[7px] sm:text-[8px]
                                     ${branchBgColor}
+                                    px-0
                                   `}
                                 >
-                                  <div className="p-1.5 flex items-center justify-center gap-2">
+                                  <div className="p-0.5 flex items-center justify-center gap-0.5">
                                     <div
-                                      className={`w-3 h-3 rounded-full ${branchBgColor} border-2 border-white`}
+                                      className={`w-1 h-1 rounded-full ${branchBgColor} border border-white`}
                                     />
-                                    <span>{branchName}</span>
-                                    <span className="text-xs opacity-80">
+                                    <span className="hidden sm:inline">
+                                      {branchName}
+                                    </span>
+                                    <span className="sm:hidden">
+                                      {branchName.substring(0, 2)}
+                                    </span>
+                                    <span className="text-[6px] sm:text-[7px] opacity-75">
                                       ({teachers.length})
                                     </span>
                                   </div>
@@ -2439,27 +2830,33 @@ export default function SchedulePage() {
                           )}
                         </tr>
 
-                        {/* Teacher names row */}
-                        <tr className="relative h-[30px]">
+                        {/* Teacher names row - Responsive */}
+                        <tr className="relative h-[14px] sm:h-[16px]">
                           {filteredTeachers.length > 0 &&
                             teachersByBranch.map(([, teachers]) =>
                               teachers.map((teacher) => (
                                 <th
                                   key={teacher.id}
                                   className="
-                                    sticky top-[35px]
+                                    sticky top-[16px] sm:top-[18px]
                                     text-center font-bold text-white
                                     border border-gray-300
-                                    text-[11px] sm:text-xs w-[120px] sm:w-[140px]
+                                    text-[6px] sm:text-[7px] w-[40px] sm:w-[45px]
                                     bg-gradient-to-br from-indigo-600 to-purple-700
+                                    px-0
                                   "
                                 >
-                                  <div className="p-1.5">
-                                    <div className="font-bold">
-                                      T.{" "}
-                                      {teacher.name.nickname_en ||
-                                        teacher.name.first_en}
-                                    </div>
+                                  <div
+                                    className="p-0.5 truncate"
+                                    title={
+                                      teacher.name.nickname_en ||
+                                      teacher.name.first_en
+                                    }
+                                  >
+                                    {(
+                                      teacher.name.nickname_en ||
+                                      teacher.name.first_en
+                                    ).substring(0, 5)}
                                   </div>
                                 </th>
                               ))
@@ -2472,7 +2869,7 @@ export default function SchedulePage() {
                           <tr>
                             <td
                               colSpan={2}
-                              className="text-center p-8 text-gray-500"
+                              className="text-center p-3 sm:p-4 text-gray-500 text-xs"
                             >
                               {t.noScheduleData}
                             </td>
@@ -2481,20 +2878,20 @@ export default function SchedulePage() {
                           timeSlots.map((timeSlot) => (
                             <tr
                               key={`${timeSlot.hour}-${timeSlot.minute}`}
-                              className="h-8"
+                              className="h-5"
                             >
-                              {/* เวลา - sticky ด้านซ้าย */}
+                              {/* เวลา - sticky ด้านซ้าย - Responsive */}
                               <td
                                 className="
-                                font-medium text-gray-700 bg-gray-50 text-xs
-                                border border-gray-300 text-center p-1
-                                sticky left-0 z-30 shadow-md
+                                font-medium text-gray-700 bg-gray-50 text-[6px] sm:text-[7px]
+                                border border-gray-300 text-center p-0
+                                sticky left-0 z-30 shadow-sm
                               "
                               >
                                 {timeSlot.label}
                               </td>
 
-                              {/* ตารางครู - grouped by branch */}
+                              {/* ตารางครู - grouped by branch - Responsive */}
                               {teachersByBranch.flatMap(([, teachers]) =>
                                 teachers.map((teacher) => {
                                   const session = teacher.sessions.find((s) => {
@@ -2549,15 +2946,15 @@ export default function SchedulePage() {
                                               e.target as HTMLElement
                                             ).style.cursor = "grab";
                                           }}
-                                          className={`w-[120px] sm:w-[140px] h-full p-2 rounded-lg cursor-grab transition-all duration-200
+                                          className={`w-full h-full p-0.5 rounded cursor-grab transition-all duration-200
                                         shadow-sm hover:shadow-md overflow-hidden relative z-10 flex flex-col ${
                                           isBeingDragged
                                             ? "opacity-50"
                                             : "opacity-100"
                                         }`}
                                           style={{
-                                            height: `${rowSpan * 32 - 8}px`,
-                                            borderLeft: `4px solid ${getBranchBorderColorFromSession(
+                                            height: `${rowSpan * 20 - 4}px`,
+                                            borderLeft: `3px solid ${getBranchBorderColorFromSession(
                                               session
                                             )}`,
                                           }}
@@ -2565,117 +2962,100 @@ export default function SchedulePage() {
                                             e.stopPropagation();
                                             handleSessionClick(session);
                                           }}
-                                          whileHover={{ scale: 1.02 }}
-                                          whileTap={{ scale: 0.98 }}
-                                          initial={{ opacity: 0, y: -10 }}
+                                          whileHover={{ scale: 1.01 }}
+                                          whileTap={{ scale: 0.99 }}
+                                          initial={{ opacity: 0, y: -5 }}
                                           animate={{ opacity: 1, y: 0 }}
-                                          transition={{ duration: 0.2 }}
+                                          transition={{ duration: 0.15 }}
                                         >
-                                          <div className="space-y-1 leading-tight">
-                                            {/* Time Display */}
-                                            <div className="flex items-center gap-1">
-                                              <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
-                                              <p className="font-medium text-[10px] sm:text-[11px] text-indigo-700">
+                                          <div className="space-y-0 leading-tight">
+                                            {/* Time Display - Responsive */}
+                                            <div className="flex flex-wrap items-start gap-0.5 whitespace-normal break-words leading-tight">
+                                              <div className="w-0.5 h-0.5 rounded-full bg-indigo-500 flex-shrink-0 mt-[1px]"></div>
+                                              <p className="font-medium text-[5px] sm:text-[6px] text-indigo-700 whitespace-normal break-words leading-tight">
                                                 {session.start_time.substring(
-                                                  0,
-                                                  5
-                                                )}{" "}
-                                                -{" "}
-                                                {session.end_time.substring(
                                                   0,
                                                   5
                                                 )}
                                               </p>
                                             </div>
 
-                                            {/* Course/Schedule Name */}
+                                            {/* Course/Schedule Name - Responsive */}
                                             {session.schedule_name && (
-                                              <p
-                                                className="font-semibold text-[11px] sm:text-xs text-gray-900 whitespace-normal break-words line-clamp-2"
-                                                title={session.schedule_name}
-                                              >
+                                              <p className="font-semibold text-[5px] sm:text-[6px] text-gray-900 whitespace-normal break-words leading-tight">
                                                 {session.schedule_name}
                                               </p>
                                             )}
 
-                                            {/* Session Number */}
-                                            <p className="font-medium text-[10px] sm:text-[11px] text-gray-700">
-                                              {language === "th"
-                                                ? "ครั้งที่"
-                                                : "Session"}{" "}
-                                              {session.session_number}
+                                            {/* Session Number - Responsive */}
+                                            <p className="font-medium text-[5px] sm:text-[6px] text-gray-700">
+                                              #{session.session_number}
                                             </p>
 
-                                            {/* Room Info */}
-                                            {session.room?.name && (
-                                              <div className="flex items-center gap-1">
-                                                <svg
-                                                  className="w-3 h-3 text-gray-500 flex-shrink-0"
-                                                  fill="none"
-                                                  viewBox="0 0 24 24"
-                                                  stroke="currentColor"
+                                            {/* Room Info - only show icon if space allows */}
+                                            {session.room?.name &&
+                                              rowSpan > 3 && (
+                                                <div className="flex items-center gap-0.5">
+                                                  <svg
+                                                    className="w-1.5 h-1.5 text-gray-500 flex-shrink-0"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                  >
+                                                    <path
+                                                      strokeLinecap="round"
+                                                      strokeLinejoin="round"
+                                                      strokeWidth={2}
+                                                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                                                    />
+                                                  </svg>
+                                                  <p className="text-[6px] text-gray-600 truncate">
+                                                    {session.room.name.substring(
+                                                      0,
+                                                      3
+                                                    )}
+                                                  </p>
+                                                </div>
+                                              )}
+
+                                            {/* Status Badge - only if space */}
+                                            {rowSpan > 4 && (
+                                              <div className="flex items-center gap-0.5">
+                                                <span
+                                                  className={`inline-block px-0.5 py-0 rounded-full text-[5px] font-medium ${
+                                                    session.status ===
+                                                    "scheduled"
+                                                      ? "bg-blue-100 text-blue-700"
+                                                      : session.status ===
+                                                        "completed"
+                                                      ? "bg-green-100 text-green-700"
+                                                      : session.status ===
+                                                        "cancelled"
+                                                      ? "bg-red-100 text-red-700"
+                                                      : "bg-gray-100 text-gray-700"
+                                                  }`}
                                                 >
-                                                  <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                                  />
-                                                  <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                                                  />
-                                                </svg>
-                                                <p className="text-[10px] sm:text-[11px] text-gray-600 truncate">
-                                                  {session.room.name}
-                                                </p>
+                                                  {session.status ===
+                                                    "scheduled" && "S"}
+                                                  {session.status ===
+                                                    "completed" && "C"}
+                                                  {session.status ===
+                                                    "cancelled" && "X"}
+                                                </span>
                                               </div>
                                             )}
-
-                                            {/* Status Badge */}
-                                            <div className="flex items-center gap-1">
-                                              <span
-                                                className={`inline-block px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium ${
-                                                  session.status === "scheduled"
-                                                    ? "bg-blue-100 text-blue-700"
-                                                    : session.status ===
-                                                      "completed"
-                                                    ? "bg-green-100 text-green-700"
-                                                    : session.status ===
-                                                      "cancelled"
-                                                    ? "bg-red-100 text-red-700"
-                                                    : "bg-gray-100 text-gray-700"
-                                                }`}
-                                              >
-                                                {session.status ===
-                                                  "scheduled" &&
-                                                  (language === "th"
-                                                    ? "กำหนดการแล้ว"
-                                                    : "Scheduled")}
-                                                {session.status ===
-                                                  "completed" &&
-                                                  (language === "th"
-                                                    ? "เสร็จสิ้น"
-                                                    : "Completed")}
-                                                {session.status ===
-                                                  "cancelled" &&
-                                                  (language === "th"
-                                                    ? "ยกเลิก"
-                                                    : "Cancelled")}
-                                                {![
-                                                  "scheduled",
-                                                  "completed",
-                                                  "cancelled",
-                                                ].includes(session.status) &&
-                                                  session.status}
-                                              </span>
-                                            </div>
                                           </div>
                                         </motion.div>
                                       </td>
                                     );
+                                  }
+
+                                  // เช็คว่า cell นี้ถูกครอบคลุมโดย rowSpan หรือไม่
+                                  // ถ้าใช่ ไม่ต้อง render <td> เพราะ cell ถูก covered แล้ว
+                                  if (
+                                    isCellCoveredBySession(teacher, timeSlot)
+                                  ) {
+                                    return null;
                                   }
 
                                   // ช่องว่าง
@@ -2689,9 +3069,9 @@ export default function SchedulePage() {
                                   return (
                                     <td
                                       key={teacher.id}
-                                      className={`border border-gray-300 transition-all duration-200 w-[120px] sm:w-[140px] ${
+                                      className={`border border-gray-300 transition-all duration-200 ${
                                         isDropTarget
-                                          ? "bg-blue-100 border-blue-400 border-2"
+                                          ? "bg-blue-100 border-blue-400"
                                           : "bg-white hover:bg-gray-50"
                                       } cursor-pointer`}
                                       onClick={() =>
@@ -2716,18 +3096,16 @@ export default function SchedulePage() {
                                         <motion.div
                                           initial={{ opacity: 0, scale: 0.95 }}
                                           animate={{ opacity: 0.6, scale: 1 }}
-                                          className="w-[120px] sm:w-[140px] h-8 p-2 rounded-lg bg-blue-100 border-2 border-dashed border-blue-400 flex items-center justify-center"
+                                          className="w-full h-5 p-0.5 rounded bg-blue-100 border border-dashed border-blue-400 flex items-center justify-center"
                                         >
-                                          <span className="text-xs text-blue-700 font-medium">
-                                            {language === "th"
-                                              ? "วางที่นี่"
-                                              : "Drop here"}
+                                          <span className="text-[6px] text-blue-700 font-medium">
+                                            +
                                           </span>
                                         </motion.div>
                                       ) : (
-                                        <div className="w-full h-8 flex items-center justify-center">
-                                          <div className="w-7 h-7 rounded-full bg-gray-100 hover:bg-blue-100 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200">
-                                            <span className="text-sm text-gray-400 hover:text-blue-600 font-semibold">
+                                        <div className="w-full h-5 flex items-center justify-center">
+                                          <div className="w-3 h-3 rounded-full bg-gray-100 hover:bg-blue-100 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200">
+                                            <span className="text-[7px] text-gray-400 hover:text-blue-600">
                                               +
                                             </span>
                                           </div>
@@ -2752,7 +3130,6 @@ export default function SchedulePage() {
                 onSessionClick={handleSessionClick}
                 onDayClick={handleEmptySlotClick}
                 onAddSession={handleEmptySlotClick}
-                density={density}
               />
             ) : viewMode === "month" && calendarData?.data?.calendar ? (
               /* Month View */
@@ -2785,6 +3162,100 @@ export default function SchedulePage() {
           onClose={() => setIsDetailModalOpen(false)}
           sessionId={selectedSession}
           onUpdate={fetchData}
+          onAddSessionBefore={(sessionDetail) => {
+            // Extract necessary info from session detail
+            const session = sessionDetail.session;
+            setAddSessionContext({
+              scheduleId: session.schedule_id,
+              schedule: {
+                id: session.schedule_id,
+                schedule_name: session.schedule_name,
+                schedule_type: "class",
+                session_start_time: new Date(session.start_time)
+                  .toTimeString()
+                  .slice(0, 5),
+                hours_per_session: 2,
+              } as Schedule,
+              prefillDate: session.session_date,
+              insertBefore: {
+                id: session.id,
+                schedule_id: session.schedule_id,
+                session_date: session.session_date,
+                start_time: session.start_time,
+                end_time: session.end_time,
+                session_number: session.session_number,
+                status: session.status,
+                schedule_name: session.schedule_name,
+                course_name: "",
+                room_name: session.room?.room_name || "",
+                teacher_name: "",
+                branch_name: session.branch?.name_th || "",
+              } as CalendarSession,
+            });
+            setIsAddSessionModalOpen(true);
+            setIsDetailModalOpen(false);
+          }}
+          onAddSessionAfter={(sessionDetail) => {
+            // Extract necessary info from session detail
+            const session = sessionDetail.session;
+            setAddSessionContext({
+              scheduleId: session.schedule_id,
+              schedule: {
+                id: session.schedule_id,
+                schedule_name: session.schedule_name,
+                schedule_type: "class",
+                session_start_time: new Date(session.start_time)
+                  .toTimeString()
+                  .slice(0, 5),
+                hours_per_session: 2,
+              } as Schedule,
+              prefillDate: session.session_date,
+              insertAfter: {
+                id: session.id,
+                schedule_id: session.schedule_id,
+                session_date: session.session_date,
+                start_time: session.start_time,
+                end_time: session.end_time,
+                session_number: session.session_number,
+                status: session.status,
+                schedule_name: session.schedule_name,
+                course_name: "",
+                room_name: session.room?.room_name || "",
+                teacher_name: "",
+                branch_name: session.branch?.name_th || "",
+              } as CalendarSession,
+            });
+            setIsAddSessionModalOpen(true);
+            setIsDetailModalOpen(false);
+          }}
+          onAddSessionCustom={(scheduleId, sessionDetail) => {
+            // Use session detail info to create schedule context
+            if (sessionDetail?.session) {
+              const session = sessionDetail.session;
+              setAddSessionContext({
+                scheduleId: scheduleId,
+                schedule: {
+                  id: scheduleId,
+                  schedule_name: session.schedule_name || "Schedule",
+                  schedule_type: "class",
+                  session_start_time: session.start_time
+                    ? new Date(session.start_time).toTimeString().slice(0, 5)
+                    : "09:00",
+                  hours_per_session: 2,
+                } as Schedule,
+                prefillTeacherId: session.assigned_teacher?.id,
+                prefillRoomId: session.room?.id,
+              });
+              setIsAddSessionModalOpen(true);
+              setIsDetailModalOpen(false);
+            } else {
+              toast.error(
+                language === "th"
+                  ? "ไม่สามารถเปิด Modal ได้"
+                  : "Cannot open modal"
+              );
+            }
+          }}
         />
       )}
 
@@ -2799,6 +3270,11 @@ export default function SchedulePage() {
           scheduleForm={scheduleForm}
           isLoading={formLoading}
           error={formError}
+          onSelectMakeup={() => {
+            // Close create modal and show makeup session selection
+            setIsCreateModalOpen(false);
+            setIsSelectMakeupModalOpen(true);
+          }}
         />
       )}
 
@@ -2852,7 +3328,7 @@ export default function SchedulePage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4"
             onClick={handleCancelMoveSession}
           >
             <motion.div
@@ -2860,97 +3336,169 @@ export default function SchedulePage() {
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
               transition={{ type: "spring", duration: 0.3 }}
-              className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full mx-4"
+              className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-lg mx-auto max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                  <svg
-                    className="w-6 h-6 text-blue-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+              {/* Header */}
+              <div
+                className="p-4 sm:p-6 border-b border-gray-200"
+                style={{
+                  background: `linear-gradient(135deg, ${colors.blueLogo}15 0%, ${colors.yellowLogo}25 100%)`,
+                }}
+              >
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: `${colors.blueLogo}20` }}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                    />
-                  </svg>
-                </div>
-                <div className="flex-1 max-h-[70vh] overflow-y-auto">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">
+                    <svg
+                      className="w-5 h-5 sm:w-6 sm:h-6"
+                      style={{ color: colors.blueLogo }}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                      />
+                    </svg>
+                  </div>
+                  <h3
+                    className="text-lg sm:text-xl font-bold flex-1"
+                    style={{ color: colors.blueLogo }}
+                  >
                     {language === "th"
                       ? "ยืนยันการย้ายคาบเรียน"
                       : "Confirm Move Session"}
                   </h3>
+                </div>
+              </div>
 
-                  {/* Course Name */}
-                  <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                    <p className="font-semibold text-gray-800">
-                      {moveSessionData.session.schedule_name}
-                    </p>
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 sm:space-y-4">
+                {/* Course Name */}
+                <div
+                  className="p-3 sm:p-4 rounded-lg"
+                  style={{
+                    background: `linear-gradient(135deg, ${colors.blueLogo}10 0%, ${colors.yellowLogo}20 100%)`,
+                    borderLeft: `4px solid ${colors.blueLogo}`,
+                  }}
+                >
+                  <p className="font-semibold text-sm sm:text-base text-gray-800">
+                    {moveSessionData.session.schedule_name}
+                  </p>
+                </div>
+
+                {/* Time Change */}
+                <div className="space-y-2 text-xs sm:text-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                    <span className="font-medium text-gray-600 whitespace-nowrap">
+                      {language === "th" ? "เวลาเดิม:" : "Current:"}
+                    </span>
+                    <span
+                      className="font-medium"
+                      style={{ color: colors.blueLogo }}
+                    >
+                      {moveSessionData.session.start_time.substring(0, 5)} -{" "}
+                      {moveSessionData.session.end_time.substring(0, 5)}
+                    </span>
                   </div>
-
-                  {/* Time Change */}
-                  <div className="mb-4 space-y-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-600">
-                        {language === "th" ? "เวลาเดิม:" : "Current Time:"}
-                      </span>
-                      <span className="text-indigo-600 font-medium">
-                        {moveSessionData.session.start_time.substring(0, 5)} -{" "}
-                        {moveSessionData.session.end_time.substring(0, 5)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-600">
-                        {language === "th" ? "เวลาใหม่:" : "New Time:"}
-                      </span>
-                      <span className="text-green-600 font-medium">
-                        {`${moveSessionData.newTime.hour
-                          .toString()
-                          .padStart(2, "0")}:${moveSessionData.newTime.minute
-                          .toString()
-                          .padStart(2, "0")}`}
-                      </span>
-                    </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                    <span className="font-medium text-gray-600 whitespace-nowrap">
+                      {language === "th" ? "เวลาใหม่:" : "New:"}
+                    </span>
+                    <span className="text-green-600 font-medium">
+                      {`${moveSessionData.newTime.hour
+                        .toString()
+                        .padStart(2, "0")}:${moveSessionData.newTime.minute
+                        .toString()
+                        .padStart(2, "0")}`}
+                    </span>
                   </div>
+                </div>
 
-                  {/* Teacher Change */}
-                  {moveSessionData.sessionDetail?.oldTeacher && (
-                    <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                      <h4 className="font-semibold text-gray-900 mb-2 text-sm">
-                        {language === "th" ? "ครู" : "Teacher"}
-                      </h4>
-                      <div className="space-y-2 text-sm">
-                        <div>
-                          <span className="text-gray-600">
-                            {language === "th" ? "เดิม:" : "Current:"}
-                          </span>{" "}
-                          <span className="font-medium">
-                            {moveSessionData.sessionDetail.oldTeacher
-                              .teacher_profile?.nickname_en ||
-                              moveSessionData.sessionDetail.oldTeacher.username}
-                          </span>
+                {/* Teacher Change */}
+                {moveSessionData.sessionDetail?.oldTeacher && (
+                  <div
+                    className="p-3 sm:p-4 rounded-lg border"
+                    style={{
+                      backgroundColor: `${colors.blueLogo}08`,
+                      borderColor: `${colors.blueLogo}30`,
+                    }}
+                  >
+                    <h4
+                      className="font-semibold mb-2 text-xs sm:text-sm"
+                      style={{ color: colors.blueLogo }}
+                    >
+                      {language === "th" ? "ครู" : "Teacher"}
+                    </h4>
+                    <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
+                      <div className="p-2 sm:p-3 bg-white rounded border border-gray-200">
+                        <span className="text-gray-600 text-xs">
+                          {language === "th" ? "เดิม:" : "Current:"}
+                        </span>{" "}
+                        <span className="font-medium">
                           {moveSessionData.sessionDetail.oldTeacher
+                            .teacher_profile?.nickname_en ||
+                            moveSessionData.sessionDetail.oldTeacher.username}
+                        </span>
+                        {moveSessionData.sessionDetail.oldTeacher
+                          .teacher_profile && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {
+                              moveSessionData.sessionDetail.oldTeacher
+                                .teacher_profile.first_name_en
+                            }{" "}
+                            {
+                              moveSessionData.sessionDetail.oldTeacher
+                                .teacher_profile.last_name_en
+                            }
+                            {moveSessionData.sessionDetail.oldTeacher
+                              .teacher_profile.specializations && (
+                              <span
+                                className="ml-2"
+                                style={{ color: colors.blueLogo }}
+                              >
+                                •{" "}
+                                {
+                                  moveSessionData.sessionDetail.oldTeacher
+                                    .teacher_profile.specializations
+                                }
+                              </span>
+                            )}
+                          </p>
+                        )}
+                      </div>
+                      {moveSessionData.sessionDetail.newTeacher && (
+                        <div className="p-2 sm:p-3 bg-green-50 rounded border border-green-200">
+                          <span className="text-gray-600 text-xs">
+                            {language === "th" ? "ใหม่:" : "New:"}
+                          </span>{" "}
+                          <span className="font-medium text-green-700">
+                            {moveSessionData.sessionDetail.newTeacher
+                              .teacher_profile?.nickname_en ||
+                              moveSessionData.sessionDetail.newTeacher.username}
+                          </span>
+                          {moveSessionData.sessionDetail.newTeacher
                             .teacher_profile && (
                             <p className="text-xs text-gray-500 mt-1">
                               {
-                                moveSessionData.sessionDetail.oldTeacher
+                                moveSessionData.sessionDetail.newTeacher
                                   .teacher_profile.first_name_en
                               }{" "}
                               {
-                                moveSessionData.sessionDetail.oldTeacher
+                                moveSessionData.sessionDetail.newTeacher
                                   .teacher_profile.last_name_en
                               }
-                              {moveSessionData.sessionDetail.oldTeacher
+                              {moveSessionData.sessionDetail.newTeacher
                                 .teacher_profile.specializations && (
-                                <span className="ml-2 text-blue-600">
+                                <span className="ml-2 text-green-600">
                                   •{" "}
                                   {
-                                    moveSessionData.sessionDetail.oldTeacher
+                                    moveSessionData.sessionDetail.newTeacher
                                       .teacher_profile.specializations
                                   }
                                 </span>
@@ -2958,218 +3506,197 @@ export default function SchedulePage() {
                             </p>
                           )}
                         </div>
-                        {moveSessionData.sessionDetail.newTeacher && (
-                          <div>
-                            <span className="text-gray-600">
-                              {language === "th" ? "ใหม่:" : "New:"}
-                            </span>{" "}
-                            <span className="font-medium text-green-600">
-                              {moveSessionData.sessionDetail.newTeacher
-                                .teacher_profile?.nickname_en ||
-                                moveSessionData.sessionDetail.newTeacher
-                                  .username}
-                            </span>
-                            {moveSessionData.sessionDetail.newTeacher
-                              .teacher_profile && (
-                              <p className="text-xs text-gray-500 mt-1">
-                                {
-                                  moveSessionData.sessionDetail.newTeacher
-                                    .teacher_profile.first_name_en
-                                }{" "}
-                                {
-                                  moveSessionData.sessionDetail.newTeacher
-                                    .teacher_profile.last_name_en
-                                }
-                                {moveSessionData.sessionDetail.newTeacher
-                                  .teacher_profile.specializations && (
-                                  <span className="ml-2 text-green-600">
-                                    •{" "}
-                                    {
-                                      moveSessionData.sessionDetail.newTeacher
-                                        .teacher_profile.specializations
-                                    }
-                                  </span>
-                                )}
-                              </p>
-                            )}
-                          </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Students */}
+                {moveSessionData.sessionDetail?.students &&
+                  moveSessionData.sessionDetail.students.length > 0 && (
+                    <div
+                      className="p-3 sm:p-4 rounded-lg border"
+                      style={{
+                        backgroundColor: `${colors.yellowLogo}15`,
+                        borderColor: `${colors.yellowLogo}40`,
+                      }}
+                    >
+                      <h4
+                        className="font-semibold mb-2 sm:mb-3 text-xs sm:text-sm"
+                        style={{ color: colors.blueLogo }}
+                      >
+                        {language === "th" ? "นักเรียน" : "Students"} (
+                        {moveSessionData.sessionDetail.students.length})
+                      </h4>
+                      <div className="space-y-2 max-h-48 sm:max-h-64 overflow-y-auto">
+                        {moveSessionData.sessionDetail.students.map(
+                          (student, idx) => {
+                            const isAdmin =
+                              user?.role === "admin" || user?.role === "owner";
+                            const isTeacher = user?.role === "teacher";
+
+                            return (
+                              <div
+                                key={idx}
+                                className="p-2 sm:p-3 bg-white rounded border border-gray-200"
+                              >
+                                <p className="font-medium text-sm text-gray-900">
+                                  {student.nickname_th ||
+                                    student.nickname_en ||
+                                    student.first_name}
+                                </p>
+                                {isTeacher ? (
+                                  // Teacher sees limited info
+                                  <div className="text-gray-600 mt-1 space-y-0.5 text-xs">
+                                    {student.date_of_birth && (
+                                      <p>
+                                        {language === "th"
+                                          ? "วันเกิด:"
+                                          : "DOB:"}{" "}
+                                        {new Date(
+                                          student.date_of_birth
+                                        ).toLocaleDateString(
+                                          language === "th" ? "th-TH" : "en-US"
+                                        )}
+                                      </p>
+                                    )}
+                                    {student.age > 0 && (
+                                      <p>
+                                        {language === "th" ? "อายุ:" : "Age:"}{" "}
+                                        {student.age}{" "}
+                                        {language === "th" ? "ปี" : "years"}
+                                      </p>
+                                    )}
+                                    {student.user_branch && (
+                                      <p>
+                                        {language === "th"
+                                          ? "สาขา:"
+                                          : "Branch:"}{" "}
+                                        {language === "th"
+                                          ? student.user_branch.name_th
+                                          : student.user_branch.name_en}
+                                      </p>
+                                    )}
+                                  </div>
+                                ) : isAdmin ? (
+                                  // Admin sees full info
+                                  <div className="text-gray-600 mt-1 space-y-0.5 text-xs">
+                                    <p className="text-xs sm:text-sm">
+                                      {student.first_name_en ||
+                                        student.first_name}{" "}
+                                      {student.last_name_en ||
+                                        student.last_name}
+                                    </p>
+                                    {student.email && (
+                                      <p className="truncate">
+                                        📧 {student.email}
+                                      </p>
+                                    )}
+                                    {student.phone && <p>📞 {student.phone}</p>}
+                                    {student.line_id && (
+                                      <p>💬 LINE: {student.line_id}</p>
+                                    )}
+                                    {student.date_of_birth && (
+                                      <p>
+                                        🎂{" "}
+                                        {new Date(
+                                          student.date_of_birth
+                                        ).toLocaleDateString(
+                                          language === "th" ? "th-TH" : "en-US"
+                                        )}
+                                        {student.age > 0 &&
+                                          ` (${student.age} ${
+                                            language === "th" ? "ปี" : "years"
+                                          })`}
+                                      </p>
+                                    )}
+                                    {student.age_group && (
+                                      <p>👥 {student.age_group}</p>
+                                    )}
+                                    {student.user_branch && (
+                                      <p>
+                                        🏢{" "}
+                                        {language === "th"
+                                          ? student.user_branch.name_th
+                                          : student.user_branch.name_en}
+                                      </p>
+                                    )}
+                                    {student.recent_cefr && (
+                                      <p
+                                        className="font-medium"
+                                        style={{ color: colors.blueLogo }}
+                                      >
+                                        📊 CEFR: {student.recent_cefr}
+                                      </p>
+                                    )}
+                                    <div className="flex flex-wrap gap-1 sm:gap-2 mt-1">
+                                      <span
+                                        className={`px-1.5 sm:px-2 py-0.5 rounded text-xs ${
+                                          student.payment_status === "paid"
+                                            ? "bg-green-100 text-green-700"
+                                            : student.payment_status ===
+                                              "pending"
+                                            ? "bg-yellow-100 text-yellow-700"
+                                            : "bg-red-100 text-red-700"
+                                        }`}
+                                      >
+                                        {student.payment_status}
+                                      </span>
+                                      <span
+                                        className={`px-1.5 sm:px-2 py-0.5 rounded text-xs ${
+                                          student.registration_status ===
+                                          "active"
+                                            ? "bg-green-100 text-green-700"
+                                            : "bg-gray-100 text-gray-700"
+                                        }`}
+                                      >
+                                        {student.registration_status}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ) : null}
+                              </div>
+                            );
+                          }
                         )}
                       </div>
                     </div>
                   )}
 
-                  {/* Students */}
-                  {moveSessionData.sessionDetail?.students &&
-                    moveSessionData.sessionDetail.students.length > 0 && (
-                      <div className="mb-4 p-3 bg-amber-50 rounded-lg">
-                        <h4 className="font-semibold text-gray-900 mb-2 text-sm">
-                          {language === "th" ? "นักเรียน" : "Students"} (
-                          {moveSessionData.sessionDetail.students.length})
-                        </h4>
-                        <div className="space-y-2 text-xs">
-                          {moveSessionData.sessionDetail.students.map(
-                            (student, idx) => {
-                              const isAdmin =
-                                user?.role === "admin" ||
-                                user?.role === "owner";
-                              const isTeacher = user?.role === "teacher";
+                <p className="text-gray-500 text-xs sm:text-sm">
+                  {language === "th"
+                    ? "ต้องการย้ายคาบเรียนนี้ไปยังเวลาและครูใหม่หรือไม่?"
+                    : "Do you want to move this session to the new time and teacher?"}
+                </p>
+              </div>
 
-                              return (
-                                <div
-                                  key={idx}
-                                  className="flex items-start gap-2 p-2 bg-white rounded border border-amber-200"
-                                >
-                                  <div className="flex-1">
-                                    <p className="font-medium text-gray-900">
-                                      {student.nickname_th ||
-                                        student.nickname_en ||
-                                        student.first_name}
-                                    </p>
-                                    {isTeacher ? (
-                                      // Teacher sees limited info
-                                      <div className="text-gray-600 mt-1 space-y-0.5">
-                                        {student.date_of_birth && (
-                                          <p>
-                                            {language === "th"
-                                              ? "วันเกิด:"
-                                              : "DOB:"}{" "}
-                                            {new Date(
-                                              student.date_of_birth
-                                            ).toLocaleDateString(
-                                              language === "th"
-                                                ? "th-TH"
-                                                : "en-US"
-                                            )}
-                                          </p>
-                                        )}
-                                        {student.age > 0 && (
-                                          <p>
-                                            {language === "th"
-                                              ? "อายุ:"
-                                              : "Age:"}{" "}
-                                            {student.age}{" "}
-                                            {language === "th" ? "ปี" : "years"}
-                                          </p>
-                                        )}
-                                        {student.user_branch && (
-                                          <p>
-                                            {language === "th"
-                                              ? "สาขา:"
-                                              : "Branch:"}{" "}
-                                            {language === "th"
-                                              ? student.user_branch.name_th
-                                              : student.user_branch.name_en}
-                                          </p>
-                                        )}
-                                      </div>
-                                    ) : isAdmin ? (
-                                      // Admin sees full info
-                                      <div className="text-gray-600 mt-1 space-y-0.5">
-                                        <p>
-                                          {student.first_name_en ||
-                                            student.first_name}{" "}
-                                          {student.last_name_en ||
-                                            student.last_name}
-                                        </p>
-                                        {student.email && (
-                                          <p>📧 {student.email}</p>
-                                        )}
-                                        {student.phone && (
-                                          <p>📞 {student.phone}</p>
-                                        )}
-                                        {student.line_id && (
-                                          <p>💬 LINE: {student.line_id}</p>
-                                        )}
-                                        {student.date_of_birth && (
-                                          <p>
-                                            🎂{" "}
-                                            {new Date(
-                                              student.date_of_birth
-                                            ).toLocaleDateString(
-                                              language === "th"
-                                                ? "th-TH"
-                                                : "en-US"
-                                            )}
-                                            {student.age > 0 &&
-                                              ` (${student.age} ${
-                                                language === "th"
-                                                  ? "ปี"
-                                                  : "years"
-                                              })`}
-                                          </p>
-                                        )}
-                                        {student.age_group && (
-                                          <p>👥 {student.age_group}</p>
-                                        )}
-                                        {student.user_branch && (
-                                          <p>
-                                            🏢{" "}
-                                            {language === "th"
-                                              ? student.user_branch.name_th
-                                              : student.user_branch.name_en}
-                                          </p>
-                                        )}
-                                        {student.recent_cefr && (
-                                          <p className="text-blue-600 font-medium">
-                                            📊 CEFR: {student.recent_cefr}
-                                          </p>
-                                        )}
-                                        <p className="flex gap-2">
-                                          <span
-                                            className={`px-2 py-0.5 rounded ${
-                                              student.payment_status === "paid"
-                                                ? "bg-green-100 text-green-700"
-                                                : student.payment_status ===
-                                                  "pending"
-                                                ? "bg-yellow-100 text-yellow-700"
-                                                : "bg-red-100 text-red-700"
-                                            }`}
-                                          >
-                                            {student.payment_status}
-                                          </span>
-                                          <span
-                                            className={`px-2 py-0.5 rounded ${
-                                              student.registration_status ===
-                                              "active"
-                                                ? "bg-green-100 text-green-700"
-                                                : "bg-gray-100 text-gray-700"
-                                            }`}
-                                          >
-                                            {student.registration_status}
-                                          </span>
-                                        </p>
-                                      </div>
-                                    ) : null}
-                                  </div>
-                                </div>
-                              );
-                            }
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                  <p className="text-gray-500 text-sm mt-4">
-                    {language === "th"
-                      ? "ต้องการย้ายคาบเรียนนี้ไปยังเวลาและครูใหม่หรือไม่?"
-                      : "Do you want to move this session to the new time and teacher?"}
-                  </p>
-                </div>
-                <div className="flex-shrink-0 mt-4">
-                  <div className="flex gap-3">
-                    <button
-                      onClick={handleCancelMoveSession}
-                      className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
-                    >
-                      {language === "th" ? "ยกเลิก" : "Cancel"}
-                    </button>
-                    <button
-                      onClick={handleConfirmMoveSession}
-                      className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-lg shadow-blue-500/30"
-                    >
-                      {language === "th" ? "ยืนยัน" : "Confirm"}
-                    </button>
-                  </div>
+              {/* Footer */}
+              <div className="border-t border-gray-200 p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                  <button
+                    onClick={handleCancelMoveSession}
+                    className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors text-sm sm:text-base"
+                  >
+                    {language === "th" ? "ยกเลิก" : "Cancel"}
+                  </button>
+                  <button
+                    onClick={handleConfirmMoveSession}
+                    className="flex-1 px-4 py-2.5 text-white rounded-lg font-medium transition-all shadow-lg text-sm sm:text-base"
+                    style={{
+                      backgroundColor: colors.blueLogo,
+                      boxShadow: `0 4px 14px 0 ${colors.blueLogo}30`,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = colors.blueLogo;
+                      e.currentTarget.style.filter = "brightness(0.9)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = colors.blueLogo;
+                      e.currentTarget.style.filter = "brightness(1)";
+                    }}
+                  >
+                    {language === "th" ? "ยืนยัน" : "Confirm"}
+                  </button>
                 </div>
               </div>
             </motion.div>
@@ -3220,6 +3747,66 @@ export default function SchedulePage() {
             setShowQuickSearch(false);
           }}
           onClose={() => setShowQuickSearch(false)}
+        />
+      )}
+
+      {/* Add Session Modal */}
+      {isAddSessionModalOpen &&
+        addSessionContext.scheduleId &&
+        addSessionContext.schedule && (
+          <AddSessionModal
+            isOpen={isAddSessionModalOpen}
+            onClose={() => {
+              setIsAddSessionModalOpen(false);
+              setAddSessionContext({});
+            }}
+            onSubmit={handleAddSessionSubmit}
+            schedule={addSessionContext.schedule}
+            teachers={teacherOptions}
+            rooms={rooms}
+            prefillDate={addSessionContext.prefillDate}
+            prefillTeacherId={addSessionContext.prefillTeacherId}
+            prefillRoomId={addSessionContext.prefillRoomId}
+            insertAfterSession={addSessionContext.insertAfter}
+            insertBeforeSession={addSessionContext.insertBefore}
+          />
+        )}
+
+      {/* Select Makeup Session Modal */}
+      <SelectMakeupSessionModal
+        isOpen={isSelectMakeupModalOpen}
+        onClose={() => setIsSelectMakeupModalOpen(false)}
+        onSelectSession={(session) => {
+          setSelectedMakeupSession(session);
+          setIsCreateMakeupModalOpen(true);
+        }}
+      />
+
+      {/* Create Makeup Modal */}
+      {selectedMakeupSession && (
+        <CreateMakeupModal
+          isOpen={isCreateMakeupModalOpen}
+          onClose={() => {
+            setIsCreateMakeupModalOpen(false);
+            setSelectedMakeupSession(null);
+          }}
+          sessionId={selectedMakeupSession.sessionId}
+          sessionDate={selectedMakeupSession.sessionDate}
+          sessionTime={selectedMakeupSession.sessionTime}
+          scheduleName={selectedMakeupSession.scheduleName}
+          makeupQuota={selectedMakeupSession.makeupQuota}
+          makeupRemaining={selectedMakeupSession.makeupRemaining}
+          makeupUsed={selectedMakeupSession.makeupUsed}
+          onSuccess={() => {
+            // Refresh calendar data
+            fetchData();
+            toast.success(
+              language === "th"
+                ? "สร้าง Makeup Session สำเร็จ!"
+                : "Makeup session created successfully!",
+              { duration: 4000 }
+            );
+          }}
         />
       )}
     </SidebarLayout>

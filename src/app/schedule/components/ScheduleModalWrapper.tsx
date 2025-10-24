@@ -22,6 +22,7 @@ interface ScheduleModalWrapperProps {
   scheduleForm?: Partial<CreateScheduleRequest>;
   isLoading?: boolean;
   error?: string | null;
+  onSelectMakeup?: () => void;
 }
 
 type ModalStep = "type-selection" | "event-type-selection" | "form";
@@ -43,7 +44,8 @@ export default function ScheduleModalWrapper({
   scheduleForm,
   isLoading = false,
   error,
-}: ScheduleModalWrapperProps) {
+  onSelectMakeup,
+}: Readonly<ScheduleModalWrapperProps>) {
   const [currentStep, setCurrentStep] = useState<ModalStep>("type-selection");
   const [selectedScheduleType, setSelectedScheduleType] =
     useState<ScheduleType>("class");
@@ -65,6 +67,14 @@ export default function ScheduleModalWrapper({
   const handleSelectEvents = useCallback(() => {
     setCurrentStep("event-type-selection");
   }, []);
+
+  // Handle selecting "Makeup" - trigger parent callback and close
+  const handleSelectMakeup = useCallback(() => {
+    if (onSelectMakeup) {
+      onSelectMakeup();
+      handleClose();
+    }
+  }, [onSelectMakeup, handleClose]);
 
   // Handle selecting specific event type
   const handleSelectEventType = useCallback((eventType: ScheduleType) => {
@@ -104,6 +114,7 @@ export default function ScheduleModalWrapper({
         onClose={handleClose}
         onSelectClass={handleSelectClass}
         onSelectEvents={handleSelectEvents}
+        onSelectMakeup={onSelectMakeup ? handleSelectMakeup : undefined}
       />
 
       {/* Step 2: Event Type Selection (if Events was selected) */}
@@ -127,7 +138,6 @@ export default function ScheduleModalWrapper({
         teachers={teachers}
         scheduleForm={scheduleForm}
         isLoading={isLoading}
-        error={error}
       />
 
       {/* Step 3b: Event Schedule Modal (if Event was selected) */}

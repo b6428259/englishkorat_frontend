@@ -13,12 +13,14 @@ import type {
   BorrowableItem,
   BorrowRequest,
   BorrowTransaction,
+  CreateBorrowRequestRequest,
   ItemFilters,
+  ItemType,
 } from "@/types/borrowing.types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 // NextUI Components (selective - only what we need)
-import type { ItemType } from "@/types/borrowing.types";
+import { useToast } from "@/hooks/useToast";
 import {
   Select,
   SelectItem,
@@ -55,6 +57,7 @@ function useDebounce<T>(value: T, delay: number): T {
 export default function MyBorrowsPageNextUI() {
   const { language } = useLanguage();
   const t = translations[language];
+  const toast = useToast();
 
   const [activeTab, setActiveTab] = useState<TabType>("browse");
   const [loading, setLoading] = useState(false);
@@ -63,6 +66,9 @@ export default function MyBorrowsPageNextUI() {
   const [items, setItems] = useState<BorrowableItem[]>([]);
   const [itemSearch, setItemSearch] = useState("");
   const debouncedSearch = useDebounce(itemSearch, 500); // 500ms debounce
+  const [itemMode, setItemMode] = useState<"borrowable" | "requisition">(
+    "borrowable"
+  ); // New: Item mode selector
   const [itemFilters, setItemFilters] = useState<ItemFilters>({
     available_only: true,
   });
@@ -86,6 +92,7 @@ export default function MyBorrowsPageNextUI() {
     quantity: 1,
     scheduled_pickup_date: "",
     scheduled_return_date: "",
+    purpose: "", // For requisition
     request_notes: "",
   });
 
@@ -105,7 +112,7 @@ export default function MyBorrowsPageNextUI() {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, debouncedSearch, itemFilters]);
+  }, [activeTab, debouncedSearch, itemFilters, itemMode]);
 
   // Load data based on active tab
   useEffect(() => {
@@ -113,7 +120,7 @@ export default function MyBorrowsPageNextUI() {
   }, [loadData]);
 
   const loadItems = async () => {
-    const filters: ItemFilters = { ...itemFilters };
+    const filters: ItemFilters = { ...itemFilters, item_mode: itemMode };
     if (debouncedSearch) {
       filters.search = debouncedSearch;
     }
@@ -134,55 +141,96 @@ export default function MyBorrowsPageNextUI() {
   const handleItemClick = (item: BorrowableItem) => {
     setSelectedItem(item);
     setShowBorrowModal(true);
-    // Set default dates
+    // Set default dates (only for borrowable mode)
     const today = new Date();
     const maxDays = item.max_borrow_days || 14;
     const returnDate = new Date(today);
     returnDate.setDate(today.getDate() + maxDays);
 
-    setBorrowForm({
-      quantity: 1,
-      scheduled_pickup_date: today.toISOString().split("T")[0],
-      scheduled_return_date: returnDate.toISOString().split("T")[0],
-      request_notes: "",
-    });
+    if (itemMode === "borrowable") {
+      setBorrowForm({
+        quantity: 1,
+        scheduled_pickup_date: today.toISOString().split("T")[0],
+        scheduled_return_date: returnDate.toISOString().split("T")[0],
+        purpose: "",
+        request_notes: "",
+      });
+    } else {
+      // Requisition mode - no dates
+      setBorrowForm({
+        quantity: 1,
+        scheduled_pickup_date: "",
+        scheduled_return_date: "",
+        purpose: "",
+        request_notes: "",
+      });
+    }
   };
 
   const handleSubmitBorrowRequest = async () => {
     if (!selectedItem) return;
 
+    // Validate based on mode
+    if (itemMode === "requisition") {
+      if (!borrowForm.purpose || borrowForm.purpose.trim() === "") {
+        toast.warning("กรุณาระบุวัตถุประสงค์ในการเบิกของ");
+        return;
+      }
+    }
+
     try {
       setLoading(true);
-      await borrowingService.createBorrowRequest({
+
+      // Prepare data based on mode
+      const requestData: CreateBorrowRequestRequest = {
         item_id: selectedItem.id,
-        ...borrowForm,
-      });
+        quantity: borrowForm.quantity,
+        request_type: itemMode === "borrowable" ? "borrowing" : "requisition",
+        scheduled_pickup_date:
+          borrowForm.scheduled_pickup_date ||
+          new Date().toISOString().split("T")[0],
+        request_notes: borrowForm.request_notes,
+        ...(itemMode === "borrowable"
+          ? {
+              scheduled_return_date: borrowForm.scheduled_return_date,
+            }
+          : {
+              purpose: borrowForm.purpose,
+            }),
+      };
+
+      await borrowingService.createBorrowRequest(requestData);
       setShowBorrowModal(false);
       setSelectedItem(null);
-      alert(t.borrowRequestSent);
+      toast.success(
+        itemMode === "borrowable"
+          ? t.borrowRequestSent
+          : "ส่งคำขอเบิกของเรียบร้อยแล้ว"
+      );
       // Reload requests
       if (activeTab === "my-requests") {
         await loadMyRequests();
       }
     } catch (error) {
-      console.error("Error submitting borrow request:", error);
-      alert(t.errorOccurred);
+      console.error("Error submitting request:", error);
+      toast.error(t.errorOccurred);
     } finally {
       setLoading(false);
     }
   };
 
   const handleCancelRequest = async (requestId: number) => {
-    if (!confirm(t.confirmCancel)) return;
+    const confirmed = await toast.confirm(t.confirmCancel);
+    if (!confirmed) return;
 
     try {
       setLoading(true);
       await borrowingService.cancelBorrowRequest(requestId);
-      alert(t.requestCancelled);
+      toast.success(t.requestCancelled);
       await loadMyRequests();
     } catch (error) {
       console.error("Error cancelling request:", error);
-      alert(t.errorOccurred);
+      toast.error(t.errorOccurred);
     } finally {
       setLoading(false);
     }
@@ -201,11 +249,11 @@ export default function MyBorrowsPageNextUI() {
       await borrowingService.renewBorrow(selectedTransaction.id);
       setShowRenewModal(false);
       setSelectedTransaction(null);
-      alert(t.renewSuccess);
+      toast.success(t.renewSuccess);
       await loadMyBorrows();
     } catch (error) {
       console.error("Error renewing borrow:", error);
-      alert(t.exceedRenewalLimit);
+      toast.error(t.exceedRenewalLimit);
     } finally {
       setLoading(false);
     }
@@ -287,6 +335,30 @@ export default function MyBorrowsPageNextUI() {
                     {/* Browse Items Tab */}
                     {activeTab === "browse" && (
                       <div className="space-y-4">
+                        {/* Item Mode Selector */}
+                        <div className="flex gap-3 p-1 bg-gray-100 rounded-lg w-fit">
+                          <button
+                            onClick={() => setItemMode("borrowable")}
+                            className={`px-6 py-2 rounded-md font-semibold transition-all ${
+                              itemMode === "borrowable"
+                                ? "bg-[#334293] text-white shadow-md"
+                                : "text-gray-600 hover:text-gray-900"
+                            }`}
+                          >
+                            📚 {t.temporaryWithdrawal}
+                          </button>
+                          <button
+                            onClick={() => setItemMode("requisition")}
+                            className={`px-6 py-2 rounded-md font-semibold transition-all ${
+                              itemMode === "requisition"
+                                ? "bg-[#6B46C1] text-white shadow-md"
+                                : "text-gray-600 hover:text-gray-900"
+                            }`}
+                          >
+                            📦 {t.permanentRequisition}
+                          </button>
+                        </div>
+
                         {/* Search & Filters with custom theme */}
                         <div className="flex flex-col sm:flex-row gap-3">
                           <div className="relative flex-1">
@@ -445,13 +517,17 @@ export default function MyBorrowsPageNextUI() {
                                     disabled={item.available_stock === 0}
                                     className={`w-full py-2 rounded-lg font-semibold transition-all ${
                                       item.available_stock > 0
-                                        ? "bg-[#334293] text-white hover:bg-[#EFE957] hover:text-[#334293]"
+                                        ? itemMode === "borrowable"
+                                          ? "bg-[#334293] text-white hover:bg-[#EFE957] hover:text-[#334293]"
+                                          : "bg-[#6B46C1] text-white hover:bg-[#EFE957] hover:text-[#6B46C1]"
                                         : "bg-gray-300 text-gray-500 cursor-not-allowed"
                                     }`}
                                   >
                                     {item.available_stock > 0
-                                      ? t.borrow
-                                      : t.outstandingFees}
+                                      ? itemMode === "borrowable"
+                                        ? t.borrow
+                                        : "ขอเบิก"
+                                      : "สินค้าหมด"}
                                   </button>
                                 </div>
                               </div>
@@ -513,27 +589,31 @@ export default function MyBorrowsPageNextUI() {
                                     </div>
                                     <div>
                                       <span className="text-gray-500">
-                                        {t.pickupDate}:
+                                        {request.request_type === "borrowing"
+                                          ? t.pickupDate
+                                          : "วันที่ขอ"}
+                                        :
                                       </span>
                                       <p className="font-semibold text-gray-900">
                                         {new Date(
-                                          request.scheduled_pickup_date
+                                          request.scheduled_pickup_date ||
+                                            request.created_at
                                         ).toLocaleDateString()}
                                       </p>
                                     </div>
                                   </div>
-
-                                  <div className="text-sm">
-                                    <span className="text-gray-500">
-                                      {t.returnDate}:
-                                    </span>
-                                    <p className="font-semibold text-gray-900">
-                                      {new Date(
-                                        request.scheduled_return_date
-                                      ).toLocaleDateString()}
-                                    </p>
-                                  </div>
-
+                                  {request.scheduled_return_date && (
+                                    <div className="text-sm">
+                                      <span className="text-gray-500">
+                                        {t.returnDate}:
+                                      </span>
+                                      <p className="font-semibold text-gray-900">
+                                        {new Date(
+                                          request.scheduled_return_date
+                                        ).toLocaleDateString()}
+                                      </p>
+                                    </div>
+                                  )}{" "}
                                   {request.review_notes && (
                                     <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
                                       <p className="text-xs text-blue-900 font-medium">
@@ -541,7 +621,6 @@ export default function MyBorrowsPageNextUI() {
                                       </p>
                                     </div>
                                   )}
-
                                   {/* Action Button */}
                                   {request.status === "pending" && (
                                     <Button
@@ -736,22 +815,51 @@ export default function MyBorrowsPageNextUI() {
             </div>
           </div>
 
-          {/* Borrow Request Modal with custom theme */}
+          {/* Borrow/Requisition Request Modal with custom theme */}
           <Modal
             isOpen={showBorrowModal}
             onClose={() => {
               setShowBorrowModal(false);
               setSelectedItem(null);
             }}
-            title={t.submitBorrowRequest}
+            title={
+              itemMode === "borrowable"
+                ? t.submitBorrowRequest
+                : "ขอเบิกของถาวร"
+            }
             subtitle={selectedItem?.title}
             size="xl"
           >
             <div className="p-6 space-y-5 text-gray-700">
+              {/* Mode indicator */}
+              <div
+                className={`flex items-center gap-2 p-3 rounded-lg ${
+                  itemMode === "borrowable"
+                    ? "bg-[#334293]/10 border-2 border-[#334293]"
+                    : "bg-[#6B46C1]/10 border-2 border-[#6B46C1]"
+                }`}
+              >
+                <span className="text-2xl">
+                  {itemMode === "borrowable" ? "📚" : "📦"}
+                </span>
+                <div>
+                  <p className="font-bold text-gray-900">
+                    {itemMode === "borrowable"
+                      ? t.temporaryWithdrawal
+                      : t.permanentRequisition}
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    {itemMode === "borrowable" ? t.mustReturn : t.noReturn}
+                  </p>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-700">
                 <Input
                   type="number"
-                  label={t.quantityItem}
+                  label={`${t.quantityItem} ${
+                    selectedItem?.unit ? `(${selectedItem.unit})` : ""
+                  }`}
                   value={borrowForm.quantity.toString()}
                   onChange={(e) =>
                     setBorrowForm({
@@ -763,41 +871,63 @@ export default function MyBorrowsPageNextUI() {
                   max={selectedItem?.available_stock || 1}
                 />
                 <div className="flex items-end pb-2 text-sm text-gray-600 bg-gray-50 rounded-lg px-3">
-                  {t.stockInfo
-                    .replace(
-                      "{available}",
-                      selectedItem?.available_stock.toString() || "0"
-                    )
-                    .replace(
-                      "{total}",
-                      selectedItem?.total_stock.toString() || "0"
-                    )}
+                  คงเหลือ: {selectedItem?.available_stock || 0} /{" "}
+                  {selectedItem?.total_stock || 0}
                 </div>
               </div>
 
-              <Input
-                type="date"
-                label={t.pickupDate}
-                value={borrowForm.scheduled_pickup_date}
-                onChange={(e) =>
-                  setBorrowForm({
-                    ...borrowForm,
-                    scheduled_pickup_date: e.target.value,
-                  })
-                }
-              />
+              {/* Borrowable mode: Show dates */}
+              {itemMode === "borrowable" && (
+                <>
+                  <Input
+                    type="date"
+                    label={t.pickupDate}
+                    value={borrowForm.scheduled_pickup_date}
+                    onChange={(e) =>
+                      setBorrowForm({
+                        ...borrowForm,
+                        scheduled_pickup_date: e.target.value,
+                      })
+                    }
+                  />
 
-              <Input
-                type="date"
-                label={t.returnDate}
-                value={borrowForm.scheduled_return_date}
-                onChange={(e) =>
-                  setBorrowForm({
-                    ...borrowForm,
-                    scheduled_return_date: e.target.value,
-                  })
-                }
-              />
+                  <Input
+                    type="date"
+                    label={t.returnDate}
+                    value={borrowForm.scheduled_return_date}
+                    onChange={(e) =>
+                      setBorrowForm({
+                        ...borrowForm,
+                        scheduled_return_date: e.target.value,
+                      })
+                    }
+                  />
+                </>
+              )}
+
+              {/* Requisition mode: Show purpose */}
+              {itemMode === "requisition" && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-gray-600 font-medium">
+                    วัตถุประสงค์ในการเบิก{" "}
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <Textarea
+                    placeholder="ระบุวัตถุประสงค์ เช่น ใช้สำหรับสอนในชั้นเรียน, ใช้ในงานกิจกรรม ฯลฯ"
+                    value={borrowForm.purpose}
+                    onValueChange={(value) =>
+                      setBorrowForm({
+                        ...borrowForm,
+                        purpose: value,
+                      })
+                    }
+                    minRows={3}
+                    classNames={{
+                      input: "resize-none",
+                    }}
+                  />
+                </div>
+              )}
 
               <div className="flex flex-col gap-1">
                 <label className="text-gray-600 font-medium">
@@ -833,6 +963,11 @@ export default function MyBorrowsPageNextUI() {
                   variant="common"
                   onClick={handleSubmitBorrowRequest}
                   disabled={loading}
+                  className={
+                    itemMode === "requisition"
+                      ? "bg-[#6B46C1] hover:bg-[#5a3aa0]"
+                      : ""
+                  }
                 >
                   {loading ? "กำลังส่ง..." : t.submit}
                 </Button>

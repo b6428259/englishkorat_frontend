@@ -1,6 +1,10 @@
 "use client";
 
-import { BorrowingDashboard } from "@/components/borrowing";
+import {
+  BorrowingDashboard,
+  LowStockAlertsWidget,
+  MyBorrowingDashboard,
+} from "@/components/borrowing";
 import { RoleGuard } from "@/components/common/RoleGuard";
 import CancellationStatsWidget from "@/components/dashboard/CancellationStatsWidget";
 import { getAvatarUrl } from "@/utils/config";
@@ -550,9 +554,19 @@ export default function DashboardPage() {
             <CancellationStatsWidget />
           </RoleGuard>
 
-          {/* Borrowing System Dashboard - Admin/Owner Only */}
+          {/* My Borrowing Dashboard - For Teachers (Personal Stats) */}
+          <RoleGuard minRole="teacher">
+            <MyBorrowingDashboard />
+          </RoleGuard>
+
+          {/* Borrowing System Dashboard - For Admins (Full Overview) */}
           <RoleGuard minRole="admin">
             <BorrowingDashboard />
+          </RoleGuard>
+
+          {/* Low Stock Alerts - Admin/Owner Only */}
+          <RoleGuard minRole="admin">
+            <LowStockAlertsWidget maxItems={5} />
           </RoleGuard>
         </div>
       </SidebarLayout>
