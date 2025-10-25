@@ -157,6 +157,31 @@ export const API_ENDPOINTS = {
     CATEGORIES: "/dashboard/borrow/categories",
     AUDIT_LOGS: "/dashboard/borrow/audit-logs",
   },
+
+  // Attendance System endpoints
+  ATTENDANCE: {
+    // Teacher
+    TEACHER_CHECK_IN: "/attendance/teacher/check-in",
+    TEACHER_CHECK_OUT: "/attendance/teacher/check-out",
+    TEACHER_STATUS: "/attendance/teacher/status",
+    TEACHER_HISTORY: "/attendance/teacher/history",
+
+    // Student
+    STUDENT_CHECK_IN: "/attendance/student/check-in",
+    STUDENT_HISTORY: "/attendance/student/history",
+
+    // Session
+    GENERATE_CODE: "/attendance/sessions/generate-code",
+    SESSION_CODE: (id: number) => `/attendance/sessions/${id}/code`,
+    SESSION_STUDENTS: (id: number) => `/attendance/sessions/${id}/students`,
+
+    // Reports
+    DAILY_REPORT: "/attendance/reports/daily",
+    WEEKLY_REPORT: "/attendance/reports/weekly",
+    MONTHLY_REPORT: "/attendance/reports/monthly",
+    YEARLY_REPORT: "/attendance/reports/yearly",
+    INDIVIDUAL_REPORT: "/attendance/reports/individual",
+  },
 } as const;
 
 export const HTTP_STATUS = {
